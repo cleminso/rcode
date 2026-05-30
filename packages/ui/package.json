@@ -1,6 +1,6 @@
 {
-  "name": "@rtext/ui",
-  "description": "rtext UI components used in rtext project.",
+  "name": "@rcode/ui",
+  "description": "rcode UI components used in rcode project.",
   "private": true,
   "version": "0.0.1",
   "type": "module",

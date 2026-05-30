@@ -1,9 +1,9 @@
-# @rtext/ui
+# @rcode/ui
 
-This is the UI library for the rtext project.
+This is the UI library for the rcode project.
 
 > [!NOTE]
-> This is a private library for the rtext project. You probably shouldn't use it directly in your own projects.
+> This is a private library for the rcode project. You probably shouldn't use it directly in your own projects.
 
 ## Structure
 

@@ -1,11 +1,11 @@
 {
-  "name": "rtext",
+  "name": "rcode",
   "version": "0.0.1",
   "private": true,
   "description": "A web real-time collaborative code editor.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/regardedev/rtext"
+    "url": "https://github.com/regardedev/rcode"
   },
   "workspaces": [
     "packages/*",
