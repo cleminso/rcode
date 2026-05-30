@@ -1,18 +1,13 @@
 import { defineConfig } from "vite";
-import react from '@vitejs/plugin-react'
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react";
+import { jazzPlugin } from "jazz-tools/dev/vite";
 
 
 // Explicitly use PORT from portless
 const PORT = parseInt(process.env.PORT || "5173");
-
-// https://vite.dev/config/
-// export default defineConfig({
-//   plugins: [react()],
-// })
 
 export default defineConfig({
   resolve: {
@@ -22,16 +17,19 @@ export default defineConfig({
     devtools(),
     tanstackRouter({
       target: "react",
+      routesDirectory: "./src/routes",
+      generatedRouteTree: "./src/routeTree.gen.ts",
       autoCodeSplitting: true,
     }),
-    react(),
     viteReact(),
     tailwindcss(),
+    jazzPlugin({ schemaDir: "src/database" }),
   ],
   server: { port: PORT, host: true },
   build: {
     outDir: "dist",
     sourcemap: true,
     target: "es2022",
+
   },
 });

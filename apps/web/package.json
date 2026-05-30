@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "concurrently \"portless rcode vite\" \"agentation-mcp server\" --names \"vite,agentation\" --prefix-colors \"cyan,magenta\"",
     "build": "tsc -b && vite build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "jazz:validate": "jazz-tools validate --schema-dir src/database",
+    "jazz:deploy": "jazz-tools deploy $VITE_JAZZ_APP_ID --schema-dir src/database",
+    "auth:generate": "pnpm dlx @better-auth/cli@latest generate --config ./src/server/auth.ts --output ./src/database/better-auth/schema.ts"
   },
   "dependencies": {
     "@base-ui/react": "catalog:",
@@ -18,6 +21,7 @@
     "@tanstack/react-table": "catalog:",
     "@tanstack/router-plugin": "catalog:",
     "agentation-mcp": "^1.2.0",
+    "better-auth": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "jazz-tools": "catalog:",
