@@ -1,0 +1,45 @@
+{
+  "name": "rtext",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"portless rtext vite\" \"agentation-mcp server\" --names \"vite,agentation\" --prefix-colors \"cyan,magenta\"",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@base-ui/react": "catalog:",
+    "@fontsource-variable/geist": "catalog:",
+    "@rtext/ui": "workspace:*",
+    "@tailwindcss/vite": "catalog:",
+    "@tanstack/react-router": "catalog:",
+    "@tanstack/react-router-devtools": "catalog:",
+    "@tanstack/react-table": "catalog:",
+    "@tanstack/router-plugin": "catalog:",
+    "agentation-mcp": "^1.2.0",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "jazz-tools": "catalog:",
+    "lucide-react": "catalog:",
+    "next-themes": "0.4.6",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "shadcn": "catalog:",
+    "sonner": "catalog:",
+    "tailwind-merge": "catalog:",
+    "tailwindcss": "catalog:",
+    "tw-animate-css": "catalog:"
+  },
+  "devDependencies": {
+    "@tanstack/devtools-vite": "^0.7.0",
+    "@types/node": "^24.12.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "agentation": "^3.0.2",
+    "concurrently": "^9.2.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.12"
+  }
+}

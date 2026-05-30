@@ -1,0 +1,52 @@
+{
+  "name": "@rtext/ui",
+  "description": "rtext UI components used in rtext project.",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    "./ui/*": {
+      "types": "./dist/components/ui/*.d.ts",
+      "import": "./dist/components/ui/*.mjs"
+    },
+    "./lib/*": {
+      "types": "./dist/lib/*.d.ts",
+      "import": "./dist/lib/*.mjs"
+    }
+  },
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "rm -rf dist && tsup",
+    "lint": "oxlint .",
+    "format": "oxfmt \"**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@base-ui/react": "catalog:",
+    "@fontsource-variable/geist": "^5.2.8",
+    "@tailwindcss/vite": "catalog:",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "cmdk": "^1.1.1",
+    "lucide-react": "catalog:",
+    "next-themes": "^0.4.6",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "shadcn": "catalog:",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "catalog:",
+    "tailwindcss": "catalog:",
+    "tw-animate-css": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  }
+}

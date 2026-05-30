@@ -1,0 +1,20 @@
+{
+  "name": "rtext",
+  "version": "0.0.1",
+  "private": true,
+  "description": "A web real-time collaborative code editor.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/regardedev/rtext"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "pnpm -r dev",
+    "build": "pnpm -r build"
+  },
+  "author": "cleminso",
+  "packageManager": "pnpm@11.1.3"
+}
