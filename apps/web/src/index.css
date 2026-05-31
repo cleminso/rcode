@@ -1,3 +1,9 @@
+/* Design system foundation.
+   Uses Tailwind v4 CSS-first configuration with OKLCH color tokens.
+   The @theme inline block maps semantic names to OKLCH values,
+   and :root / .dark scopes define light and dark mode palettes.
+*/
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";

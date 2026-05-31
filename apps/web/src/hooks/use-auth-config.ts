@@ -1,3 +1,9 @@
+// Which auth mode the app should use based on the user's session state?
+// We implement a dual-auth pattern:
+// 1. `local-first` - users can start immediately without signing up. Their identity is a device secret.
+// 2. `external` - when users log in via Better Auth, the app switches to JWT mode.
+// Local-first and external are mutually exclusive in this hook.
+// (Identity upgrade between modes is a separate concern and not implemented here.)
 import { useEffect, useMemo, useState } from "react";
 import { useLocalFirstAuth } from "jazz-tools/react";
 import { authClient } from "../lib/auth-client";
@@ -20,12 +26,16 @@ async function getJwtFromBetterAuth() {
 }
 
 export function useAuthConfig() {
+  // loads/generates local secret for local-first auth.
   const { secret: localFirstSecret, isLoading: localFirstLoading } = useLocalFirstAuth();
+  // checks if a user has a server session.
   const { data: sessionData, isPending: sessionPending } = authClient.useSession();
 
   const [jwt, setJwt] = useState<string | null>(null);
   const [isFetchingJwt, setIsFetchingJwt] = useState(false);
 
+  // Refetch JWT whenever the active session identity changes.
+  // The dependency on `session.id` ensures we react to login/logout/switch.
   useEffect(() => {
     if (sessionPending === true) return;
 
@@ -45,6 +55,7 @@ export function useAuthConfig() {
       });
   }, [sessionPending, sessionData?.session?.id]);
 
+  // Memoize so `JazzProvider` only re-renders when `jwt` or `localFirstSecret` actually change.
   const config = useMemo<AuthConfig>(() => {
     const secret = jwt === null ? (localFirstSecret ?? undefined) : undefined;
 

@@ -1,9 +1,14 @@
+// TanStack Router uses file-based routing. `__root.tsx` is the top-level layout that wraps all other routes.
+// Top-level layout that wraps every page in the app.
+// TanStack Router automatically discovers this file as the root of the route tree.
 import { Outlet, createRootRoute } from "@tanstack/react-router";
 
+// Creates the root node of the route tree.
+// Exported as `Route` so TanStack Router's file-based routing discovers it.
 export const Route = createRootRoute({
   component: RootComponent,
 });
 
 function RootComponent() {
-  return <Outlet />;
+  return <Outlet />; // placeholder where child routes render their content
 }

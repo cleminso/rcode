@@ -1,9 +1,12 @@
+// Jazz clients can read/write data they have access to via group membership.
+// Better-Auth tables contain sensitive data that must never be accessible from the browser.
+// This file explicitly blocks all client access to auth and other sensitive tables.
 import { definePermissions } from "jazz-tools";
 import { app } from "./schema";
 
 export default definePermissions(app, ({ policy }) => {
-  // Better Auth tables: explicitly block all client access
-  // (the adapter uses backend bypass via asBackend + backendSecret)
+  // This file explicitly blocks all client access to auth tables.
+  // Application tables (e.g., rooms) are configured with their own policies below.
   policy.better_auth_user.allowRead.never();
   policy.better_auth_user.allowInsert.never();
   policy.better_auth_user.allowUpdate.never();

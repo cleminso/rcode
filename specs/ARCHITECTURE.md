@@ -52,3 +52,24 @@ graph TD
     Presence --> Awareness[Yjs awareness]
     Awareness --> Binding
 ```
+
+## Concepts at Play
+
+### Dual Auth Strategy
+
+The app implements Jazz's recommended dual-auth pattern:
+
+- **Local-first**: Users can start immediately without signing up. Their identity is a device secret.
+- **External JWT**: When users log in via Better Auth, the app switches to JWT mode while preserving the same identity (or upgrading from local-first).
+
+### Backend-as-Auth-Database
+
+By using `jazzAdapter`, Jazz serves double duty: it's both the application database (rooms, presence) and the auth database (users, sessions). The `permissions.ts` file ensures auth tables remain server-only.
+
+### Provider Remounting on Auth Change
+
+The `key={authKey}` on `JazzProvider` is intentional and required. Jazz clients are bound to a single principal. When a user logs in or out, the entire React subtree must remount to create a fresh Jazz client with the new identity.
+
+### Cookie + JWT Hybrid
+
+Better Auth uses HTTP-only cookies for session security, but Jazz needs a bearer JWT for sync authentication. The `jwtClient` plugin bridges this: the browser sends the cookie to the server, and the server returns a short-lived JWT that the browser passes to Jazz.
