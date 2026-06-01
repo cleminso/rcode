@@ -1,3 +1,11 @@
+# Table of Contents
+
+- [Problem Statement](#problem-statement)
+- [Solution](#solution)
+- [Awareness State](#awareness-state)
+- [Schema Decision](#schema-decision)
+- [Consequences](#consequences)
+
 ## Problem Statement
 
 Users need visual awareness of other users' cursor positions and presence in a working document.
@@ -10,19 +18,33 @@ Without presence awareness, users can collide and the room feels visually empty.
 
 ## Solution
 
-Use Yjs Awareness for ephemeral presence. The user Awareness state includes:
+Use Yjs Awareness for ephemeral presence. The provider propagates Awareness state alongside the room `Y.Doc`.
 
-- `clientId`
-- generated or account name
+Cursor rendering is delegated to `y-monaco`; rcode can inject CSS variables and labels for each user's cursor.
+
+## Awareness State
+
+The Awareness state can include:
+
+- Yjs `clientID`
+- display name
 - color
-- picture
-- `lastActive`
+- avatar
+- cursor position
+- selection
 
-The provider observes Awareness changes and builds a `users` map. Cursor render is delegated to `y-monaco` then we injects CSS variables and labels for each users cursor. Cursor state disappears when user leaves the room.
+Awareness state is not stored inside the Yjs document and is not persisted in Jazz tables.
 
-## About Awareness
+## Schema Decision
 
-- isn't stored in the Yjs document.
-- doesn't need to be persisted across sessions.
-- use a tiny state-based Awareness CRDT that propagates JSON objects to all users.
-- go offline? your Awareness state is automatically deleted and all users are notified that you went offline.
+Use:
+
+- `roomParticipants` for durable joined-room history
+- Yjs Awareness for visible live presence
+
+## Consequences
+
+- Cursor and selection state disappears when a client disconnects.
+- Reconnected clients publish fresh Awareness state.
+- The dashboard cannot rely on durable presence rows for active-user counts.
+- Persisted presence can be added only if product requirements need offline or audit-oriented presence records.

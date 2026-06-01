@@ -71,8 +71,8 @@ Presence is not durable document history. Each open editor session writes mutabl
 
 ### Join from a live link
 
-1. User opens `/$liveShareId`.
-2. App resolves the live share identifier.
+1. User opens `/$shareToken`.
+2. App resolves the live share token.
 3. The live link is treated as a bearer capability.
 4. A signed-in or local-first guest user joins the room as a participant.
 5. The provider loads the Yjs checkpoint and append-only updates.
@@ -81,7 +81,7 @@ Presence is not durable document history. Each open editor session writes mutabl
 
 ### Open a static link
 
-1. User opens `/s/$staticShareId`.
+1. User opens `/s/$staticToken`.
 2. App resolves the static link to the room.
 3. App reads the latest persisted Yjs state.
 4. App decodes `doc.getText("monaco")`.

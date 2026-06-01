@@ -22,8 +22,10 @@ export default function App() {
     return <div>Loading auth...</div>;
   }
 
-  // Jazz clients are bound to a single principal.
-  // When auth mode changes, the key prop forces a remount to create a fresh client.
+  // Jazz clients are bound to a single principal on a live db.
+  // If a user signs in and I change jwtToken on an existing provider, Jazz keeps using the old identity.
+  // The key prop forces React to unmount and remount JazzProvider, creating a fresh Jazz client with the new credentials.
+  // Without this, a user who signs in would still appear as their guest identity to Jazz.
   const authKey = config.jwtToken === undefined ? "local-first" : "external";
 
   return (

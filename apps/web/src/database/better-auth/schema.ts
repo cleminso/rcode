@@ -1,5 +1,10 @@
-// Better-Auth needs to store user accounts, sessions, verification codes and JWKS keys.
-// Since Jazz is used as the database for Better-Auth via `jazzAdapter`, this file defines the tables that Better-Auth expects.
+// Better Auth owns account infrastructure: users, sessions, accounts, verification codes, and JWKS keys.
+// These tables support sign-in and JWT issuance.
+//
+// rcode product identity lives in ../schema.ts as `profiles`.
+// A local-first Jazz user can have a profile before any Better Auth user row exists,
+// so app tables should not require refs to `better_auth_user` for room ownership.
+// Instead, app tables store Jazz `session.user_id` values in `session_user_id` columns.
 import { schema as s } from "jazz-tools";
 
 export const schema = {
@@ -63,3 +68,10 @@ export const schema = {
 type AppSchema = s.Schema<typeof schema>;
 export const app: s.App<AppSchema> = s.defineApp(schema);
 export const wasmSchema = app.wasmSchema;
+
+// It answers:
+// - Can this person sign in?
+// - What is their email?
+// - Is their email verified?
+// - Which sessions/accounts belong to them?
+// - What does Better Auth need to issue JWTs?

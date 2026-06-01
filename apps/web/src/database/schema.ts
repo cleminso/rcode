@@ -1,12 +1,63 @@
-// Defines the rcode data model, composed alongside auth tables.
+// Defines the rcode product data model, composed alongside Better Auth tables.
+//
+// Use Jazz `session.user_id` as the app-facing identity id across both auth modes:
+// 1. local-first users get it from their browser-held Jazz secret
+// 2. signed-in users get the same id from the Better Auth JWT `sub` claim
+//
+// `profiles` stores collaboration identity for rcode UI.
+// Identity columns use `session_user_id` because the value comes from Jazz `session.user_id`,
+// not from the profile row id and not necessarily from an existing Better Auth user row.
 import { schema as s } from "jazz-tools";
 import { schema as betterauthSchema } from "./better-auth/schema";
 
 const schema = {
   // Compose the Better-Auth schema with app-specific tables.
   ...betterauthSchema,
+  // Product identity for collaboration UI. `session_user_id` is the Jazz
+  // session identity, while this table's row id is only the profile row id.
+  profiles: s.table({
+    session_user_id: s.string(),
+    displayName: s.string(),
+    avatar: s.string().optional(),
+    isGuest: s.boolean(),
+  }),
+  // Protected room identity, sharing, and ownership fields. Participant-editable
+  // display/editor metadata lives in roomMetadata so permissions stay row-level.
   rooms: s.table({
+    shareToken: s.string(),
+    staticToken: s.string(),
+    creator_session_user_id: s.string(),
+  }),
+  // Participant-editable room metadata. There should be one row per room by
+  // app convention; Jazz does not enforce a unique room_id here.
+  roomMetadata: s.table({
+    room_id: s.ref("rooms"),
     title: s.string(),
+    editorLanguage: s.string().default("plaintext"),
+  }),
+  // Durable joined-room history used by room access and dashboard surfaces.
+  roomParticipants: s.table({
+    room_id: s.ref("rooms"),
+    session_user_id: s.string(),
+    lastAccessedAt: s.timestamp(),
+  }),
+  // Canonical Yjs update log. The provider applies these binary updates to a
+  // room-scoped Y.Doc to reconstruct collaborative text content.
+  roomYjsUpdates: s.table({
+    room_id: s.ref("rooms"),
+    update: s.bytes(),
+    session_user_id: s.string(),
+    y_client_id: s.int(),
+    provider_instance_id: s.string(),
+    createdAt: s.timestamp(),
+  }),
+  // Immutable Yjs checkpoints for faster bootstrap and restore workflows.
+  roomYjsSnapshots: s.table({
+    room_id: s.ref("rooms"),
+    state: s.bytes(),
+    stateVector: s.bytes().optional(),
+    session_user_id: s.string().optional(),
+    createdAt: s.timestamp(),
   }),
 };
 
