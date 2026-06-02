@@ -1,0 +1,29 @@
+{
+  "name": "@rcode/schema",
+  "description": "Jazz schema source of truth for rcode.",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./permissions": {
+      "types": "./src/permissions.ts",
+      "import": "./src/permissions.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "jazz:validate": "jazz-tools validate --schema-dir src",
+    "jazz:deploy": "jazz-tools deploy $VITE_JAZZ_APP_ID --schema-dir src"
+  },
+  "dependencies": {
+    "jazz-tools": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}
