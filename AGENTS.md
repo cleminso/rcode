@@ -4,9 +4,10 @@
 
 - Root scripts are only `pnpm dev` and `pnpm build`; both run recursively across workspaces.
 - Focused app commands:
-  - `pnpm --filter rcode dev` starts the web app via `portless rcode vite` and also starts `agentation-mcp server`.
-  - `pnpm --filter rcode build` runs `vite build && tsc`.
-  - `pnpm --filter rcode typecheck` runs `tsc --noEmit`.
+  - `pnpm --filter ./apps/web dev` starts the web app through Portless at `https://rcode.localhost` and also starts `agentation-mcp server`.
+  - `pnpm --filter @rcode/api dev` starts the Hono API through Portless at `https://api.rcode.localhost` with app port `4000`.
+  - `pnpm --filter ./apps/web build` runs `vite build && tsc`.
+  - `pnpm --filter ./apps/web typecheck` runs `tsc --noEmit`.
 - Focused package commands:
   - `pnpm --filter @rcode/ui build|dev|typecheck|lint|format`.
   - `pnpm --filter @rcode/jazz-dev-tools build|dev|typecheck`.

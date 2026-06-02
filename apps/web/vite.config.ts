@@ -1,13 +1,12 @@
-import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { jazzPlugin } from "jazz-tools/dev/vite";
+import { defineConfig } from "vite";
 
-
-// Explicitly use PORT from portless
-const PORT = parseInt(process.env.PORT || "5173");
+const port = Number.parseInt(process.env.PORT ?? "5173", 10);
+const apiUrl = process.env.VITE_AUTH_BASE_URL ?? "https://api.rcode.localhost";
 
 export default defineConfig({
   resolve: {
@@ -23,13 +22,27 @@ export default defineConfig({
     }),
     viteReact(),
     tailwindcss(),
-    jazzPlugin({ schemaDir: "src/database" }),
+    jazzPlugin({ schemaDir: "../../packages/database/schema/src" }),
   ],
-  server: { port: PORT, host: true },
+  server: {
+    port,
+    host: true,
+    proxy: {
+      "/api": {
+        target: apiUrl,
+        changeOrigin: true,
+        secure: false,
+      },
+      "/auth": {
+        target: apiUrl,
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
   build: {
     outDir: "dist",
     sourcemap: true,
     target: "es2022",
-
   },
 });

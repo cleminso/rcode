@@ -7,6 +7,7 @@ import { createAuthClient } from "better-auth/react";
 import { jwtClient } from "better-auth/client/plugins";
 
 export const authClient = createAuthClient({
-  baseURL: import.meta.env.VITE_LOCAL_APP_URL,
+  baseURL: import.meta.env.VITE_AUTH_BASE_URL ?? import.meta.env.VITE_LOCAL_APP_URL,
+  basePath: "/auth",
   plugins: [jwtClient()],
 });

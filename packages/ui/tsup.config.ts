@@ -8,6 +8,9 @@ export default defineConfig({
     compilerOptions: {
       moduleResolution: 'bundler',
       jsx: 'react-jsx',
+      ignoreDeprecations: '5.0',
+      noUnusedLocals: false,
+      noUnusedParameters: false,
     },
   },
   bundle: true,

@@ -4,16 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"portless rcode vite\" \"agentation-mcp server\" --names \"vite,agentation\" --prefix-colors \"cyan,magenta\"",
+    "dev": "concurrently \"portless run --name rcode vite\" \"agentation-mcp server\" --names \"vite,agentation\" --prefix-colors \"cyan,magenta\"",
     "build": "tsc -b && vite build",
     "typecheck": "tsc --noEmit",
-    "jazz:validate": "jazz-tools validate --schema-dir src/database",
-    "jazz:deploy": "jazz-tools deploy $VITE_JAZZ_APP_ID --schema-dir src/database",
-    "auth:generate": "pnpm dlx @better-auth/cli@latest generate --config ./src/server/auth.ts --output ./src/database/better-auth/schema.ts"
+    "jazz:validate": "pnpm --filter @rcode/schema jazz:validate",
+    "jazz:deploy": "pnpm --filter @rcode/schema jazz:deploy"
   },
   "dependencies": {
     "@base-ui/react": "catalog:",
     "@fontsource-variable/geist": "catalog:",
+    "@rcode/schema": "workspace:*",
     "@rcode/ui": "workspace:*",
     "@tailwindcss/vite": "catalog:",
     "@tanstack/react-router": "catalog:",
@@ -43,6 +43,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "agentation": "^3.0.2",
     "concurrently": "^9.2.1",
+    "portless": "catalog:",
     "typescript": "~6.0.2",
     "vite": "^8.0.12"
   }

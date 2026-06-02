@@ -25,7 +25,8 @@ Participants have edit capability rather than separate viewer/commenter/editor r
 
 ## Tables
 
-- `rooms`: room metadata, creator identity, and sharing tokens
+- `rooms`: protected room identity, creator identity, and sharing tokens
+- `roomMetadata`: participant-editable title and editor language
 - `roomParticipants`: durable room membership/access history
 - `profiles`: display identity for collaboration UI
 

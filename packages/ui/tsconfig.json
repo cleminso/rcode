@@ -12,6 +12,7 @@
     "jsx": "react-jsx",
     "skipLibCheck": true,
     "strict": true,
+    "ignoreDeprecations": "5.0",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,

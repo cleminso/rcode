@@ -58,13 +58,17 @@ Snapshots are stored as checkpoint rows. They help clients bootstrap a `Y.Doc`, 
 - `session_user_id`: optional producer identity
 - `createdAt`: checkpoint metadata
 
-The `rooms` table keeps queryable room metadata:
+The `rooms` table keeps protected room identity and sharing fields:
 
 - `shareToken`
 - `staticToken`
+- `creator_session_user_id`
+
+The `roomMetadata` table keeps participant-editable room metadata:
+
+- `room_id`
 - `title`
 - `editorLanguage`
-- `creator_session_user_id`
 
 ## Provider Flow
 

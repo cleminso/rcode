@@ -24,7 +24,8 @@ dist-extension
 *.sln
 *.sw?
 
-.env*
+.env
+.env.production
 .zed*
 .vercel
 .tanstack

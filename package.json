@@ -12,7 +12,7 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "pnpm -r dev",
+    "dev": "pnpm -r --parallel --filter './apps/*' --filter './packages/*' dev",
     "build": "pnpm -r build"
   },
   "author": "cleminso",

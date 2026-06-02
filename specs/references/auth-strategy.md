@@ -2,6 +2,7 @@
 
 - [Problem Statement](#problem-statement)
 - [Solution](#solution)
+- [App API Boundary](#app-api-boundary)
 - [User Journeys](#user-journeys)
 - [Identity Model](#identity-model)
 - [Schema Responsibilities](#schema-responsibilities)
@@ -32,6 +33,25 @@ Support `signed-in` user session through Jazz `external` mode.
 - can create multiple rooms, CRUD actions
 
 This is a lightweight approach that avoid implementing a full ownership and role-based concept.
+
+## App API Boundary
+
+rcode uses Jazz for product data sync and permissions, but Better Auth still needs an app-owned HTTP server.
+
+`apps/api` exists for server-only auth infrastructure:
+
+- Better Auth sign-in, sign-up, sign-out, and session endpoints.
+- Better Auth JWT/JWKS endpoints used by Jazz external auth.
+- Jazz adapter access to Better Auth tables.
+- Local-first identity proof verification during account upgrade.
+
+`apps/api` does not own room data workflows. Room creation, room metadata updates, room participant rows, and Yjs update rows use Jazz client writes guarded by Jazz permissions.
+
+This keeps the boundary clear:
+
+- API server: account/session/JWT infrastructure.
+- Jazz sync: product data storage, sync, and authorization.
+- Web app: user interface and Jazz client mutations.
 
 ## User Journeys
 

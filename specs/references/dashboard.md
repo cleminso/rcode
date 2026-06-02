@@ -27,7 +27,8 @@ Live active users are not derived from durable rows. Cursor-level activity belon
 
 ## Data Sources
 
-- `rooms`: room metadata and creator identity
+- `rooms`: protected room identity, creator identity, and sharing tokens
+- `roomMetadata`: participant-editable title and editor language
 - `roomParticipants`: joined-room history and `lastAccessedAt`
 - `roomYjsUpdates`: document activity metadata if activity summaries are needed
 - `profiles`: display names and avatars

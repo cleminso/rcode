@@ -9,38 +9,128 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ShareTokenRouteImport } from './routes/$shareToken'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SStaticTokenRouteImport } from './routes/s/$staticToken'
+import { Route as RoomsShareTokenRouteImport } from './routes/rooms/$shareToken'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShareTokenRoute = ShareTokenRouteImport.update({
+  id: '/$shareToken',
+  path: '/$shareToken',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SStaticTokenRoute = SStaticTokenRouteImport.update({
+  id: '/s/$staticToken',
+  path: '/s/$staticToken',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoomsShareTokenRoute = RoomsShareTokenRouteImport.update({
+  id: '/rooms/$shareToken',
+  path: '/rooms/$shareToken',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$shareToken': typeof ShareTokenRoute
+  '/dashboard': typeof DashboardRoute
+  '/login': typeof LoginRoute
+  '/rooms/$shareToken': typeof RoomsShareTokenRoute
+  '/s/$staticToken': typeof SStaticTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$shareToken': typeof ShareTokenRoute
+  '/dashboard': typeof DashboardRoute
+  '/login': typeof LoginRoute
+  '/rooms/$shareToken': typeof RoomsShareTokenRoute
+  '/s/$staticToken': typeof SStaticTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$shareToken': typeof ShareTokenRoute
+  '/dashboard': typeof DashboardRoute
+  '/login': typeof LoginRoute
+  '/rooms/$shareToken': typeof RoomsShareTokenRoute
+  '/s/$staticToken': typeof SStaticTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/$shareToken'
+    | '/dashboard'
+    | '/login'
+    | '/rooms/$shareToken'
+    | '/s/$staticToken'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/$shareToken'
+    | '/dashboard'
+    | '/login'
+    | '/rooms/$shareToken'
+    | '/s/$staticToken'
+  id:
+    | '__root__'
+    | '/'
+    | '/$shareToken'
+    | '/dashboard'
+    | '/login'
+    | '/rooms/$shareToken'
+    | '/s/$staticToken'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ShareTokenRoute: typeof ShareTokenRoute
+  DashboardRoute: typeof DashboardRoute
+  LoginRoute: typeof LoginRoute
+  RoomsShareTokenRoute: typeof RoomsShareTokenRoute
+  SStaticTokenRoute: typeof SStaticTokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$shareToken': {
+      id: '/$shareToken'
+      path: '/$shareToken'
+      fullPath: '/$shareToken'
+      preLoaderRoute: typeof ShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +138,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/s/$staticToken': {
+      id: '/s/$staticToken'
+      path: '/s/$staticToken'
+      fullPath: '/s/$staticToken'
+      preLoaderRoute: typeof SStaticTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rooms/$shareToken': {
+      id: '/rooms/$shareToken'
+      path: '/rooms/$shareToken'
+      fullPath: '/rooms/$shareToken'
+      preLoaderRoute: typeof RoomsShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ShareTokenRoute: ShareTokenRoute,
+  DashboardRoute: DashboardRoute,
+  LoginRoute: LoginRoute,
+  RoomsShareTokenRoute: RoomsShareTokenRoute,
+  SStaticTokenRoute: SStaticTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

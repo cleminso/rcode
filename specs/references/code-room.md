@@ -17,15 +17,19 @@ Room metadata can change when users collaborate:
 
 ## Solution
 
-Store queryable metadata in the Jazz `rooms` row:
+Store protected sharing and ownership fields in the Jazz `rooms` row:
 
 - `shareToken`
 - `staticToken`
-- `title`
-- `editorLanguage`
 - `creator_session_user_id`
 
-Metadata mutations are normal Jazz row updates. LWW is acceptable for room title and editor language because they are metadata fields, not collaborative text content.
+Store participant-editable metadata in the Jazz `roomMetadata` row:
+
+- `room_id`
+- `title`
+- `editorLanguage`
+
+Metadata mutations are normal Jazz row updates. LWW is acceptable for room title and editor language because they are metadata fields, not collaborative text content. The split keeps creator-controlled sharing fields separate from participant-editable display fields.
 
 ## Document Content
 
