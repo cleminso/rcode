@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { StaticRoomScreen } from "../../components/editor/staticRoomScreen";
 
 export const Route = createFileRoute("/s/$staticToken")({
   component: StaticRoomPage,
@@ -7,7 +8,5 @@ export const Route = createFileRoute("/s/$staticToken")({
 function StaticRoomPage() {
   const { staticToken } = Route.useParams();
 
-  return (
-    null
-  );
+  return <StaticRoomScreen staticToken={staticToken} />;
 }

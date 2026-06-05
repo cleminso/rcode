@@ -1,14 +1,6 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { authClient } from "../lib/auth-client";
+import { createFileRoute } from "@tanstack/react-router";
+import { DashboardScreen } from "../components/dashboard/dashboardScreen";
 
 export const Route = createFileRoute("/dashboard")({
-  component: DashboardPage,
+  component: DashboardScreen,
 });
-
-function DashboardPage() {
-  const { data: session, isPending } = authClient.useSession();
-
-  return (
-    null
-  );
-}

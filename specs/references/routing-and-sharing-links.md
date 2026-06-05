@@ -51,3 +51,10 @@ The static route reconstructs read-only content from the same Yjs persistence:
 - Anyone with the static token can view rendered content but cannot edit through the static route.
 - Static links reflect persisted Yjs state reconstructed from snapshots and updates.
 - Static links do not preserve historical content by themselves.
+
+## Codebase Architecture
+
+- TanStack route files stay thin.
+- No real UI directly in src/routes.
+- UI should live in src/components or app folders.
+- Route files import page/layout components and only wire params/loaders/navigation boundaries.

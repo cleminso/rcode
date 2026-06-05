@@ -1,13 +1,6 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { LandingPage } from "../components/landing/page";
 
-// Landing page at the root path `/`.
-// This is the first thing users see when visiting the app.
 export const Route = createFileRoute("/")({
-  component: HomePage,
+  component: LandingPage,
 });
-
-function HomePage() {
-  return (
-    null
-  );
-}

@@ -32,6 +32,7 @@ catalog:
   jazz-napi: 2.0.0-alpha.49
   "jazz-tools": 2.0.0-alpha.49
   lucide-react: ^1.16.0
+  nanoid: ^5.1.6
   portless: ^0.13.1
   react: 19.2.6
   react-dom: 19.2.6

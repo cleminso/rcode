@@ -4,7 +4,7 @@
 import { definePermissions } from "jazz-tools";
 import { app } from "./schema";
 
-export default definePermissions(app, ({ policy, session, allOf, anyOf }) => {
+export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedTo }) => {
   const canEditSession = anyOf([
     session.where({ authMode: "local-first" }),
     session.where({ authMode: "external" }),
@@ -69,6 +69,7 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf }) => {
     allOf([
       canEditSession,
       anyOf([
+        allowedTo.update("room"),
         policy.rooms.exists.where({
           id: metadata.room_id,
           creator_session_user_id: session.user_id,
@@ -84,6 +85,7 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf }) => {
     allOf([
       canEditSession,
       anyOf([
+        allowedTo.update("room"),
         policy.rooms.exists.where({
           id: metadata.room_id,
           creator_session_user_id: session.user_id,

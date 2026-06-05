@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { EditorScreen } from "../../components/editor/editorScreen";
 
 export const Route = createFileRoute("/rooms/$shareToken")({
   component: RoomPage,
@@ -7,7 +8,5 @@ export const Route = createFileRoute("/rooms/$shareToken")({
 function RoomPage() {
   const { shareToken } = Route.useParams();
 
-  return (
-    null
-  );
+  return <EditorScreen shareToken={shareToken} />;
 }
