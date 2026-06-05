@@ -18,11 +18,11 @@ export default defineConfig({
       target: "react",
       routesDirectory: "./src/routes",
       generatedRouteTree: "./src/routeTree.gen.ts",
-      autoCodeSplitting: true,
+      autoCodeSplitting: false,
     }),
     viteReact(),
     tailwindcss(),
-    jazzPlugin({ schemaDir: "../../packages/database/schema/src" }),
+    jazzPlugin({ schemaDir: "../../packages/database/schema/src", server: false }),
   ],
   server: {
     port,

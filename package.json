@@ -16,7 +16,7 @@
     "build": "pnpm -r build"
   },
   "author": "cleminso",
-  "packageManager": "pnpm@11.4.0",
+  "packageManager": "pnpm@11.5.1",
   "dependencies": {
     "@better-auth/infra": "^0.2.11"
   }
