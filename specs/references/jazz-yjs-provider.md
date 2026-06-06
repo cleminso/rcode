@@ -5,6 +5,7 @@
 - [Persistence Model](#persistence-model)
 - [Schema Shape](#schema-shape)
 - [Provider Flow](#provider-flow)
+- [Provider Runtime Invariants](#provider-runtime-invariants)
 - [Snapshot Semantics](#snapshot-semantics)
 - [Edit History Semantics](#edit-history-semantics)
 - [Multi-Tab and Echo Handling](#multi-tab-and-echo-handling)
@@ -74,11 +75,13 @@ The `roomMetadata` table keeps participant-editable room metadata:
 
 Document bootstrap:
 
-1. Create a `Y.Doc` for the room.
+1. Create a `Y.Doc` for the room during React render.
 2. Apply a snapshot from `roomYjsSnapshots` if one is selected.
-3. Apply `roomYjsUpdates` rows for the room.
-4. Bind Monaco to `doc.getText("monaco")` through `y-monaco`.
-5. Subscribe to additional `roomYjsUpdates` rows for the room.
+3. Normalize stored Jazz bytes into `Uint8Array` before applying them.
+4. Apply `roomYjsUpdates` rows for the room.
+5. Mark the room as ready once bootstrap rows have been processed.
+6. Bind Monaco to `doc.getText("monaco")` through `y-monaco`.
+7. Subscribe to additional `roomYjsUpdates` rows for the room.
 
 Local edit:
 
@@ -90,9 +93,26 @@ Local edit:
 Remote edit:
 
 1. Jazz delivers a `roomYjsUpdates` row.
-2. The provider applies `row.update` with `Y.applyUpdate(doc, row.update, provider)`.
-3. Yjs merges the update into the document.
-4. `y-monaco` updates the Monaco model.
+2. The provider normalizes `row.update` to `Uint8Array`.
+3. The provider applies the row with `Y.applyUpdate(doc, update, provider)`.
+4. Yjs merges the update into the document.
+5. `y-monaco` updates the Monaco model.
+
+## Provider Runtime Invariants
+
+The provider must preserve these invariants:
+
+- The room `Y.Doc` is created during render, keyed by `roomId`. Do not create an initial doc and replace it from an effect; row application can then target a stale doc while Monaco binds to the replacement.
+- Readiness is tracked by ready `roomId`, not only by a boolean. A room switch must synchronously expose `isYjsReady === false` until the new room's rows have been processed.
+- Monaco binding waits for both Monaco mount and `isYjsReady === true`. This prevents an empty editor model from seeding the room doc with remote Yjs updates unapplied.
+- Monaco binding lives in a dedicated hook so editor setup, room loading, and Yjs binding lifecycles stay separate.
+- Sessions without an editable Jazz identity receive a read-only Monaco editor. They can still receive Yjs rows, but local edits are blocked because the provider cannot persist them.
+- Remote Jazz rows are applied with a stable remote origin object. The local `ydoc.on("update")` listener ignores that origin so applying remote rows does not write the same update back to Jazz.
+- Echo filtering uses `provider_instance_id`, not `session_user_id`. The same user can have multiple browser tabs, and those tabs should still receive each other's updates.
+- Applied update ids are tracked per room/provider instance to avoid unnecessary duplicate work. Yjs updates are still idempotent, so this is an optimization and loop guard rather than a correctness requirement.
+- Local updates are copied for insertion. Yjs update buffers should be treated as immutable Jazz payloads.
+- Share-token collaborators write through `roomParticipants`. The provider calls `ensureParticipant()` as a prerequisite for inserting Yjs rows so permission checks use the same durable path as metadata edits.
+- Apply and persist failures are reported as provider errors. The room UI surfaces those errors through toast notifications while the console keeps the raw error for debugging.
 
 ## Snapshot Semantics
 
@@ -137,7 +157,7 @@ Each tab gets its own Yjs `clientID`. Do not filter remote rows by `session_user
 
 Echo handling should be scoped to the provider instance:
 
-- ignore rows created by the same `provider_instance_id` only when they are already applied locally
+- ignore rows created by the same `provider_instance_id` only when they are locally applied
 - still apply rows from the same `session_user_id` when they come from a different provider instance
 - set transaction origin when applying remote updates so the provider does not write back an update it just applied
 

@@ -53,13 +53,17 @@ export function useCreateRoom() {
         lastAccessedAt: new Date(),
       });
 
+      // The participant row is the metadata permission dependency, so room
+      // creation and share-token edits use the same durable write path.
+      await participantWrite.wait({ tier: "edge" });
+
       const metadataWrite = db.insert(app.roomMetadata, {
         room_id: room.id,
         title: "",
         editorLanguage: "plaintext",
       });
 
-      await Promise.all([participantWrite.wait({ tier: "edge" }), metadataWrite.wait({ tier: "edge" })]);
+      await metadataWrite.wait({ tier: "edge" });
 
       await navigate({
         to: "/rooms/$shareToken",

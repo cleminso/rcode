@@ -13,6 +13,7 @@
   "dependencies": {
     "@base-ui/react": "catalog:",
     "@fontsource-variable/geist": "catalog:",
+    "@monaco-editor/react": "^4.7.0",
     "@rcode/icons": "workspace:*",
     "@rcode/schema": "workspace:*",
     "@rcode/ui": "workspace:*",
@@ -27,6 +28,7 @@
     "clsx": "catalog:",
     "jazz-tools": "catalog:",
     "lucide-react": "catalog:",
+    "monaco-editor": "^0.55.1",
     "nanoid": "catalog:",
     "next-themes": "0.4.6",
     "react": "catalog:",
@@ -35,7 +37,10 @@
     "sonner": "catalog:",
     "tailwind-merge": "catalog:",
     "tailwindcss": "catalog:",
-    "tw-animate-css": "catalog:"
+    "tw-animate-css": "catalog:",
+    "y-monaco": "^0.1.6",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.31"
   },
   "devDependencies": {
     "@tanstack/devtools-vite": "^0.7.0",

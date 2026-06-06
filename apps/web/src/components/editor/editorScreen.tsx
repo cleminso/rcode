@@ -1,10 +1,9 @@
 import { languages } from "@rcode/icons/languages";
-import { Avatar, AvatarFallback, AvatarGroup } from "@rcode/ui/ui/avatar";
 import { Button } from "@rcode/ui/ui/button";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
 import { EditorLayout } from "../layout/editorLayout";
 import { EditorLanguageCombobox } from "./editorLanguageCombobox";
+import { EditorTextArea } from "./editorTextArea";
 import { RoomTitle } from "./roomTitle";
 import { RoomProvider, useRoom } from "./roomProvider";
 
@@ -21,7 +20,7 @@ export function EditorScreen(props: EditorScreenProps) {
 }
 
 function EditorContent() {
-  const { editorLanguage, isLoading, shareToken, title, updateEditorLanguage, updateTitle } = useRoom();
+  const { editorLanguage, isLoading, title, updateEditorLanguage, updateTitle } = useRoom();
   const navigate = useNavigate();
 
   const currentLanguageLogo = languages.find((language) => language.value === editorLanguage)?.logo;
@@ -51,27 +50,18 @@ function EditorContent() {
             onValueCommit={(nextTitle) => void updateTitle(nextTitle)}
           />
 
-          <EditorActions key={shareToken} shareToken={shareToken} />
+          <EditorActions />
         </div>
       }
     >
-      <div className="h-full bg-muted/30" />
+      <div className="h-full bg-muted/30">
+        <EditorTextArea />
+      </div>
     </EditorLayout>
   );
 }
 
-interface EditorActionsProps {
-  shareToken: string;
-}
-
-function EditorActions(props: EditorActionsProps) {
-  const [didCopyShareToken, setDidCopyShareToken] = useState(false);
-
-  const handleShare = async () => {
-    await navigator.clipboard.writeText(props.shareToken);
-    setDidCopyShareToken(true);
-  };
-
+function EditorActions() {
   return (
     <div className="flex min-w-0 items-center justify-end gap-3">
       {/*<AvatarGroup aria-label="Room participants">

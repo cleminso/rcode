@@ -64,6 +64,8 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
 
   // Room metadata is split from protected room fields because collaborators can
   // edit title/language without getting access to tokens or ownership fields.
+  // `allowedTo.update("room")` preserves Jazz relationship-based room writes;
+  // participant rows preserve share-token collaborator writes.
   policy.roomMetadata.allowRead.always();
   policy.roomMetadata.allowInsert.where((metadata) =>
     allOf([
@@ -111,13 +113,15 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
   policy.roomParticipants.allowDelete.never();
 
   // Yjs update rows are append-only so document reconstruction stays auditable
-  // and consistent across clients.
+  // and consistent across clients. Write access mirrors metadata: creator,
+  // relationship-based room editor, or durable room participant.
   policy.roomYjsUpdates.allowRead.always();
   policy.roomYjsUpdates.allowInsert.where((update) =>
     allOf([
       { session_user_id: session.user_id },
       canEditSession,
       anyOf([
+        allowedTo.update("room"),
         policy.rooms.exists.where({
           id: update.room_id,
           creator_session_user_id: session.user_id,
@@ -133,13 +137,15 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
   policy.roomYjsUpdates.allowDelete.never();
 
   // Snapshots are checkpoint rows. Corrections should be inserted as another
-  // snapshot instead of mutating an existing checkpoint.
+  // snapshot instead of mutating an existing checkpoint. Insert permissions
+  // mirror update rows so any authorized editor can write a checkpoint.
   policy.roomYjsSnapshots.allowRead.always();
   policy.roomYjsSnapshots.allowInsert.where((snapshot) =>
     allOf([
       { session_user_id: session.user_id },
       canEditSession,
       anyOf([
+        allowedTo.update("room"),
         policy.rooms.exists.where({
           id: snapshot.room_id,
           creator_session_user_id: session.user_id,

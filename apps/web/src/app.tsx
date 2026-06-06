@@ -1,4 +1,5 @@
 // Application shell: given the current auth state, how do we initialize Jazz and render the router?
+import { Toaster } from "@rcode/ui/ui/sonner";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { JazzProvider } from "jazz-tools/react";
 import { useAuthConfig } from "./hooks/use-auth-config";
@@ -36,6 +37,7 @@ export default function App() {
       fallback={<div>Loading Jazz...</div>}
     >
       <RouterProvider router={router} />
+      <Toaster />
     </JazzProvider>
   );
 }
