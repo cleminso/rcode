@@ -47,7 +47,7 @@ Snapshots are stored as checkpoint rows. They help clients bootstrap a `Y.Doc`, 
 - `room_id`: reference to `rooms.id`
 - `update`: Yjs binary update as bytes
 - `session_user_id`: Jazz app identity that produced the row
-- `y_client_id`: Yjs runtime client id for debugging and inspection
+- `y_client_id`: exact Yjs runtime client id string for debugging and inspection
 - `provider_instance_id`: browser/provider instance id for echo handling
 - `createdAt`: row creation metadata for inspection and pruning policies
 
@@ -154,6 +154,8 @@ Restore should not delete update rows. Prefer appending a restore update or crea
 ## Multi-Tab and Echo Handling
 
 Each tab gets its own Yjs `clientID`. Do not filter remote rows by `session_user_id`; the same user may have multiple tabs that should receive each other's updates.
+
+Yjs `clientID` values are unsigned 32-bit integers. Store them as strings in Jazz rows because Jazz integer fields are signed i32 and can reject valid Yjs ids.
 
 Echo handling should be scoped to the provider instance:
 

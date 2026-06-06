@@ -1,18 +1,15 @@
 import MonacoEditor, { type OnMount } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useMonacoBinding } from "../../hooks/useMonacoBinding";
 import { useRoom } from "./roomProvider";
 
 export function EditorTextArea() {
   const { canEdit, editorLanguage, isYjsReady, ydoc } = useRoom();
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
-  const editorInstance = isMounted === true ? editorRef.current : null;
+  const [editorInstance, setEditorInstance] = useState<editor.IStandaloneCodeEditor | null>(null);
 
-  const handleMount: OnMount = (editorInstance) => {
-    editorRef.current = editorInstance;
-    setIsMounted(true);
+  const handleMount: OnMount = (mountedEditor) => {
+    setEditorInstance(mountedEditor);
   };
 
   useMonacoBinding({ editorInstance, isReady: isYjsReady, ydoc });

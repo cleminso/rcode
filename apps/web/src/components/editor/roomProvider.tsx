@@ -1,9 +1,9 @@
 import { app } from "@rcode/schema";
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useRef } from "react";
 import { useAll, useDb, useSession } from "jazz-tools/react";
 import { toast } from "sonner";
 import type * as Y from "yjs";
-import { useJazzYjsDocument } from "../../hooks/useJazzYjsDocument";
+import { type YjsProviderError, useJazzYjsDocument } from "../../hooks/useJazzYjsDocument";
 
 interface RoomContextValue {
   shareToken: string;
@@ -79,23 +79,20 @@ export function RoomProvider(props: RoomProviderProps) {
     return true;
   }, [canEditSession, db, participant, participantRows, room, session]);
 
-  const { isYjsReady, ydoc, yjsProviderError } = useJazzYjsDocument({
+  const notifyYjsProviderError = useCallback((error: YjsProviderError) => {
+    toast.error(error.title, {
+      id: error.id,
+      description: error.description,
+    });
+  }, []);
+
+  const { isYjsReady, ydoc } = useJazzYjsDocument({
     // Expose roomId only with room metadata and participant state loaded;
     // otherwise the editor can bootstrap without its write permission path.
     roomId: isLoading === false ? (room?.id ?? null) : null,
     ensureParticipant,
+    onError: notifyYjsProviderError,
   });
-
-  useEffect(() => {
-    if (yjsProviderError === null) {
-      return;
-    }
-
-    toast.error(yjsProviderError.title, {
-      id: yjsProviderError.id,
-      description: yjsProviderError.description,
-    });
-  }, [yjsProviderError]);
 
   const updateMetadata = async (metadataPatch: { title?: string; editorLanguage?: string }) => {
     if (isLoading === true || room === null) {

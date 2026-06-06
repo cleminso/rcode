@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc --noEmit",
     "jazz:validate": "pnpm --filter @rcode/schema jazz:validate",
-    "jazz:deploy": "pnpm --filter @rcode/schema jazz:deploy"
+    "jazz:deploy": "set -a && source .env && set +a && pnpm --filter @rcode/schema jazz:deploy"
   },
   "dependencies": {
     "@base-ui/react": "catalog:",

@@ -47,7 +47,7 @@ const schema = {
     room_id: s.ref("rooms"),
     update: s.bytes(),
     session_user_id: s.string(),
-    y_client_id: s.int(),
+    y_client_id: s.string(),
     provider_instance_id: s.string(),
     createdAt: s.timestamp(),
   }),

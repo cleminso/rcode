@@ -1,12 +1,13 @@
 import { app } from "@rcode/schema";
 import { nanoid } from "nanoid";
 import { useAll, useDb, useSession } from "jazz-tools/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as Y from "yjs";
 
 interface UseJazzYjsDocumentArgs {
   roomId: string | null;
   ensureParticipant: () => Promise<boolean>;
+  onError?: (error: YjsProviderError) => void;
 }
 
 interface RemoteUpdateOrigin {
@@ -18,6 +19,13 @@ export interface YjsProviderError {
   type: "apply" | "persist";
   title: string;
   description: string;
+}
+
+interface YjsRoomRuntime {
+  appliedUpdateIds: Set<string>;
+  didBootstrap: boolean;
+  doc: Y.Doc;
+  providerInstanceId: string;
 }
 
 const remoteUpdateOrigin: RemoteUpdateOrigin = { provider: "jazz" };
@@ -92,33 +100,28 @@ function toYjsUpdate(value: unknown) {
 }
 
 export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
-  const { ensureParticipant, roomId } = args;
+  const { ensureParticipant, onError, roomId } = args;
   const db = useDb();
   const session = useSession();
-  const providerInstanceIdRef = useRef(nanoid());
-  const appliedUpdateIdsRef = useRef(new Set<string>());
-  const didBootstrapRef = useRef(false);
   // Create the room doc during render so consumers bind to the same doc that
   // receives bootstrap rows; effect-time replacement can target stale docs.
-  const doc = useMemo(() => new Y.Doc(), [roomId]);
+  const runtime = useMemo<YjsRoomRuntime>(
+    () => ({
+      appliedUpdateIds: new Set<string>(),
+      didBootstrap: false,
+      doc: new Y.Doc(),
+      providerInstanceId: nanoid(),
+    }),
+    [roomId],
+  );
+  const doc = runtime.doc;
   const [readyRoomId, setReadyRoomId] = useState<string | null>(null);
-  const [providerError, setProviderError] = useState<YjsProviderError | null>(null);
   const isReady = roomId !== null && readyRoomId === roomId;
 
   const snapshotRows = useAll(
     roomId !== null ? app.roomYjsSnapshots.where({ room_id: roomId }) : undefined,
   );
   const updateRows = useAll(roomId !== null ? app.roomYjsUpdates.where({ room_id: roomId }) : undefined);
-
-  useEffect(() => {
-    // Declare this effect above row application so room-local refs reset for the
-    // target room's snapshots and updates.
-    providerInstanceIdRef.current = nanoid();
-    appliedUpdateIdsRef.current = new Set<string>();
-    didBootstrapRef.current = false;
-    setReadyRoomId(null);
-    setProviderError(null);
-  }, [roomId]);
 
   useEffect(() => {
     return () => {
@@ -132,7 +135,7 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
       return;
     }
 
-    if (didBootstrapRef.current === false) {
+    if (runtime.didBootstrap === false) {
       const latestSnapshot = snapshotRows.reduce<(typeof snapshotRows)[number] | null>((latest, snapshot) => {
         if (latest === null) {
           return snapshot;
@@ -146,34 +149,40 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
           Y.applyUpdate(doc, toYjsUpdate(latestSnapshot.state), remoteUpdateOrigin);
         } catch (error) {
           reportYjsApplyError(error);
-          setProviderError(createYjsProviderError("apply", error));
+
+          if (onError !== undefined) {
+            onError(createYjsProviderError("apply", error));
+          }
         }
       }
 
-      didBootstrapRef.current = true;
+      runtime.didBootstrap = true;
     }
 
     for (const updateRow of updateRows) {
-      if (appliedUpdateIdsRef.current.has(updateRow.id) === true) {
+      if (runtime.appliedUpdateIds.has(updateRow.id) === true) {
         continue;
       }
 
-      if (updateRow.provider_instance_id === providerInstanceIdRef.current) {
-        appliedUpdateIdsRef.current.add(updateRow.id);
+      if (updateRow.provider_instance_id === runtime.providerInstanceId) {
+        runtime.appliedUpdateIds.add(updateRow.id);
         continue;
       }
 
       try {
         Y.applyUpdate(doc, toYjsUpdate(updateRow.update), remoteUpdateOrigin);
-        appliedUpdateIdsRef.current.add(updateRow.id);
+        runtime.appliedUpdateIds.add(updateRow.id);
       } catch (error) {
         reportYjsApplyError(error);
-        setProviderError(createYjsProviderError("apply", error));
+
+        if (onError !== undefined) {
+          onError(createYjsProviderError("apply", error));
+        }
       }
     }
 
     setReadyRoomId(roomId);
-  }, [roomId, doc, snapshotRows, updateRows]);
+  }, [roomId, doc, onError, runtime, snapshotRows, updateRows]);
 
   useEffect(() => {
     if (roomId === null || isReady === false || session === null) {
@@ -196,8 +205,8 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
       }
 
       const sessionUserId = session.user_id;
-      const yClientId = doc.clientID;
-      const providerInstanceId = providerInstanceIdRef.current;
+      const yClientId = String(doc.clientID);
+      const providerInstanceId = runtime.providerInstanceId;
       const updateCopy = new Uint8Array(update);
 
       void (async () => {
@@ -221,8 +230,8 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
         } catch (error) {
           reportYjsPersistError(error);
 
-          if (isActive === true) {
-            setProviderError(createYjsProviderError("persist", error));
+          if (isActive === true && onError !== undefined) {
+            onError(createYjsProviderError("persist", error));
           }
         }
       })();
@@ -234,11 +243,10 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
       isActive = false;
       doc.off("update", persistUpdate);
     };
-  }, [db, doc, ensureParticipant, isReady, roomId, session]);
+  }, [db, doc, ensureParticipant, isReady, onError, roomId, runtime, session]);
 
   return {
     ydoc: doc,
     isYjsReady: isReady,
-    yjsProviderError: providerError,
   };
 }
