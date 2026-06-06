@@ -67,10 +67,28 @@ function readPort() {
   return port;
 }
 
+function readOriginList(name: string) {
+  return (readOptionalEnv(name) ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter((origin) => origin !== "");
+}
+
+const appUrl = readOptionalEnv("APP_URL") ?? readOptionalEnv("VITE_LOCAL_APP_URL") ?? "https://rcode.localhost";
+const allowedOrigins = Array.from(
+  new Set([
+    appUrl,
+    readOptionalEnv("VITE_APP_URL"),
+    readOptionalEnv("VITE_LOCAL_APP_URL"),
+    ...readOriginList("ALLOWED_ORIGINS"),
+  ].filter((origin) => origin !== undefined)),
+);
+
 export const env = {
   port: readPort(),
   host: readOptionalEnv("HOST") ?? "127.0.0.1",
-  appUrl: readOptionalEnv("APP_URL") ?? "https://rcode.localhost",
+  appUrl,
+  allowedOrigins,
   betterAuthUrl: readOptionalEnv("BETTER_AUTH_URL") ?? "https://api.rcode.localhost",
   betterAuthBasePath: readOptionalEnv("BETTER_AUTH_BASE_PATH") ?? "/auth",
   jazzAppId: readEnv("JAZZ_APP_ID"),

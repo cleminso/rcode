@@ -2,10 +2,13 @@ import { app } from "@rcode/schema";
 import { createContext, type ReactNode, useCallback, useContext, useRef } from "react";
 import { useAll, useDb, useSession } from "jazz-tools/react";
 import { toast } from "sonner";
+import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
+import { useRoomAwareness } from "../../hooks/useRoomAwareness";
 import { type YjsProviderError, useJazzYjsDocument } from "../../hooks/useJazzYjsDocument";
 
 interface RoomContextValue {
+  awareness: Awareness;
   shareToken: string;
   roomId: string | null;
   canEdit: boolean;
@@ -93,6 +96,11 @@ export function RoomProvider(props: RoomProviderProps) {
     ensureParticipant,
     onError: notifyYjsProviderError,
   });
+  const awareness = useRoomAwareness({
+    isReady: isYjsReady,
+    roomId: room?.id ?? null,
+    ydoc,
+  });
 
   const updateMetadata = async (metadataPatch: { title?: string; editorLanguage?: string }) => {
     if (isLoading === true || room === null) {
@@ -130,6 +138,7 @@ export function RoomProvider(props: RoomProviderProps) {
   return (
     <RoomContext.Provider
       value={{
+        awareness,
         shareToken: props.shareToken,
         roomId: room?.id ?? null,
         canEdit: canEditSession,

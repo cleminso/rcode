@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { app } from "./app";
+import { attachAwarenessServer } from "./awarenessServer";
 import { env } from "./env";
 
 const server = serve(
@@ -12,6 +13,8 @@ const server = serve(
     console.log(`rcode API listening on http://${env.host}:${info.port}`);
   },
 );
+
+attachAwarenessServer(server);
 
 process.on("SIGINT", () => {
   server.close();
