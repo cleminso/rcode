@@ -118,38 +118,67 @@ The provider must preserve these invariants:
 
 Snapshots are immutable derived rows, not the canonical document representation.
 
-A snapshot is produced from a `Y.Doc` with encoded document state. Applying a snapshot is equivalent to applying a Yjs update that contains the known document state at the checkpoint.
+A snapshot is produced from a `Y.Doc` with `Y.encodeStateAsUpdate(doc)`. Applying a snapshot is equivalent to applying a Yjs update that contains the known document state at the checkpoint.
 
-Safe reconstruction rule:
+### Snapshot creation
 
-1. apply the selected snapshot
-2. apply update rows for the room
+Any authorized editor client can create snapshot rows. The provider uses a timer-based approach:
 
-Applying an update already represented by the snapshot is safe because Yjs document updates are idempotent.
+- Track local edits via the `ydoc.on("update")` listener.
+- Check every 30 seconds whether edits have occurred since the last snapshot.
+- If edits exist and 5 minutes have elapsed, create a new snapshot row.
+- Multiple clients may create near-identical snapshots simultaneously; bootstrap selects the latest by `createdAt`.
 
-Snapshot rows make document loading more efficient and support restore workflows, but they do not replace `roomYjsUpdates` as the canonical persistence path.
+This is analogous to Notion's automatic version history (snapshots every 10 minutes during active editing).
+
+### Safe reconstruction rule
+
+1. Apply the latest snapshot by `createdAt`.
+2. Apply **all** visible `roomYjsUpdates` rows for the room.
+
+**Do not filter updates by timestamp.** Timestamp filtering is unsafe in a local-first system: an offline client may create an update before a snapshot exists, then sync it later. A timestamp filter would skip that update even though the snapshot did not include it.
+
+Applying an update already represented by the snapshot is safe because Yjs document updates are idempotent. The snapshot provides a fast baseline; updates fill in anything that arrived after the snapshot was taken.
+
+### Snapshot roles
+
+| Role | Table |
+|------|-------|
+| Real-time sync | `roomYjsUpdates` — canonical persistence, queried by provider |
+| Bootstrap optimization | `roomYjsSnapshots` — latest snapshot + all updates |
+| Version history | `roomYjsSnapshots` — user-facing timeline, restore points |
+
+`roomYjsUpdates` is never queried for user-facing history. It is an internal sync mechanism.
 
 ## Edit History Semantics
 
-`roomYjsUpdates` can support a technical edit history because every row records a Yjs binary update plus metadata.
+rcode provides **snapshot-based version history**, not keystroke-level edit history.
 
-What this can support:
+### What users see
 
-- inspect update counts per room
-- show activity grouped by `session_user_id`
-- show broad document activity around checkpoint rows
-- reconstruct the document by applying subsets of updates to a scratch `Y.Doc`
-- restore from a snapshot by creating a restore operation that resets the document to the selected checkpoint state
+A chronological list of snapshot versions with:
+- timestamp
+- author (`session_user_id`)
+- ability to view that version
+- ability to restore the document to that version
 
-What it does not provide by itself:
+### How it works
 
-- human-readable diffs
-- semantic operations such as renamed function or deleted paragraph
-- reliable undo per author without additional Yjs undo-manager design
+- `roomYjsSnapshots` stores periodic full-document snapshots.
+- The history UI queries `roomYjsSnapshots` ordered by `createdAt`.
+- Each snapshot is a Yjs document state that can be loaded into a scratch `Y.Doc` for preview or applied to the live document for restore.
 
-Human-readable edit history requires decoding Yjs state into text snapshots or deriving text diffs between reconstructed states.
+### What it does not provide
 
-Restore should not delete update rows. Prefer appending a restore update or creating a new snapshot-derived document state so the history remains auditable.
+- Keystroke-level diffs ("who changed line 42 at 2:15 PM")
+- Semantic operations ("renamed function foo to bar")
+- Git-style branching or merging
+
+These would require a central operation log and ordered transforms (like Google Docs' OT server), which is incompatible with Jazz's distributed sync model.
+
+### Restore
+
+Restore applies a snapshot's encoded state to the current `Y.Doc` as a new update. This does not delete update rows; it appends a new state so the history timeline remains intact. The restored state becomes a new snapshot in the history.
 
 ## Multi-Tab and Echo Handling
 
@@ -180,7 +209,6 @@ Do not add a durable live-presence table for cursor presence. Durable participat
 
 ## Open Questions
 
-- Which client or process is allowed to create snapshot rows?
-- What policy selects the snapshot used for bootstrap?
-- What pruning policy, if any, removes update rows represented by trusted snapshots?
-- How should restore be represented: append a Yjs restore update, fork a room, or replace room content through a controlled document operation?
+- When should update rows be batched with `Y.mergeUpdates` to reduce row count?
+- Should snapshots support user-defined labels (e.g., "Before refactoring") in addition to auto-generated timestamps?
+- What retention policy, if any, should govern old snapshot rows?

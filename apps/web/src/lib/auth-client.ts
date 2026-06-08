@@ -10,4 +10,9 @@ export const authClient = createAuthClient({
   baseURL: import.meta.env.VITE_AUTH_BASE_URL ?? import.meta.env.VITE_LOCAL_APP_URL,
   basePath: "/auth",
   plugins: [jwtClient()],
+  sessionOptions: {
+    refetchInterval: 0,
+    refetchOnWindowFocus: false,
+    refetchWhenOffline: false,
+  },
 });

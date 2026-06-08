@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"portless run --name rcode vite\" \"agentation-mcp server\" --names \"vite,agentation\" --prefix-colors \"cyan,magenta\"",
+    "dev": "PORTLESS_PORT=1355 concurrently \"portless run --name rcode vite\" \"agentation-mcp server\" --names \"vite,agentation\" --prefix-colors \"cyan,magenta\"",
     "build": "tsc -b && vite build",
     "typecheck": "tsc --noEmit",
     "jazz:validate": "pnpm --filter @rcode/schema jazz:validate",

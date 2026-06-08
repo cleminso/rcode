@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "portless run --name api.rcode tsx watch src/index.ts",
+    "dev": "PORTLESS_PORT=1355 portless run --name api.rcode tsx watch src/index.ts",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "auth:generate": "pnpm dlx @better-auth/cli@latest generate --config ./src/auth.ts --output ../../packages/database/schema/src/better-auth/schema.ts"

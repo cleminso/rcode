@@ -1,8 +1,13 @@
 import { app } from "@rcode/schema";
 import { nanoid } from "nanoid";
 import { useAll, useDb, useSession } from "jazz-tools/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as Y from "yjs";
+
+const ACTIVE_SNAPSHOT_INTERVAL_MS = 5 * 60 * 1000;
+const IDLE_SNAPSHOT_DELAY_MS = 2 * 60 * 1000;
+const SNAPSHOT_COALESCE_WINDOW_MS = 2 * 60 * 1000;
+const MONACO_TEXT_NAME = "monaco";
 
 interface UseJazzYjsDocumentArgs {
   roomId: string | null;
@@ -40,6 +45,10 @@ function reportYjsPersistError(error: unknown) {
 
 function reportYjsApplyError(error: unknown) {
   console.error("Failed to apply remote Yjs update.", error);
+}
+
+function isAbortSignalAborted(signal: AbortSignal) {
+  return signal.aborted === true;
 }
 
 function getErrorDescription(error: unknown) {
@@ -99,6 +108,17 @@ function toYjsUpdate(value: unknown) {
   throw new Error("Expected a Yjs update byte array.");
 }
 
+function getSnapshotMonacoText(state: unknown) {
+  const snapshotDoc = new Y.Doc();
+
+  try {
+    Y.applyUpdate(snapshotDoc, toYjsUpdate(state));
+    return snapshotDoc.getText(MONACO_TEXT_NAME).toString();
+  } finally {
+    snapshotDoc.destroy();
+  }
+}
+
 export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
   const { ensureParticipant, onError, roomId } = args;
   const db = useDb();
@@ -115,12 +135,30 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
     [roomId],
   );
   const doc = runtime.doc;
+  const providerInstanceId = runtime.providerInstanceId;
   const [readyRoomId, setReadyRoomId] = useState<string | null>(null);
   const isReady = roomId !== null && readyRoomId === roomId;
+  const canEditSession =
+    session !== null &&
+    (session.authMode === "local-first" || session.authMode === "external");
+  const sessionUserId = session?.user_id ?? null;
+  const hasLocalEditsRef = useRef(false);
+  const localEditVersionRef = useRef(0);
+
+  // Use refs for callbacks/handles that can change without needing to restart
+  // the room-scoped persist/snapshot effect.
+  const dbRef = useRef(db);
+  dbRef.current = db;
+  const ensureParticipantRef = useRef(ensureParticipant);
+  ensureParticipantRef.current = ensureParticipant;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   const snapshotRows = useAll(
     roomId !== null ? app.roomYjsSnapshots.where({ room_id: roomId }) : undefined,
   );
+  const snapshotRowsRef = useRef(snapshotRows);
+  snapshotRowsRef.current = snapshotRows;
   const updateRows = useAll(roomId !== null ? app.roomYjsUpdates.where({ room_id: roomId }) : undefined);
 
   useEffect(() => {
@@ -184,66 +222,207 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
     setReadyRoomId(roomId);
   }, [roomId, doc, onError, runtime, snapshotRows, updateRows]);
 
+  // Combined effect for both update persistence and snapshot creation. Both
+  // share the same guard conditions and cleanup logic, and snapshot creation
+  // depends on the edit flag set by the persist listener.
   useEffect(() => {
-    if (roomId === null || isReady === false || session === null) {
+    if (roomId === null || isReady === false || canEditSession === false || sessionUserId === null) {
       return;
     }
 
     const activeRoomId = roomId;
+    const activeDoc = doc;
+    const activeProviderInstanceId = providerInstanceId;
+    const activeSessionUserId = sessionUserId;
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    let activeSnapshotIntervalId: ReturnType<typeof setInterval> | null = null;
+    let idleSnapshotTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let isSnapshotInFlight = false;
 
-    const canEditSession = session.authMode === "local-first" || session.authMode === "external";
+    const clearActiveSnapshotInterval = () => {
+      if (activeSnapshotIntervalId === null) {
+        return;
+      }
 
-    if (canEditSession === false) {
-      return;
-    }
+      clearInterval(activeSnapshotIntervalId);
+      activeSnapshotIntervalId = null;
+    };
 
-    let isActive = true;
+    const clearIdleSnapshotTimeout = () => {
+      if (idleSnapshotTimeoutId === null) {
+        return;
+      }
+
+      clearTimeout(idleSnapshotTimeoutId);
+      idleSnapshotTimeoutId = null;
+    };
+
+    const createSnapshot = async () => {
+      if (
+        hasLocalEditsRef.current === false ||
+        isAbortSignalAborted(signal) === true ||
+        isSnapshotInFlight === true
+      ) {
+        return;
+      }
+
+      isSnapshotInFlight = true;
+
+      try {
+        const canWrite = await ensureParticipantRef.current();
+
+        if (canWrite === false || isAbortSignalAborted(signal) === true) {
+          return;
+        }
+
+        const includedEditVersion = localEditVersionRef.current;
+        const currentSnapshotRows = snapshotRowsRef.current;
+
+        if (currentSnapshotRows !== undefined) {
+          const latestSnapshot = currentSnapshotRows.reduce<(typeof currentSnapshotRows)[number] | null>(
+            (latest, snapshot) => {
+              if (latest === null) {
+                return snapshot;
+              }
+
+              return snapshot.createdAt > latest.createdAt ? snapshot : latest;
+            },
+            null,
+          );
+
+          if (latestSnapshot !== null) {
+            const latestSnapshotAge = Date.now() - latestSnapshot.createdAt.getTime();
+
+            if (latestSnapshotAge <= SNAPSHOT_COALESCE_WINDOW_MS) {
+              // TODO: store a textHash on snapshot rows. It would let us coalesce
+              // recent duplicate snapshots without loading a scratch Y.Doc.
+              const latestSnapshotText = getSnapshotMonacoText(latestSnapshot.state);
+              const currentText = activeDoc.getText(MONACO_TEXT_NAME).toString();
+
+              if (latestSnapshotText === currentText) {
+                if (
+                  isAbortSignalAborted(signal) === false &&
+                  localEditVersionRef.current === includedEditVersion
+                ) {
+                  hasLocalEditsRef.current = false;
+                }
+
+                return;
+              }
+            }
+          }
+        }
+
+        const state = Y.encodeStateAsUpdate(activeDoc);
+        const stateVector = Y.encodeStateVector(activeDoc);
+
+        await dbRef.current
+          .insert(app.roomYjsSnapshots, {
+            room_id: activeRoomId,
+            state,
+            stateVector,
+            session_user_id: activeSessionUserId,
+            createdAt: new Date(),
+          })
+          .wait({ tier: "local" });
+
+        if (
+          isAbortSignalAborted(signal) === false &&
+          localEditVersionRef.current === includedEditVersion
+        ) {
+          hasLocalEditsRef.current = false;
+        }
+      } catch (error) {
+        console.error("Failed to create Yjs snapshot.", error);
+      } finally {
+        isSnapshotInFlight = false;
+      }
+    };
+
+    const ensureActiveSnapshotInterval = () => {
+      if (activeSnapshotIntervalId !== null) {
+        return;
+      }
+
+      activeSnapshotIntervalId = setInterval(() => {
+        void createSnapshot();
+      }, ACTIVE_SNAPSHOT_INTERVAL_MS);
+    };
+
+    const scheduleIdleSnapshot = () => {
+      clearIdleSnapshotTimeout();
+
+      idleSnapshotTimeoutId = setTimeout(() => {
+        idleSnapshotTimeoutId = null;
+
+        void createSnapshot().finally(() => {
+          if (hasLocalEditsRef.current === false) {
+            clearActiveSnapshotInterval();
+          }
+        });
+      }, IDLE_SNAPSHOT_DELAY_MS);
+    };
+
+    const monacoText = activeDoc.getText(MONACO_TEXT_NAME);
+    const scheduleSnapshotFromLocalTextChange: Parameters<Y.Text["observe"]>[0] = (_event, transaction) => {
+      if (transaction.origin === remoteUpdateOrigin) {
+        return;
+      }
+
+      hasLocalEditsRef.current = true;
+      localEditVersionRef.current += 1;
+      ensureActiveSnapshotInterval();
+      scheduleIdleSnapshot();
+    };
 
     const persistUpdate = (update: Uint8Array, origin: unknown) => {
       if (origin === remoteUpdateOrigin) {
         return;
       }
 
-      const sessionUserId = session.user_id;
-      const yClientId = String(doc.clientID);
-      const providerInstanceId = runtime.providerInstanceId;
+      const yClientId = String(activeDoc.clientID);
       const updateCopy = new Uint8Array(update);
 
       void (async () => {
         try {
-          const canWrite = await ensureParticipant();
+          const canWrite = await ensureParticipantRef.current();
 
-          if (canWrite === false) {
+          if (canWrite === false || isAbortSignalAborted(signal) === true) {
             return;
           }
 
-          await db
+          await dbRef.current
             .insert(app.roomYjsUpdates, {
               room_id: activeRoomId,
               update: updateCopy,
-              session_user_id: sessionUserId,
+              session_user_id: activeSessionUserId,
               y_client_id: yClientId,
-              provider_instance_id: providerInstanceId,
+              provider_instance_id: activeProviderInstanceId,
               createdAt: new Date(),
             })
             .wait({ tier: "edge" });
         } catch (error) {
           reportYjsPersistError(error);
 
-          if (isActive === true && onError !== undefined) {
-            onError(createYjsProviderError("persist", error));
+          if (isAbortSignalAborted(signal) === false && onErrorRef.current !== undefined) {
+            onErrorRef.current(createYjsProviderError("persist", error));
           }
         }
       })();
     };
 
-    doc.on("update", persistUpdate);
+    monacoText.observe(scheduleSnapshotFromLocalTextChange);
+    activeDoc.on("update", persistUpdate);
 
     return () => {
-      isActive = false;
-      doc.off("update", persistUpdate);
+      abortController.abort();
+      monacoText.unobserve(scheduleSnapshotFromLocalTextChange);
+      activeDoc.off("update", persistUpdate);
+      clearActiveSnapshotInterval();
+      clearIdleSnapshotTimeout();
     };
-  }, [db, doc, ensureParticipant, isReady, onError, roomId, runtime, session]);
+  }, [canEditSession, doc, isReady, providerInstanceId, roomId, sessionUserId]);
 
   return {
     ydoc: doc,
