@@ -2,12 +2,13 @@ import { defineConfig } from 'tsup'
 
 export default defineConfig({
   tsconfig: './tsconfig.json',
-  entry: ['./src', '!./src/**/*.stories.*'],
-  format: ['cjs', 'esm'],
-  minify: true,
+  // TODO: Add './src/hooks' when implemented
+  entry: ['./src/components/ui', './src/lib', '!./src/**/*.stories.*'],
+  format: ['esm'],
+  minify: false,
   dts: true,
   bundle: true,
-  outExtension: ({ format }) => ({
-    js: format === 'cjs' ? '.js' : '.mjs',
-  }),
+  clean: true,
+  outExtension: () => ({ js: '.mjs' }),
+  external: ['@base-ui/react', 'lucide-react', 'sonner', 'next-themes'],
 })
