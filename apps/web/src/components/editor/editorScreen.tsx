@@ -1,9 +1,11 @@
 import { languages } from "@rcode/icons/languages";
 import { Button } from "@rcode/ui/ui/button";
 import { useNavigate } from "@tanstack/react-router";
+import type { Awareness } from "y-protocols/awareness";
 import { EditorLayout } from "../layout/editorLayout";
 import { EditorLanguageCombobox } from "./editorLanguageCombobox";
 import { EditorTextArea } from "./editorTextArea";
+import { EditorUsersList } from "./editorUsersList";
 import { RoomTitle } from "./roomTitle";
 import { RoomProvider, useRoom } from "./roomProvider";
 
@@ -20,7 +22,7 @@ export function EditorScreen(props: EditorScreenProps) {
 }
 
 function EditorContent() {
-  const { editorLanguage, isLoading, title, updateEditorLanguage, updateTitle } = useRoom();
+  const { awareness, editorLanguage, isLoading, title, updateEditorLanguage, updateTitle } = useRoom();
   const navigate = useNavigate();
 
   const currentLanguageLogo = languages.find((language) => language.value === editorLanguage)?.logo;
@@ -50,7 +52,7 @@ function EditorContent() {
             onValueCommit={(nextTitle) => void updateTitle(nextTitle)}
           />
 
-          <EditorActions />
+          <EditorActions awareness={awareness} />
         </div>
       }
     >
@@ -61,23 +63,10 @@ function EditorContent() {
   );
 }
 
-function EditorActions() {
+function EditorActions({ awareness }: { awareness: Awareness }) {
   return (
     <div className="flex min-w-0 items-center justify-end gap-3">
-      {/*<AvatarGroup aria-label="Room participants">
-        <Avatar size="sm" className="bg-emerald-300">
-          <AvatarFallback className="bg-emerald-300 text-emerald-950">A</AvatarFallback>
-        </Avatar>
-        <Avatar size="sm" className="bg-sky-300">
-          <AvatarFallback className="bg-sky-300 text-sky-950">B</AvatarFallback>
-        </Avatar>
-      </AvatarGroup>
-      <Button type="button" variant="secondary" size="sm" onClick={() => void handleShare()}>
-        {didCopyShareToken === true ? "Copied" : "Share"}
-      </Button>
-      <Avatar size="sm" aria-label="Current user">
-        <AvatarFallback className="bg-sky-300 text-sky-950">U</AvatarFallback>
-      </Avatar>*/}
+      <EditorUsersList awareness={awareness} maxUsers={4} />
     </div>
   );
 }

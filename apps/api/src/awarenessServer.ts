@@ -1,15 +1,26 @@
 import type { Socket } from "node:net";
 import type { IncomingMessage } from "node:http";
+import {
+  applyAwarenessUpdate,
+  Awareness,
+  encodeAwarenessUpdate,
+  removeAwarenessStates,
+} from "y-protocols/awareness";
+import * as Y from "yjs";
 import { WebSocket, WebSocketServer, type RawData } from "ws";
 import { env } from "./env";
 
 interface AwarenessClient {
-  // Holds the last ephemeral Awareness update from this socket only while the
-  // socket is connected, so late joiners can receive current live presence
-  // without writing cursor state to Jazz.
-  latestUpdate: Buffer | null;
+  room: AwarenessRoom;
   roomId: string;
   socket: WebSocket;
+}
+
+interface AwarenessRoom {
+  awareness: Awareness;
+  clientOwners: Map<number, AwarenessClient>;
+  clients: Set<AwarenessClient>;
+  doc: Y.Doc;
 }
 
 interface AwarenessUpgradeServer {
@@ -71,7 +82,67 @@ function toBinaryMessage(data: RawData) {
 
 export function attachAwarenessServer(server: AwarenessUpgradeServer) {
   const websocketServer = new WebSocketServer({ noServer: true });
-  const clients = new Set<AwarenessClient>();
+  const rooms = new Map<string, AwarenessRoom>();
+
+  const getRoom = (roomId: string) => {
+    const existingRoom = rooms.get(roomId);
+
+    if (existingRoom !== undefined) {
+      return existingRoom;
+    }
+
+    const doc = new Y.Doc();
+    const awareness = new Awareness(doc);
+    awareness.setLocalState(null);
+
+    const room: AwarenessRoom = {
+      awareness,
+      clientOwners: new Map(),
+      clients: new Set(),
+      doc,
+    };
+
+    awareness.on("update", (change: { added: number[]; updated: number[]; removed: number[] }, origin: unknown) => {
+      const changedClients = change.added.concat(change.updated, change.removed);
+
+      if (changedClients.length === 0) {
+        return;
+      }
+
+      if (isAwarenessClient(origin) === true) {
+        for (const clientId of change.added.concat(change.updated)) {
+          room.clientOwners.set(clientId, origin);
+        }
+      }
+
+      for (const clientId of change.removed) {
+        room.clientOwners.delete(clientId);
+      }
+
+      const update = encodeAwarenessUpdate(awareness, changedClients);
+
+      for (const client of room.clients) {
+        if (origin === client || client.socket.readyState !== WebSocket.OPEN) {
+          continue;
+        }
+
+        client.socket.send(update);
+      }
+    });
+
+    rooms.set(roomId, room);
+    return room;
+  };
+
+  const deleteRoomIfEmpty = (roomId: string, room: AwarenessRoom) => {
+    if (room.clients.size !== 0) {
+      return;
+    }
+
+    rooms.delete(roomId);
+    room.awareness.destroy();
+    room.doc.destroy();
+  };
 
   server.on("upgrade", (request, socket: Socket, head) => {
     const roomId = getRoomId(request);
@@ -88,19 +159,15 @@ export function attachAwarenessServer(server: AwarenessUpgradeServer) {
   });
 
   websocketServer.on("connection", (socket: WebSocket, _request: IncomingMessage, roomId: string) => {
-    const client: AwarenessClient = { latestUpdate: null, roomId, socket };
+    const room = getRoom(roomId);
+    const client: AwarenessClient = { room, roomId, socket };
+    const knownClientIds = Array.from(room.awareness.getStates().keys());
 
-    for (const peer of clients) {
-      if (peer.roomId !== roomId || peer.latestUpdate === null || socket.readyState !== WebSocket.OPEN) {
-        continue;
-      }
-
-      // Send current in-memory states from already-connected peers to the new
-      // peer. Future updates are still broadcast peer-to-peer by room below.
-      socket.send(peer.latestUpdate);
+    if (knownClientIds.length > 0 && socket.readyState === WebSocket.OPEN) {
+      socket.send(encodeAwarenessUpdate(room.awareness, knownClientIds));
     }
 
-    clients.add(client);
+    room.clients.add(client);
 
     socket.on("message", (data) => {
       const message = toBinaryMessage(data);
@@ -109,23 +176,48 @@ export function attachAwarenessServer(server: AwarenessUpgradeServer) {
         return;
       }
 
-      client.latestUpdate = message;
-
-      for (const peer of clients) {
-        if (peer.roomId !== roomId || peer.socket === socket || peer.socket.readyState !== WebSocket.OPEN) {
-          continue;
-        }
-
-        peer.socket.send(message);
+      try {
+        applyAwarenessUpdate(room.awareness, message, client);
+      } catch {
+        socket.close(1003, "Invalid awareness update");
+        return;
       }
+
     });
 
     socket.on("close", () => {
-      clients.delete(client);
+      room.clients.delete(client);
+      const ownedClientIds: number[] = [];
+
+      for (const [clientId, owner] of room.clientOwners) {
+        if (owner === client && room.awareness.getStates().has(clientId) === true) {
+          ownedClientIds.push(clientId);
+        }
+      }
+
+      if (ownedClientIds.length > 0) {
+        removeAwarenessStates(room.awareness, ownedClientIds, client);
+      }
+
+      deleteRoomIfEmpty(roomId, room);
     });
   });
 
   server.on("close", () => {
+    for (const room of rooms.values()) {
+      room.awareness.destroy();
+      room.doc.destroy();
+    }
+
+    rooms.clear();
     websocketServer.close();
   });
+}
+
+function isAwarenessClient(value: unknown): value is AwarenessClient {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  return "socket" in value && "room" in value && "roomId" in value;
 }

@@ -1,4 +1,5 @@
-import { useSession } from "jazz-tools/react";
+import { app } from "@rcode/schema";
+import { useAll, useSession } from "jazz-tools/react";
 import { useEffect, useMemo } from "react";
 import {
   applyAwarenessUpdate,
@@ -7,6 +8,12 @@ import {
   removeAwarenessStates,
 } from "y-protocols/awareness";
 import type * as Y from "yjs";
+import {
+  assignOption,
+  baseColors,
+  type BaseColor,
+  generateUniqueName,
+} from "../lib/awareness";
 
 interface UseRoomAwarenessArgs {
   isReady: boolean;
@@ -16,8 +23,9 @@ interface UseRoomAwarenessArgs {
 
 export interface AwarenessUser {
   clientId: number;
-  color: AwarenessColorName;
+  color: BaseColor;
   displayName: string;
+  picture?: string;
   sessionUserId: string;
 }
 
@@ -25,10 +33,8 @@ export interface AwarenessState {
   user?: AwarenessUser;
 }
 
-export type AwarenessColorName = (typeof awarenessColorNames)[number];
-
-const awarenessColorNames = ["emerald", "blue", "violet", "amber", "rose", "cyan"] as const;
 const remoteAwarenessOrigin = { provider: "rcode-awareness-websocket" };
+export const awarenessConnectionClosedOrigin = { provider: "rcode-awareness-websocket-closed" };
 
 function getAwarenessSocketUrl(roomId: string) {
   // Awareness connects directly to the API host.
@@ -38,31 +44,6 @@ function getAwarenessSocketUrl(roomId: string) {
   baseUrl.search = "";
   baseUrl.searchParams.set("room", roomId);
   return baseUrl.toString();
-}
-
-function hashString(value: string) {
-  let hash = 0;
-
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-  }
-
-  return hash;
-}
-
-function getColorName(sessionUserId: string, clientId: number) {
-  const index = hashString(`${sessionUserId}:${clientId}`) % awarenessColorNames.length;
-  return awarenessColorNames[index];
-}
-
-function getDisplayName(sessionUserId: string) {
-  const suffix = sessionUserId.replace(/[^a-zA-Z0-9]/g, "").slice(-6);
-
-  if (suffix === "") {
-    return "Guest";
-  }
-
-  return `Guest ${suffix}`;
 }
 
 function toAwarenessUpdate(data: MessageEvent["data"]) {
@@ -77,10 +58,30 @@ function toAwarenessUpdate(data: MessageEvent["data"]) {
   return null;
 }
 
+function getUsedColors(awareness: Awareness) {
+  const used: BaseColor[] = [];
+  for (const state of awareness.getStates().values()) {
+    const typedState = state as AwarenessState;
+    if (typedState.user?.color !== undefined) {
+      used.push(typedState.user.color);
+    }
+  }
+  return used;
+}
+
 export function useRoomAwareness(args: UseRoomAwarenessArgs) {
   const { isReady, roomId, ydoc } = args;
   const session = useSession();
   const sessionUserId = session?.user_id ?? null;
+
+  // Read the user's profile to get their persisted display name.
+  const profileRows = useAll(
+    sessionUserId !== null
+      ? app.profiles.where({ session_user_id: sessionUserId }).limit(1)
+      : undefined,
+  );
+  const profile = profileRows?.[0] ?? null;
+
   const awareness = useMemo(() => new Awareness(ydoc), [ydoc]);
 
   useEffect(() => {
@@ -97,16 +98,27 @@ export function useRoomAwareness(args: UseRoomAwarenessArgs) {
     // Do not clear local state before readiness: y-protocols ignores
     // setLocalStateField() when the current state is null, and y-monaco later
     // publishes selection through setLocalStateField("selection", ...).
+    const currentState = awareness.getLocalState() ?? {};
+    const existingUser = (currentState as AwarenessState).user;
+
+    // Pick the least-used color from current awareness states
+    const usedColors = getUsedColors(awareness);
+    const color = existingUser?.color ?? assignOption([...baseColors], usedColors);
+
+    const displayName = profile?.displayName ?? existingUser?.displayName ?? generateUniqueName();
+    const picture = profile?.avatar ?? existingUser?.picture;
+
     awareness.setLocalState({
-      ...(awareness.getLocalState() ?? {}),
+      ...currentState,
       user: {
         clientId: awareness.clientID,
-        color: getColorName(sessionUserId, awareness.clientID),
-        displayName: getDisplayName(sessionUserId),
+        color,
+        displayName,
         sessionUserId,
+        ...(picture !== undefined ? { picture } : {}),
       } satisfies AwarenessUser,
     });
-  }, [awareness, isReady, roomId, sessionUserId]);
+  }, [awareness, isReady, profile, roomId, sessionUserId]);
 
   useEffect(() => {
     if (isReady === false || roomId === null || sessionUserId === null) {
@@ -153,20 +165,42 @@ export function useRoomAwareness(args: UseRoomAwarenessArgs) {
         return;
       }
 
-      void Promise.resolve(update).then((resolvedUpdate) => {
-        applyAwarenessUpdate(awareness, resolvedUpdate, remoteAwarenessOrigin);
-      });
+      void Promise.resolve(update)
+        .then((resolvedUpdate) => {
+          applyAwarenessUpdate(awareness, resolvedUpdate, remoteAwarenessOrigin);
+        })
+        .catch(() => {
+          websocket.close();
+        });
+    };
+
+    const handleClose = () => {
+      const remoteClients = Array.from(awareness.getStates().keys()).filter(
+        (clientId) => clientId !== awareness.clientID,
+      );
+
+      if (remoteClients.length > 0) {
+        removeAwarenessStates(awareness, remoteClients, awarenessConnectionClosedOrigin);
+      }
+    };
+
+    const handlePageHide = () => {
+      removeAwarenessStates(awareness, [awareness.clientID], "page unload");
     };
 
     websocket.addEventListener("open", broadcastFullState);
     websocket.addEventListener("message", handleMessage);
+    websocket.addEventListener("close", handleClose);
     awareness.on("update", handleAwarenessUpdate);
+    window.addEventListener("pagehide", handlePageHide);
 
     return () => {
       removeAwarenessStates(awareness, [awareness.clientID], "room awareness cleanup");
       awareness.off("update", handleAwarenessUpdate);
       websocket.removeEventListener("open", broadcastFullState);
       websocket.removeEventListener("message", handleMessage);
+      websocket.removeEventListener("close", handleClose);
+      window.removeEventListener("pagehide", handlePageHide);
       websocket.close();
     };
   }, [awareness, isReady, roomId, sessionUserId]);
