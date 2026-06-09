@@ -3,7 +3,8 @@
 // This file wires Better Auth to Jazz as its database adapter and enables the JWT plugin.
 // The JWT subject becomes Jazz's external `session.user_id`, so it must stay stable.
 // Keep this out of the browser bundle: it uses process.env and jazz-tools/backend.
-import { app as schemaApp, permissions } from "@rcode/schema";
+import { app as schemaApp } from "@rcode/schema";
+import permissions from "@rcode/schema/permissions";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { jwt } from "better-auth/plugins";

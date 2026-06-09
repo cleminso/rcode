@@ -14,7 +14,9 @@ interface RoomListItemProps {
   room: DashboardRoomListItemRoom;
 }
 
-const languageByValue = new Map(languages.map((entry) => [entry.value, entry]));
+const languageByValue = new Map<string, (typeof languages)[number]>(
+  languages.map((entry) => [entry.value, entry]),
+);
 
 export const RoomListItem = memo(function RoomListItem(props: RoomListItemProps) {
   const navigate = useNavigate();
