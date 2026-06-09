@@ -1,5 +1,4 @@
 import tailwindcss from "@tailwindcss/vite";
-import { devtools } from "@tanstack/devtools-vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { jazzPlugin } from "jazz-tools/dev/vite";
@@ -13,12 +12,11 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   plugins: [
-    devtools(),
     tanstackRouter({
       target: "react",
       routesDirectory: "./src/routes",
       generatedRouteTree: "./src/routeTree.gen.ts",
-      autoCodeSplitting: false,
+      autoCodeSplitting: true,
     }),
     viteReact(),
     tailwindcss(),
@@ -44,5 +42,26 @@ export default defineConfig({
     outDir: "dist",
     sourcemap: true,
     target: "es2022",
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("monaco-editor")) {
+            return "monaco";
+          }
+          if (id.includes("yjs") || id.includes("y-protocols") || id.includes("y-monaco")) {
+            return "yjs";
+          }
+          if (id.includes("better-auth")) {
+            return "better-auth";
+          }
+          if (id.includes("node_modules/react/") || id.includes("node_modules/react-dom/")) {
+            return "react";
+          }
+          if (id.includes("@tanstack/react-router")) {
+            return "router";
+          }
+        },
+      },
+    },
   },
 });

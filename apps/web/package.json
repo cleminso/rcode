@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "PORTLESS_PORT=1355 concurrently \"portless run --name rcode vite\" \"agentation-mcp server\" --names \"vite,agentation\" --prefix-colors \"cyan,magenta\"",
     "build": "tsc -b && vite build",
+    "preview": "vite preview",
     "typecheck": "tsc -b",
     "jazz:validate": "pnpm --filter @rcode/schema jazz:validate",
     "jazz:deploy": "set -a && source .env && set +a && pnpm --filter @rcode/schema jazz:deploy"
@@ -19,7 +20,6 @@
     "@rcode/ui": "workspace:*",
     "@tailwindcss/vite": "catalog:",
     "@tanstack/react-router": "catalog:",
-    "@tanstack/react-router-devtools": "catalog:",
     "@tanstack/react-table": "catalog:",
     "@tanstack/react-virtual": "catalog:",
     "@tanstack/router-plugin": "catalog:",
@@ -45,7 +45,6 @@
     "yjs": "^13.6.31"
   },
   "devDependencies": {
-    "@tanstack/devtools-vite": "^0.7.0",
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
