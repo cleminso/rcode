@@ -40,6 +40,7 @@ export function RoomProvider(props: RoomProviderProps) {
   // Share-token collaborators gain write access through this durable row, and
   // the ref dedupes concurrent metadata/Yjs writes for the same in-flight insert.
   const participantWriteRef = useRef<Promise<void> | null>(null);
+  const participantAccessUpdateKeyRef = useRef<string | null>(null);
   const rooms = useAll(app.rooms.where({ shareToken: props.shareToken }).limit(1));
   const room = rooms?.[0] ?? null;
   const metadataRows = useAll(room !== null ? app.roomMetadata.where({ room_id: room.id }).limit(1) : undefined);
@@ -87,6 +88,38 @@ export function RoomProvider(props: RoomProviderProps) {
     await participantWriteRef.current;
     return true;
   }, [canEditSession, db, participant, participantRows, room, session]);
+
+  useEffect(() => {
+    if (isLoading === true) {
+      return;
+    }
+
+    void ensureParticipant();
+  }, [ensureParticipant, isLoading]);
+
+  useEffect(() => {
+    if (canEditSession === false || participant === null || session === null) {
+      return;
+    }
+
+    const updateKey = `${participant.id}:${session.user_id}`;
+
+    if (participantAccessUpdateKeyRef.current === updateKey) {
+      return;
+    }
+
+    participantAccessUpdateKeyRef.current = updateKey;
+
+    void db
+      .update(app.roomParticipants, participant.id, {
+        lastAccessedAt: new Date(),
+      })
+      .wait({ tier: "edge" })
+      .catch((caughtError: unknown) => {
+        participantAccessUpdateKeyRef.current = null;
+        console.error("Failed to update room access.", caughtError);
+      });
+  }, [canEditSession, db, participant, session]);
 
   const notifyYjsProviderError = useCallback((error: YjsProviderError) => {
     toast.error(error.title, {

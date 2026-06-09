@@ -21,6 +21,7 @@
     "@tanstack/react-router": "catalog:",
     "@tanstack/react-router-devtools": "catalog:",
     "@tanstack/react-table": "catalog:",
+    "@tanstack/react-virtual": "catalog:",
     "@tanstack/router-plugin": "catalog:",
     "agentation-mcp": "^1.2.0",
     "better-auth": "catalog:",
