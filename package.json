@@ -13,7 +13,10 @@
   ],
   "scripts": {
     "dev": "pnpm -r --parallel --filter './apps/*' --filter './packages/*' dev",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "jazz:deploy": "set -a && source apps/web/.env && set +a && pnpm --filter @rcode/schema jazz:deploy",
+    "jazz:migrations:create": "pnpm --filter @rcode/schema exec jazz-tools migrations create",
+    "jazz:migrations:push": "set -a && source apps/web/.env && set +a && pnpm --filter @rcode/schema exec jazz-tools migrations push"
   },
   "author": "cleminso",
   "packageManager": "pnpm@11.5.1",
