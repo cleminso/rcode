@@ -32,8 +32,9 @@ Document content is represented as Yjs updates plus optional checkpoint rows.
 - `rooms`: queryable room metadata and sharing tokens
 - `roomParticipants`: durable joined-room history
 - `roomYjsUpdates`: canonical Yjs update log
-- `roomYjsSnapshots`: checkpoint/cache rows derived from Yjs state
+- `roomYjsSnapshots`: checkpoint/cache rows derived from Yjs state, with `textHash` for duplicate coalescing
 - Yjs Awareness: ephemeral cursors and selections
+- API presence stream: dashboard summaries derived from Awareness state
 
 ## Offline and Reconnect Behavior
 
@@ -64,4 +65,4 @@ The static route does not connect an editable provider and does not write docume
 - Document merge behavior belongs to Yjs, not Jazz column merging.
 - Jazz authorizes and syncs rows instead of merging text operations.
 - Snapshots improve loading and support restore workflows, but update rows remain canonical.
-- Presence is handled by Awareness, not durable room presence rows.
+- Presence is handled by Awareness and the API summary stream, not durable room presence rows.

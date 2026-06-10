@@ -56,6 +56,7 @@ const schema = {
     room_id: s.ref("rooms"),
     state: s.bytes(),
     stateVector: s.bytes().optional(),
+    textHash: s.string().optional(),
     session_user_id: s.string().optional(),
     createdAt: s.timestamp(),
   }),

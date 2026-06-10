@@ -41,10 +41,12 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
   // session can create or mutate its own profile row. The new-row check also
   // prevents a client from changing `session_user_id` during an update.
   policy.profiles.allowRead.always();
-  policy.profiles.allowInsert.where({ session_user_id: session.user_id });
+  policy.profiles.allowInsert.where(
+    allOf([{ session_user_id: session.user_id }, canEditSession]),
+  );
   policy.profiles.allowUpdate
     .whereOld({ session_user_id: session.user_id })
-    .whereNew({ session_user_id: session.user_id });
+    .whereNew(allOf([{ session_user_id: session.user_id }, canEditSession]));
   policy.profiles.allowDelete.never();
 
   // Rooms carry protected ownership and sharing fields, so creates/updates/deletes

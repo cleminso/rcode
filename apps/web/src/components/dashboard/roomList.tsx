@@ -4,7 +4,8 @@ import { ToggleGroup, ToggleGroupItem } from "@rcode/ui/ui/toggle-group";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useAll, useSession } from "jazz-tools/react";
 import { ActivityIcon, LayersIcon, PlusIcon } from "lucide-react";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useDashboardPresence } from "../../hooks/useDashboardPresence";
 import { RoomListItem, type DashboardRoomListItemRoom } from "./roomListItem";
 
 interface DashboardRoomListRoom extends DashboardRoomListItemRoom {
@@ -30,13 +31,8 @@ const LoadingState = (
   </div>
 );
 
-const EmptyState = (
-  <div className="rounded-xl border border-dashed p-8 text-center">
-    <p className="text-sm text-muted-foreground">Create a room to start coding.</p>
-  </div>
-);
-
 export function RoomList(props: RoomListProps) {
+  const [filter, setFilter] = useState<readonly string[]>(["all"]);
   const session = useSession();
   const scrollParentRef = useRef<HTMLDivElement>(null);
   const participantRows = useAll(
@@ -77,9 +73,12 @@ export function RoomList(props: RoomListProps) {
       .toSorted(compareRoomAccess);
   }, [metadataRows, participantRows, roomRows, session]);
 
+  const roomIds = rooms.map((room) => room.id);
+  const { activeRoomIds } = useDashboardPresence(roomIds);
+  const displayedRooms = filter[0] === "active" ? rooms.filter((room) => activeRoomIds.has(room.id)) : rooms;
   const isLoading = session !== null && (participantRows === undefined || roomRows === undefined || metadataRows === undefined);
   const rowVirtualizer = useVirtualizer({
-    count: rooms.length,
+    count: displayedRooms.length,
     getScrollElement: () => scrollParentRef.current,
     estimateSize: () => 48,
     overscan: 5,
@@ -92,12 +91,21 @@ export function RoomList(props: RoomListProps) {
       <div className="flex items-end justify-between gap-4">
         <div className="flex items-center gap-6">
           <h2 className="text-sm font-semibold tracking-[-0.01575em]">Code Rooms</h2>
-          <ToggleGroup size="sm" value={["all"]}>
+          <ToggleGroup
+            size="sm"
+            value={filter}
+            onValueChange={(value) => {
+              const selected = value?.[0];
+              if (selected === "all" || selected === "active") {
+                setFilter([selected]);
+              }
+            }}
+          >
             <ToggleGroupItem value="all">
               <LayersIcon className="size-3" />
               <span>All</span>
             </ToggleGroupItem>
-            <ToggleGroupItem disabled value="active" title="Dashboard presence summaries are not wired yet.">
+            <ToggleGroupItem value="active" disabled={activeRoomIds.size === 0}>
               <ActivityIcon className="size-3" />
               <span>Active</span>
             </ToggleGroupItem>
@@ -118,8 +126,12 @@ export function RoomList(props: RoomListProps) {
       <div className="min-h-0 flex-1 overflow-hidden">
         {isLoading === true ? (
           LoadingState
-        ) : rooms.length === 0 ? (
-          EmptyState
+        ) : displayedRooms.length === 0 ? (
+          <div className="rounded-xl border border-dashed p-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              {filter[0] === "active" ? "No active rooms right now." : "Create a room to start coding."}
+            </p>
+          </div>
         ) : (
           <div ref={scrollParentRef} className="h-full overflow-y-auto overflow-x-hidden outline-none">
             <div
@@ -127,7 +139,7 @@ export function RoomList(props: RoomListProps) {
               style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
             >
               {virtualItems.map((virtualItem) => {
-                const room = rooms[virtualItem.index];
+                const room = displayedRooms[virtualItem.index];
 
                 if (room === undefined) {
                   return null;

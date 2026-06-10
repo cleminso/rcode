@@ -30,14 +30,116 @@ interface AwarenessUpgradeServer {
 
 const awarenessPath = "/api/awareness";
 
-function getRequestUrl(request: IncomingMessage) {
-  const host = request.headers.host;
+interface PresenceRoomSummary {
+  roomId: string;
+  userCount: number;
+}
 
-  if (host === undefined || request.url === undefined) {
+interface PresenceSubscriber {
+  onSummary: (summary: PresenceSummary) => void;
+  roomIds: Set<string>;
+}
+
+const presenceStore = new Map<string, PresenceRoomSummary>();
+const presenceSubscribers = new Set<PresenceSubscriber>();
+
+export interface PresenceSummary {
+  rooms: PresenceRoomSummary[];
+  timestamp: number;
+}
+
+export function getPresenceSummary(roomIds: readonly string[]): PresenceSummary {
+  const rooms: PresenceRoomSummary[] = [];
+
+  for (const roomId of roomIds) {
+    const summary = presenceStore.get(roomId);
+
+    if (summary !== undefined) {
+      rooms.push(summary);
+    }
+  }
+
+  return {
+    rooms,
+    timestamp: Date.now(),
+  };
+}
+
+export function subscribePresenceSummary(
+  roomIds: readonly string[],
+  onSummary: (summary: PresenceSummary) => void,
+) {
+  const subscriber: PresenceSubscriber = {
+    onSummary,
+    roomIds: new Set(roomIds),
+  };
+
+  presenceSubscribers.add(subscriber);
+  onSummary(getPresenceSummary(roomIds));
+
+  return () => {
+    presenceSubscribers.delete(subscriber);
+  };
+}
+
+function arePresenceSummariesEqual(left: PresenceRoomSummary | undefined, right: PresenceRoomSummary | null) {
+  if (left === undefined || right === null) {
+    return left === undefined && right === null;
+  }
+
+  return left.roomId === right.roomId && left.userCount === right.userCount;
+}
+
+function notifyPresenceSubscribers(roomId: string) {
+  for (const subscriber of presenceSubscribers) {
+    if (subscriber.roomIds.has(roomId) === false) {
+      continue;
+    }
+
+    subscriber.onSummary(getPresenceSummary(Array.from(subscriber.roomIds)));
+  }
+}
+
+function setPresenceSummary(roomId: string, summary: PresenceRoomSummary | null) {
+  const previousSummary = presenceStore.get(roomId);
+
+  if (arePresenceSummariesEqual(previousSummary, summary) === true) {
+    return;
+  }
+
+  if (summary === null) {
+    presenceStore.delete(roomId);
+  } else {
+    presenceStore.set(roomId, summary);
+  }
+
+  notifyPresenceSubscribers(roomId);
+}
+
+function getSessionUserId(value: unknown) {
+  if (typeof value !== "object" || value === null || "user" in value === false) {
     return null;
   }
 
-  return new URL(request.url, `http://${host}`);
+  const user = value.user;
+
+  if (typeof user !== "object" || user === null || "sessionUserId" in user === false) {
+    return null;
+  }
+
+  return typeof user.sessionUserId === "string" ? user.sessionUserId : null;
+}
+
+function getRequestUrl(request: IncomingMessage) {
+  if (request.url === undefined) {
+    return null;
+  }
+
+  try {
+    return new URL(request.url, env.appUrl);
+  } catch {
+    return null;
+  }
 }
 
 function isAllowedOrigin(origin: string | undefined) {
@@ -84,6 +186,28 @@ export function attachAwarenessServer(server: AwarenessUpgradeServer) {
   const websocketServer = new WebSocketServer({ noServer: true });
   const rooms = new Map<string, AwarenessRoom>();
 
+  const updatePresenceStore = (roomId: string, room: AwarenessRoom) => {
+    const sessionUserIds = new Set<string>();
+
+    for (const state of room.awareness.getStates().values()) {
+      const sessionUserId = getSessionUserId(state);
+
+      if (sessionUserId !== null) {
+        sessionUserIds.add(sessionUserId);
+      }
+    }
+
+    if (sessionUserIds.size === 0) {
+      setPresenceSummary(roomId, null);
+      return;
+    }
+
+    setPresenceSummary(roomId, {
+      roomId,
+      userCount: sessionUserIds.size,
+    });
+  };
+
   const getRoom = (roomId: string) => {
     const existingRoom = rooms.get(roomId);
 
@@ -102,6 +226,7 @@ export function attachAwarenessServer(server: AwarenessUpgradeServer) {
       doc,
     };
 
+    // Listen to remote and local awareness changes and propagate awareness state to other clients.
     awareness.on("update", (change: { added: number[]; updated: number[]; removed: number[] }, origin: unknown) => {
       const changedClients = change.added.concat(change.updated, change.removed);
 
@@ -118,6 +243,8 @@ export function attachAwarenessServer(server: AwarenessUpgradeServer) {
       for (const clientId of change.removed) {
         room.clientOwners.delete(clientId);
       }
+
+      updatePresenceStore(roomId, room);
 
       const update = encodeAwarenessUpdate(awareness, changedClients);
 
@@ -140,6 +267,7 @@ export function attachAwarenessServer(server: AwarenessUpgradeServer) {
     }
 
     rooms.delete(roomId);
+    setPresenceSummary(roomId, null);
     room.awareness.destroy();
     room.doc.destroy();
   };
@@ -168,6 +296,7 @@ export function attachAwarenessServer(server: AwarenessUpgradeServer) {
     }
 
     room.clients.add(client);
+    updatePresenceStore(roomId, room);
 
     socket.on("message", (data) => {
       const message = toBinaryMessage(data);
@@ -178,7 +307,8 @@ export function attachAwarenessServer(server: AwarenessUpgradeServer) {
 
       try {
         applyAwarenessUpdate(room.awareness, message, client);
-      } catch {
+      } catch (error) {
+        console.error("Invalid awareness update received.", { error, roomId });
         socket.close(1003, "Invalid awareness update");
         return;
       }
@@ -210,6 +340,8 @@ export function attachAwarenessServer(server: AwarenessUpgradeServer) {
     }
 
     rooms.clear();
+    presenceStore.clear();
+    presenceSubscribers.clear();
     websocketServer.close();
   });
 }

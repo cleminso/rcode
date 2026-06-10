@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import { useAll, useDb, useSession } from "jazz-tools/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as Y from "yjs";
+import { hashString } from "../lib/hash";
 
 const ACTIVE_SNAPSHOT_INTERVAL_MS = 5 * 60 * 1000;
 const IDLE_SNAPSHOT_DELAY_MS = 2 * 60 * 1000;
@@ -106,17 +107,6 @@ function toYjsUpdate(value: unknown) {
   }
 
   throw new Error("Expected a Yjs update byte array.");
-}
-
-function getSnapshotMonacoText(state: unknown) {
-  const snapshotDoc = new Y.Doc();
-
-  try {
-    Y.applyUpdate(snapshotDoc, toYjsUpdate(state));
-    return snapshotDoc.getText(MONACO_TEXT_NAME).toString();
-  } finally {
-    snapshotDoc.destroy();
-  }
 }
 
 export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
@@ -278,6 +268,14 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
 
         const includedEditVersion = localEditVersionRef.current;
         const currentSnapshotRows = snapshotRowsRef.current;
+        const currentText = activeDoc.getText(MONACO_TEXT_NAME).toString();
+        const state = Y.encodeStateAsUpdate(activeDoc);
+        const stateVector = Y.encodeStateVector(activeDoc);
+        const textHash = await hashString(currentText);
+
+        if (isAbortSignalAborted(signal) === true) {
+          return;
+        }
 
         if (currentSnapshotRows !== undefined) {
           const latestSnapshot = currentSnapshotRows.reduce<(typeof currentSnapshotRows)[number] | null>(
@@ -295,12 +293,7 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
             const latestSnapshotAge = Date.now() - latestSnapshot.createdAt.getTime();
 
             if (latestSnapshotAge <= SNAPSHOT_COALESCE_WINDOW_MS) {
-              // TODO: store a textHash on snapshot rows. It would let us coalesce
-              // recent duplicate snapshots without loading a scratch Y.Doc.
-              const latestSnapshotText = getSnapshotMonacoText(latestSnapshot.state);
-              const currentText = activeDoc.getText(MONACO_TEXT_NAME).toString();
-
-              if (latestSnapshotText === currentText) {
+              if (latestSnapshot.textHash === textHash) {
                 if (
                   isAbortSignalAborted(signal) === false &&
                   localEditVersionRef.current === includedEditVersion
@@ -314,14 +307,12 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
           }
         }
 
-        const state = Y.encodeStateAsUpdate(activeDoc);
-        const stateVector = Y.encodeStateVector(activeDoc);
-
         await dbRef.current
           .insert(app.roomYjsSnapshots, {
             room_id: activeRoomId,
             state,
             stateVector,
+            textHash,
             session_user_id: activeSessionUserId,
             createdAt: new Date(),
           })

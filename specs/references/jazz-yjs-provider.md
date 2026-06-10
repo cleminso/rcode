@@ -9,7 +9,7 @@
 - [Snapshot Semantics](#snapshot-semantics)
 - [Edit History Semantics](#edit-history-semantics)
 - [Multi-Tab and Echo Handling](#multi-tab-and-echo-handling)
-- [Awareness](#awareness)
+- [Awareness and Dashboard Presence](#awareness-and-dashboard-presence)
 - [Open Questions](#open-questions)
 
 ## Problem Statement
@@ -56,6 +56,7 @@ Snapshots are stored as checkpoint rows. They help clients bootstrap a `Y.Doc`, 
 - `room_id`: reference to `rooms.id`
 - `state`: encoded Yjs document state as bytes
 - `stateVector`: optional Yjs state vector for diff and compaction logic
+- `textHash`: optional hash of `doc.getText("monaco").toString()` for duplicate snapshot coalescing
 - `session_user_id`: optional producer identity
 - `createdAt`: checkpoint metadata
 
@@ -120,16 +121,33 @@ Snapshots are immutable derived rows, not the canonical document representation.
 
 A snapshot is produced from a `Y.Doc` with `Y.encodeStateAsUpdate(doc)`. Applying a snapshot is equivalent to applying a Yjs update that contains the known document state at the checkpoint.
 
+`textHash` is derived from the Monaco `Y.Text` string, not from the encoded Yjs update bytes. Yjs exposes deltas, state vectors, and binary document updates, but it does not provide a native text-content hash for this use case. Hashing the text content lets the provider coalesce duplicate snapshots without loading a scratch `Y.Doc`.
+
+### Why textHash
+
+Yjs binary document updates are non-deterministic. Two updates that converge to the same text content can have different bytes because they include client IDs, state vectors, and operation timestamps. Comparing two snapshot `state` byte arrays directly cannot tell whether the represented text content is identical.
+
+Without `textHash`, the provider would need to:
+
+1. Load the latest snapshot into a scratch `Y.Doc`.
+2. Load the candidate snapshot into another scratch `Y.Doc`.
+3. Compare `doc.getText("monaco").toString()` on both.
+
+`textHash` is derived from `doc.getText("monaco").toString()` using SHA-256. This lets the provider:
+
+- Skip duplicate snapshot inserts without loading scratch documents.
+- Compare text content deterministically regardless of Yjs binary encoding differences.
+- Reduce redundant Jazz rows and snapshot history bloat.
+- Speed up bootstrap by keeping fewer snapshot rows in the table.
+
 ### Snapshot creation
 
-Any authorized editor client can create snapshot rows. The provider uses a timer-based approach:
+Any authorized editor client can create snapshot rows. The provider creates snapshots from local edit activity:
 
 - Track local edits via the `ydoc.on("update")` listener.
-- Check every 30 seconds whether edits have occurred since the last snapshot.
-- If edits exist and 5 minutes have elapsed, create a new snapshot row.
+- Create snapshots from local edit activity using active and idle scheduling.
+- Compare `textHash` against the latest recent snapshot before inserting a new snapshot row.
 - Multiple clients may create near-identical snapshots simultaneously; bootstrap selects the latest by `createdAt`.
-
-This is analogous to Notion's automatic version history (snapshots every 10 minutes during active editing).
 
 ### Safe reconstruction rule
 
@@ -194,7 +212,7 @@ Echo handling should be scoped to the provider instance:
 
 Yjs updates are commutative, associative, and idempotent, so duplicate application is safe for document convergence. Echo handling is mainly for avoiding write-back loops and unnecessary work.
 
-## Awareness
+## Awareness and Dashboard Presence
 
 Yjs Awareness is ephemeral and is not stored in Jazz tables.
 
@@ -205,7 +223,17 @@ Use Awareness for:
 - user label
 - user color
 
-Do not add a durable live-presence table for cursor presence. Durable participation belongs in `roomParticipants`; live cursor state belongs in Yjs Awareness.
+Expected flow:
+
+1. The browser creates an Awareness instance on the room `Y.Doc`.
+2. The browser sets local user state from `profiles` and generated palette data.
+3. `y-monaco` writes selection and cursor data into Awareness.
+4. The browser sends encoded Awareness updates to `/api/awareness?room=<roomId>`.
+5. The API applies updates to an in-memory room Awareness instance and broadcasts them to other room sockets.
+6. Other browsers apply remote Awareness updates and let `y-monaco` render cursors.
+7. The API derives dashboard presence summaries from Awareness user state and streams them through `/api/presence/stream`.
+
+Do not add a durable live-presence table for cursor presence. Durable participation belongs in `roomParticipants`; live cursor state and dashboard active summaries belong to the Awareness server.
 
 ## Open Questions
 

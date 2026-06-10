@@ -7,15 +7,18 @@ import { generateUniqueName } from "../lib/awareness";
  * Ensures a profiles row exists for the current Jazz session user.
  * Runs once per session at app initialization.
  *
- * For local-first / anonymous users, generates a unique name.
+ * For local-first users, generates a unique name.
  * For external auth users, will later read from Better Auth profile.
  */
 export function useInitProfile() {
   const db = useDb();
   const session = useSession();
   const sessionUserId = session?.user_id ?? null;
+  const canEditSession =
+    session !== null &&
+    (session.authMode === "local-first" || session.authMode === "external");
   const profileRows = useAll(
-    sessionUserId !== null
+    canEditSession === true && sessionUserId !== null
       ? app.profiles.where({ session_user_id: sessionUserId }).limit(1)
       : undefined,
   );
@@ -28,7 +31,7 @@ export function useInitProfile() {
       return;
     }
 
-    if (sessionUserId === null || isLoading === true) {
+    if (sessionUserId === null || canEditSession === false || isLoading === true) {
       return;
     }
 
@@ -51,5 +54,5 @@ export function useInitProfile() {
           initializedSessionUserIdRef.current = null;
         }
       });
-  }, [db, isLoading, profile, sessionUserId]);
+  }, [canEditSession, db, isLoading, profile, sessionUserId]);
 }
