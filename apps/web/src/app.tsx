@@ -34,7 +34,7 @@ export default function App() {
       key={authKey}
       config={config}
       onJWTExpired={refreshJwt} // Jazz calls it when the sync server rejects the current token as expired
-      fallback={<div>Loading Jazz...</div>}
+      // fallback={<div>Loading Jazz...</div>}
     >
       <RouterProvider router={router} />
       <Toaster />

@@ -1,19 +1,65 @@
-import MonacoEditor, { type OnMount } from "@monaco-editor/react";
+import MonacoEditor, { type Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
-import { useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTheme } from "next-themes";
+import { shikiToMonaco } from "@shikijs/monaco";
+import { createHighlighter } from "shiki";
 import { useMonacoBinding } from "../../hooks/useMonacoBinding";
 import { Cursors } from "./cursors";
+import { languages } from "@rcode/icons/languages";
 import { useRoom } from "./roomProvider";
+import { vitesseDark, vitesseLight, zedokai, zedokaiDarker } from "./themes";
 
-export function EditorTextArea() {
+const highlighterPromise = createHighlighter({
+  themes: [vitesseLight, vitesseDark, zedokai, zedokaiDarker],
+  langs: languages.map((language) => language.value),
+});
+
+// memo prevents unnecessary re-renders when the parent updates with stable props
+export const EditorTextArea = memo(__EditorTextArea);
+
+function __EditorTextArea() {
+  const { theme, systemTheme } = useTheme();
   const { awareness, canEdit, editorLanguage, isYjsReady, ydoc } = useRoom();
-  const [editorInstance, setEditorInstance] = useState<editor.IStandaloneCodeEditor | null>(null);
+  const [editorMounted, setEditorMounted] = useState(false);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const monacoRef = useRef<Monaco | null>(null);
 
-  const handleMount: OnMount = (mountedEditor) => {
-    setEditorInstance(mountedEditor);
-  };
+  const resolvedTheme =
+    theme === "system" ? systemTheme ?? "light" : theme ?? "light";
+  const initialTheme = resolvedTheme === "dark" ? "zedokai" : "vitesse-light";
 
-  useMonacoBinding({ awareness, editorInstance, isReady: isYjsReady, ydoc });
+  useEffect(() => {
+    if (editorMounted) {
+      monacoRef.current?.editor.setTheme(
+        resolvedTheme === "dark" ? "zedokai" : "vitesse-light",
+      );
+    }
+  }, [editorMounted, resolvedTheme]);
+
+  const setupEditor = useCallback(
+    async (
+      editorInstance: editor.IStandaloneCodeEditor,
+      monacoInstance: Monaco,
+    ) => {
+      editorInstance.focus();
+      editorRef.current = editorInstance;
+      monacoRef.current = monacoInstance;
+
+      const highlighter = await highlighterPromise;
+      shikiToMonaco(highlighter, monacoInstance);
+      monacoInstance.editor.setTheme(initialTheme);
+      setEditorMounted(true);
+    },
+    [initialTheme],
+  );
+
+  useMonacoBinding({
+    awareness,
+    editorInstance: editorMounted ? editorRef.current : null,
+    isReady: isYjsReady,
+    ydoc,
+  });
 
   return (
     <>
@@ -22,10 +68,11 @@ export function EditorTextArea() {
         height="100%"
         width="100%"
         loading={null}
-        defaultLanguage={editorLanguage}
+        // defaultLanguage={editorLanguage}
         language={editorLanguage}
-        theme="vs"
-        onMount={handleMount}
+        theme={initialTheme}
+        defaultValue={ydoc.getText("monaco").toString()}
+        onMount={setupEditor}
         options={{
           automaticLayout: true,
           fontFamily: "Geist Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
