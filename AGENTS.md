@@ -26,6 +26,7 @@
   - `pnpm --filter @rcode/ui build|dev|typecheck|lint|format`.
   - `pnpm --filter @rcode/jazz-dev-tools build|dev|typecheck`.
 - There are no test scripts or test configs in the manifests; use typecheck/build/lint where available.
+- Jazz docs are available via the jazz-docs MCP server. Use `search_docs` and `get_doc` to look up APIs before answering Jazz questions.
 
 ## Workspace map
 

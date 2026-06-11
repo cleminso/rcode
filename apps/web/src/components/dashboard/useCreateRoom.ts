@@ -38,32 +38,30 @@ export function useCreateRoom() {
       const shareToken = newRoomToken();
       const staticToken = newRoomToken();
 
-      const roomWrite = db.insert(app.rooms, {
-        shareToken,
-        staticToken,
-        creator_session_user_id: session.user_id,
-      });
-      const room = roomWrite.value;
+      const batch = db.batch((batch) => {
+        const room = batch.insert(app.rooms, {
+          shareToken,
+          staticToken,
+          creator_session_user_id: session.user_id,
+        });
 
-      await roomWrite.wait({ tier: "edge" });
+        batch.insert(app.roomParticipants, {
+          room_id: room.id,
+          session_user_id: session.user_id,
+          lastAccessedAt: new Date(),
+        });
 
-      const participantWrite = db.insert(app.roomParticipants, {
-        room_id: room.id,
-        session_user_id: session.user_id,
-        lastAccessedAt: new Date(),
-      });
+        batch.insert(app.roomMetadata, {
+          room_id: room.id,
+          title: "",
+          editorLanguage: "plaintext",
+        });
 
-      // The participant row is the metadata permission dependency, so room
-      // creation and share-token edits use the same durable write path.
-      await participantWrite.wait({ tier: "edge" });
-
-      const metadataWrite = db.insert(app.roomMetadata, {
-        room_id: room.id,
-        title: "",
-        editorLanguage: "plaintext",
+        return room;
       });
 
-      await metadataWrite.wait({ tier: "edge" });
+      const room = batch.value;
+      await batch.wait({ tier: "edge" });
 
       await navigate({
         to: "/rooms/$shareToken",
