@@ -89,7 +89,14 @@
     "warningBorder": "#19181a",
     "infoForeground": "#ffd866",
     "infoBackground": "#262427",
-    "infoBorder": "#19181a"
+    "infoBorder": "#19181a",
+    "editorBracketHighlight.foreground1": "#939293",
+    "editorBracketHighlight.foreground2": "#939293",
+    "editorBracketHighlight.foreground3": "#939293",
+    "editorBracketHighlight.foreground4": "#939293",
+    "editorBracketHighlight.foreground5": "#939293",
+    "editorBracketHighlight.foreground6": "#939293",
+    "editorBracketHighlight.unexpectedBracket.foreground": "#ff6188"
   },
   "tokenColors": [
     {

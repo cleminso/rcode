@@ -22,9 +22,10 @@ export function EditorScreen(props: EditorScreenProps) {
 }
 
 function EditorContent() {
-  const { awareness, editorLanguage, isLoading, title, updateEditorLanguage, updateTitle } = useRoom();
+  const { awareness, editorLanguage, isLoading, isYjsReady, title, updateEditorLanguage, updateTitle } = useRoom();
   const navigate = useNavigate();
 
+  const isReady = isLoading === false && isYjsReady === true;
   const currentLanguageLogo = languages.find((language) => language.value === editorLanguage)?.logo;
 
   return (
@@ -40,25 +41,39 @@ function EditorContent() {
               aria-label="Go to dashboard"
               onClick={() => void navigate({ to: "/dashboard" })}
             />
-            <EditorLanguageCombobox
-              value={editorLanguage}
-              onValueChange={(nextEditorLanguage) => void updateEditorLanguage(nextEditorLanguage)}
-            />
+            {isReady === false ? (
+              <div className="h-8 w-36 animate-pulse rounded bg-muted" />
+            ) : (
+              <EditorLanguageCombobox
+                value={editorLanguage}
+                onValueChange={(nextEditorLanguage) => void updateEditorLanguage(nextEditorLanguage)}
+              />
+            )}
           </div>
 
-          <RoomTitle
-            logo={currentLanguageLogo}
-            value={isLoading === true ? "" : title}
-            onValueCommit={(nextTitle) => void updateTitle(nextTitle)}
-          />
+          {isReady === false ? (
+            <div className="h-6 w-48 animate-pulse rounded bg-muted" />
+          ) : (
+            <RoomTitle
+              logo={currentLanguageLogo}
+              value={title}
+              onValueCommit={(nextTitle) => void updateTitle(nextTitle)}
+            />
+          )}
 
           <EditorActions awareness={awareness} />
         </div>
       }
     >
-      <div className="h-full bg-muted/30">
-        <EditorTextArea />
-      </div>
+      {isReady === false ? (
+        <div className="flex h-full items-center justify-center bg-muted/30">
+          <div className="text-muted-foreground text-sm">Loading editor...</div>
+        </div>
+      ) : (
+        <div className="h-full bg-muted/30">
+          <EditorTextArea />
+        </div>
+      )}
     </EditorLayout>
   );
 }

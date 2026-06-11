@@ -1,7 +1,7 @@
 import { app } from "@rcode/schema";
 import { nanoid } from "nanoid";
 import { useAll, useDb, useSession } from "jazz-tools/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
 import { hashString } from "../lib/hash";
 
@@ -115,15 +115,12 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
   const session = useSession();
   // Create the room doc during render so consumers bind to the same doc that
   // receives bootstrap rows; effect-time replacement can target stale docs.
-  const runtime = useMemo<YjsRoomRuntime>(
-    () => ({
-      appliedUpdateIds: new Set<string>(),
-      didBootstrap: false,
-      doc: new Y.Doc(),
-      providerInstanceId: nanoid(),
-    }),
-    [roomId],
-  );
+  const [runtime] = useState<YjsRoomRuntime>(() => ({
+    appliedUpdateIds: new Set<string>(),
+    didBootstrap: false,
+    doc: new Y.Doc(),
+    providerInstanceId: nanoid(),
+  }));
   const doc = runtime.doc;
   const providerInstanceId = runtime.providerInstanceId;
   const [readyRoomId, setReadyRoomId] = useState<string | null>(null);
