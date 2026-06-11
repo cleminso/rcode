@@ -254,6 +254,7 @@ export function RoomProvider(props: RoomProviderProps) {
     await db
       .insert(app.roomMetadata, {
         room_id: room.id,
+        session_user_id: session?.user_id ?? "",
         title: metadataPatch.title ?? "",
         editorLanguage: metadataPatch.editorLanguage ?? "plaintext",
       })

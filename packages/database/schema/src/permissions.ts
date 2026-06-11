@@ -71,6 +71,7 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
   policy.roomMetadata.allowRead.always();
   policy.roomMetadata.allowInsert.where((metadata) =>
     allOf([
+      { session_user_id: session.user_id },
       canEditSession,
       anyOf([
         allowedTo.update("room"),
@@ -113,6 +114,14 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
     .whereOld({ session_user_id: session.user_id })
     .whereNew(allOf([{ session_user_id: session.user_id }, canEditSession]));
   policy.roomParticipants.allowDelete.never();
+
+  // User settings are private. Only the matching session can read or mutate its own row.
+  policy.userSettings.allowRead.where({ session_user_id: session.user_id });
+  policy.userSettings.allowInsert.where({ session_user_id: session.user_id });
+  policy.userSettings.allowUpdate
+    .whereOld({ session_user_id: session.user_id })
+    .whereNew({ session_user_id: session.user_id });
+  policy.userSettings.allowDelete.where({ session_user_id: session.user_id });
 
   // Yjs update rows are append-only so document reconstruction stays auditable
   // and consistent across clients. Write access mirrors metadata: creator,

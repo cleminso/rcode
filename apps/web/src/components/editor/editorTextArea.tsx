@@ -5,10 +5,12 @@ import { useTheme } from "next-themes";
 import { shikiToMonaco } from "@shikijs/monaco";
 import { createHighlighter } from "shiki";
 import { useMonacoBinding } from "../../hooks/useMonacoBinding";
+import { useUserSettings } from "../../hooks/useUserSettings";
 import { Cursors } from "./cursors";
 import { languages } from "@rcode/icons/languages";
 import { useRoom } from "./roomProvider";
 import { vitesseDark, vitesseLight, zedokai, zedokaiDarker } from "./themes";
+import "./editor.css";
 
 const highlighterPromise = createHighlighter({
   themes: [vitesseLight, vitesseDark, zedokai, zedokaiDarker],
@@ -26,6 +28,7 @@ export const EditorTextArea = memo(__EditorTextArea);
 function __EditorTextArea() {
   const { theme, systemTheme } = useTheme();
   const { awareness, canEdit, editorLanguage, isYjsReady, ydoc } = useRoom();
+  const { settings } = useUserSettings();
   const [editorMounted, setEditorMounted] = useState(false);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
@@ -50,65 +53,17 @@ function __EditorTextArea() {
   // The generic type annotation is required because TypeScript widens unannotated
   // object literals, turning string literal values like "none" into the generic `string`
   // type. That breaks assignment to union-typed properties such as `renderLineHighlight`.
+  //
+  // User settings are merged so individual preferences override the defaults.
+  // Non-preference options (readOnly, automaticLayout) are always set by the app.
   const options = useMemo<editor.IStandaloneEditorConstructionOptions>(
     () => ({
-      // Layout
-      wordWrap: "on",
-      lineNumbers: "on",
+      ...settings.editor,
       automaticLayout: true,
-      padding: { top: 16, bottom: 16 },
-
-      // Editor Behavior
-      tabSize: 2,
-      insertSpaces: true,           // Consistent indentation across all users
-      detectIndentation: true,      // Respect existing file style (tabs vs spaces)
-      autoIndent: "full",           // Smart indentation when pressing Enter
-      formatOnPaste: true,          // Clean up pasted code from external sources
-      formatOnType: true,           // Auto-format as you type
-
-      // Visual Structure
-      bracketPairColorization: { enabled: true },  // Rainbow brackets for nested code
-      guides: {
-        bracketPairs: true,         // Vertical lines connecting bracket pairs
-        indentation: false,          // Indentation guides
-      },
-      stickyScroll: { enabled: true },  // Sticky function/class headers when scrolling
-      folding: true,
-      showFoldingControls: "mouseover",
-
-      // UX
-      smoothScrolling: true,
-      cursorSmoothCaretAnimation: "off",
-      multiCursorModifier: "ctrlCmd",  // Cmd+Click (Mac) / Ctrl+Click (Win) for multi-cursor
-      links: true,                     // Clickable URLs in code
-      colorDecorators: true,           // Inline color swatches
-      copyWithSyntaxHighlighting: true, // Copy with formatting
-
-      // Scrollbar
-      scrollbar: {
-        vertical: "auto",
-        horizontal: "auto",
-        useShadows: false,
-        verticalHasArrows: false,
-        horizontalHasArrows: false,
-      },
-
-      fontFamily: "Geist Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-      fontLigatures: true,
-      fontSize: 14,
-      letterSpacing: -0.25,
-      minimap: { enabled: false },
       readOnly: canEdit === false,
       readOnlyMessage: { value: READ_ONLY_MESSAGE },
-      renderLineHighlight: "none",
-      scrollBeyondLastLine: false,
-
-      unicodeHighlighting: {
-        invisibleCharacters: true,
-        ambiguousCharacters: false,
-      },
     }),
-    [canEdit],
+    [canEdit, settings.editor],
   );
 
   useEffect(() => {

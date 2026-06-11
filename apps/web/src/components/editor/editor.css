@@ -1,0 +1,29 @@
+/* Monaco editor folding controls: smaller, dimmer, per-icon hover. */
+
+.monaco-editor .margin-view-overlays .codicon-folding-expanded,
+.monaco-editor .margin-view-overlays .codicon-folding-collapsed,
+.monaco-editor .margin-view-overlays .codicon-folding-manual-expanded,
+.monaco-editor .margin-view-overlays .codicon-folding-manual-collapsed {
+  /* Default Monaco is 140% which makes chevrons too large. */
+  font-size: 100% !important;
+  /* Dimmed until hovered or interacted with. */
+  opacity: 0.5 !important;
+  /* Faster transition for snappier hover feedback. */
+  transition: opacity 0.2s ease !important;
+}
+
+.monaco-editor .margin-view-overlays .codicon-folding-collapsed,
+.monaco-editor .margin-view-overlays .codicon-folding-manual-collapsed {
+  /* Slightly more prominent when collapsed to indicate hidden state. */
+  opacity: 0.8 !important;
+}
+
+/* Only highlight the specific chevron being hovered, not the whole gutter. */
+.monaco-editor .margin-view-overlays .codicon-folding-expanded:hover,
+.monaco-editor .margin-view-overlays .codicon-folding-collapsed:hover,
+.monaco-editor .margin-view-overlays .codicon-folding-manual-expanded:hover,
+.monaco-editor .margin-view-overlays .codicon-folding-manual-collapsed:hover {
+  /* Only brighten the icon. Background color is omitted so hovering a fold
+     does not look like a full row highlight (which is reserved for cursor line). */
+  opacity: 1 !important;
+}

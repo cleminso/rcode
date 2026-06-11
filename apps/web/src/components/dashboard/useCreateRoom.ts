@@ -51,17 +51,18 @@ export function useCreateRoom() {
           lastAccessedAt: new Date(),
         });
 
-        batch.insert(app.roomMetadata, {
-          room_id: room.id,
-          title: "",
-          editorLanguage: "plaintext",
-        });
-
         return room;
       });
 
       const room = batch.value;
       await batch.wait({ tier: "edge" });
+
+      await db.insert(app.roomMetadata, {
+        room_id: room.id,
+        session_user_id: session.user_id,
+        title: "",
+        editorLanguage: "plaintext",
+      }).wait({ tier: "edge" });
 
       await navigate({
         to: "/rooms/$shareToken",

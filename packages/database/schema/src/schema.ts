@@ -32,8 +32,15 @@ const schema = {
   // app convention; Jazz does not enforce a unique room_id here.
   roomMetadata: s.table({
     room_id: s.ref("rooms"),
+    session_user_id: s.string(),
     title: s.string(),
     editorLanguage: s.string().default("plaintext"),
+  }),
+  // Per-user product preferences (e.g. editor settings). Stored as JSON so the
+  // app can evolve the settings shape without schema migrations.
+  userSettings: s.table({
+    session_user_id: s.string(),
+    editor: s.json().optional(),
   }),
   // Durable joined-room history used by room access and dashboard surfaces.
   roomParticipants: s.table({
