@@ -42,6 +42,8 @@ export function useCreateRoom() {
         shareToken,
         staticToken,
         creator_session_user_id: session.user_id,
+        archivedAt: null,
+        archivedBySessionUserId: null,
       });
       const room = roomWrite.value;
 

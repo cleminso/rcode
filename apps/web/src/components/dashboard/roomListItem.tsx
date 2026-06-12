@@ -8,10 +8,13 @@ export interface DashboardRoomListItemRoom {
   shareToken: string;
   title: string;
   editorLanguage: string;
+  isArchived: boolean;
+  canUnarchive: boolean;
 }
 
 interface RoomListItemProps {
   room: DashboardRoomListItemRoom;
+  onUnarchive: (roomId: string) => void;
 }
 
 const languageByValue = new Map<string, (typeof languages)[number]>(
@@ -29,20 +32,32 @@ export const RoomListItem = memo(function RoomListItem(props: RoomListItemProps)
   };
 
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      className="group/item h-12 w-full justify-between rounded-md px-4 text-left hover:bg-muted focus-visible:border-ring"
-      onClick={handleClick}
-    >
-      <span className="flex min-w-0 items-center gap-4">
-        <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground" title={language?.name ?? "Plain text"}>
-          {LanguageLogo !== undefined ? <LanguageLogo className="size-5" /> : null}
+    <div className="group/item flex h-12 w-full items-center gap-2 rounded-md hover:bg-muted focus-within:border-ring">
+      <Button
+        type="button"
+        variant="ghost"
+        className="h-full min-w-0 flex-1 justify-start rounded-md px-4 text-left hover:bg-transparent"
+        onClick={handleClick}
+      >
+        <span className="flex min-w-0 items-center gap-4">
+          <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground" title={language?.name ?? "Plain text"}>
+            {LanguageLogo !== undefined ? <LanguageLogo className="size-5" /> : null}
+          </span>
+          <span className="truncate text-sm font-medium tracking-[-0.01575em] text-foreground">{title}</span>
         </span>
-        <span className="truncate text-sm font-medium tracking-[-0.01575em] text-foreground">{title}</span>
-      </span>
+      </Button>
 
-      <span className="shrink-0" />
-    </Button>
+      {props.room.isArchived === true && props.room.canUnarchive === true ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="mr-2 shrink-0"
+          onClick={() => props.onUnarchive(props.room.id)}
+        >
+          <span>Unarchive</span>
+        </Button>
+      ) : null}
+    </div>
   );
 });

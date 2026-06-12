@@ -1,0 +1,33 @@
+import { CommandItem } from "@rcode/ui/ui/command";
+import { useMemo } from "react";
+import { toast } from "sonner";
+
+const COPY_ROOM_URL_KEYWORDS = ["copy", "link"];
+
+interface CopyRoomUrlCommandProps {
+  label: string;
+  url: string;
+  toastTitle: string;
+  onComplete: () => void;
+}
+
+export function CopyRoomUrlCommand(props: CopyRoomUrlCommandProps) {
+  const keywords = useMemo(() => [props.url, ...COPY_ROOM_URL_KEYWORDS], [props.url]);
+
+  const handleSelect = async () => {
+    await navigator.clipboard.writeText(props.url);
+
+    toast(props.toastTitle, {
+      description: props.url,
+    });
+
+    props.onComplete();
+  };
+
+  return (
+    <CommandItem value={props.label} keywords={keywords} onSelect={() => void handleSelect()}>
+      <span className="truncate">{props.label}</span>
+      <span className="ml-auto max-w-56 truncate text-muted-foreground">{props.url}</span>
+    </CommandItem>
+  );
+}

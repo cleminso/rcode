@@ -14,13 +14,19 @@ import { type YjsProviderError, useJazzYjsDocument } from "../../hooks/useJazzYj
 interface RoomContextValue {
   awareness: Awareness;
   shareToken: string;
+  staticToken: string | null;
   roomId: string | null;
   canEdit: boolean;
+  isArchived: boolean;
+  isCreator: boolean;
+  roomExists: boolean;
   title: string;
   editorLanguage: string;
   isLoading: boolean;
   isYjsReady: boolean;
   ydoc: Y.Doc;
+  archiveRoom: () => Promise<void>;
+  unarchiveRoom: () => Promise<void>;
   updateTitle: (title: string) => Promise<void>;
   updateEditorLanguage: (editorLanguage: string) => Promise<void>;
 }
@@ -48,6 +54,8 @@ export function RoomProvider(props: RoomProviderProps) {
   const canEditSession =
     session !== null &&
     (session.authMode === "local-first" || session.authMode === "external");
+  const isArchived = room?.archivedAt !== undefined && room.archivedAt !== null;
+  const isCreator = session !== null && room?.creator_session_user_id === session.user_id;
   const participantRows = useAll(
     room !== null && canEditSession === true
       ? app.roomParticipants.where({ room_id: room.id, session_user_id: session.user_id }).limit(1)
@@ -59,7 +67,7 @@ export function RoomProvider(props: RoomProviderProps) {
     rooms === undefined || (room !== null && metadataRows === undefined) || isParticipantLoading === true;
 
   const ensureParticipant = useCallback(async () => {
-    if (canEditSession === false || room === null || session === null) {
+    if (canEditSession === false || room === null || session === null || isArchived === true) {
       return false;
     }
 
@@ -87,7 +95,7 @@ export function RoomProvider(props: RoomProviderProps) {
 
     await participantWriteRef.current;
     return true;
-  }, [canEditSession, db, participant, participantRows, room, session]);
+  }, [canEditSession, db, isArchived, participant, participantRows, room, session]);
 
   useEffect(() => {
     if (isLoading === true) {
@@ -98,7 +106,7 @@ export function RoomProvider(props: RoomProviderProps) {
   }, [ensureParticipant, isLoading]);
 
   useEffect(() => {
-    if (canEditSession === false || participant === null || session === null) {
+    if (canEditSession === false || participant === null || session === null || isArchived === true) {
       return;
     }
 
@@ -119,7 +127,7 @@ export function RoomProvider(props: RoomProviderProps) {
         participantAccessUpdateKeyRef.current = null;
         console.error("Failed to update room access.", caughtError);
       });
-  }, [canEditSession, db, participant, session]);
+  }, [canEditSession, db, isArchived, participant, session]);
 
   const notifyYjsProviderError = useCallback((error: YjsProviderError) => {
     toast.error(error.title, {
@@ -131,7 +139,7 @@ export function RoomProvider(props: RoomProviderProps) {
   const { isYjsReady, ydoc } = useJazzYjsDocument({
     // Expose roomId only with room metadata and participant state loaded;
     // otherwise the editor can bootstrap without its write permission path.
-    roomId: isLoading === false ? (room?.id ?? null) : null,
+    roomId: isLoading === false && isArchived === false ? (room?.id ?? null) : null,
     ensureParticipant,
     onError: notifyYjsProviderError,
   });
@@ -236,7 +244,7 @@ export function RoomProvider(props: RoomProviderProps) {
   }, [awareness, isYjsReady]);
 
   const updateMetadata = async (metadataPatch: { title?: string; editorLanguage?: string }) => {
-    if (isLoading === true || room === null) {
+    if (isLoading === true || room === null || isArchived === true) {
       return;
     }
 
@@ -257,18 +265,50 @@ export function RoomProvider(props: RoomProviderProps) {
     await updateMetadata({ editorLanguage });
   };
 
+  const archiveRoom = async () => {
+    if (room === null || isCreator === false || session === null) {
+      return;
+    }
+
+    await db
+      .update(app.rooms, room.id, {
+        archivedAt: new Date(),
+        archivedBySessionUserId: session.user_id,
+      })
+      .wait({ tier: "edge" });
+  };
+
+  const unarchiveRoom = async () => {
+    if (room === null || isCreator === false) {
+      return;
+    }
+
+    await db
+      .update(app.rooms, room.id, {
+        archivedAt: null,
+        archivedBySessionUserId: null,
+      })
+      .wait({ tier: "edge" });
+  };
+
   return (
     <RoomContext.Provider
       value={{
         awareness,
         shareToken: props.shareToken,
+        staticToken: room?.staticToken ?? null,
         roomId: room?.id ?? null,
-        canEdit: canEditSession,
+        canEdit: canEditSession === true && isArchived === false,
+        isArchived,
+        isCreator,
+        roomExists: room !== null,
         title: metadata?.title ?? "",
         editorLanguage: metadata?.editorLanguage ?? "plaintext",
         isLoading,
         isYjsReady,
         ydoc,
+        archiveRoom,
+        unarchiveRoom,
         updateTitle,
         updateEditorLanguage,
       }}

@@ -1,7 +1,9 @@
 import { languages } from "@rcode/icons/languages";
 import { Button } from "@rcode/ui/ui/button";
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import type { Awareness } from "y-protocols/awareness";
+import { CommandMenu } from "../command-menu/commandMenu";
 import { EditorLayout } from "../layout/editorLayout";
 import { EditorLanguageCombobox } from "./editorLanguageCombobox";
 import { EditorTextArea } from "./editorTextArea";
@@ -22,11 +24,34 @@ export function EditorScreen(props: EditorScreenProps) {
 }
 
 function EditorContent() {
-  const { awareness, editorLanguage, isLoading, isYjsReady, title, updateEditorLanguage, updateTitle } = useRoom();
+  const { awareness, editorLanguage, isArchived, isLoading, isYjsReady, roomExists, title, updateEditorLanguage, updateTitle } = useRoom();
   const navigate = useNavigate();
+  const [titleEditRequest, setTitleEditRequest] = useState(0);
 
-  const isReady = isLoading === false && isYjsReady === true;
+  const isReady = isLoading === false && isYjsReady === true && isArchived === false && roomExists === true;
   const currentLanguageLogo = languages.find((language) => language.value === editorLanguage)?.logo;
+
+  if (isLoading === false && (roomExists === false || isArchived === true)) {
+    return (
+      <EditorLayout toolbar={<EditorToolbarSkeleton onDashboardClick={() => void navigate({ to: "/dashboard" })} />}>
+        <div className="flex h-full items-center justify-center bg-muted/30 px-6 text-center">
+          <div className="max-w-sm rounded-xl border bg-background p-6 shadow-sm">
+            <h1 className="text-sm font-semibold tracking-[-0.01575em]">
+              {isArchived === true ? "This room has been archived" : "Room unavailable"}
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {isArchived === true
+                ? "The room owner archived this room. It is not accessible from shared links."
+                : "This room does not exist or is no longer available."}
+            </p>
+            <Button type="button" size="sm" className="mt-4" onClick={() => void navigate({ to: "/dashboard" })}>
+              Go to dashboard
+            </Button>
+          </div>
+        </div>
+      </EditorLayout>
+    );
+  }
 
   return (
     <EditorLayout
@@ -36,11 +61,11 @@ function EditorContent() {
             <Button
               type="button"
               variant="ghost"
-              size="icon-sm"
-              className="size-5 rounded-sm bg-primary/60 text-primary-foreground hover:bg-primary"
+              size="sm"
+              className="text-primary-foreground"
               aria-label="Go to dashboard"
               onClick={() => void navigate({ to: "/dashboard" })}
-            />
+            >rcode</Button>
             {isReady === false ? (
               <div className="h-8 w-36 animate-pulse rounded bg-muted" />
             ) : (
@@ -55,6 +80,7 @@ function EditorContent() {
             <div className="h-6 w-48 animate-pulse rounded bg-muted" />
           ) : (
             <RoomTitle
+              editRequest={titleEditRequest}
               logo={currentLanguageLogo}
               value={title}
               onValueCommit={(nextTitle) => void updateTitle(nextTitle)}
@@ -71,10 +97,30 @@ function EditorContent() {
         </div>
       ) : (
         <div className="h-full bg-muted/30">
+          <CommandMenu onEditTitle={() => setTitleEditRequest((currentRequest) => currentRequest + 1)} />
           <EditorTextArea />
         </div>
       )}
     </EditorLayout>
+  );
+}
+
+function EditorToolbarSkeleton({ onDashboardClick }: { onDashboardClick: () => void }) {
+  return (
+    <div className="grid h-full grid-cols-[1fr_auto_1fr] items-center gap-4">
+      <div className="flex min-w-0 items-center gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-primary-foreground"
+          aria-label="Go to dashboard"
+          onClick={onDashboardClick}
+        >Dashboard</Button>
+      </div>
+      <div className="h-6 w-48 rounded bg-muted" />
+      <div />
+    </div>
   );
 }
 

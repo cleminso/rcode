@@ -27,6 +27,8 @@ const schema = {
     shareToken: s.string(),
     staticToken: s.string(),
     creator_session_user_id: s.string(),
+    archivedAt: s.timestamp().optional(),
+    archivedBySessionUserId: s.string().optional(),
   }),
   // Participant-editable room metadata. There should be one row per room by
   // app convention; Jazz does not enforce a unique room_id here.

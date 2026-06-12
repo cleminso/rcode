@@ -2,8 +2,7 @@ import { app } from "@rcode/schema";
 import { Button } from "@rcode/ui/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@rcode/ui/ui/toggle-group";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useAll, useSession } from "jazz-tools/react";
-import { ActivityIcon, LayersIcon, PlusIcon } from "lucide-react";
+import { useAll, useDb, useSession } from "jazz-tools/react";
 import { useMemo, useRef, useState } from "react";
 import { useDashboardPresence } from "../../hooks/useDashboardPresence";
 import { RoomListItem, type DashboardRoomListItemRoom } from "./roomListItem";
@@ -11,6 +10,8 @@ import { RoomListItem, type DashboardRoomListItemRoom } from "./roomListItem";
 interface DashboardRoomListRoom extends DashboardRoomListItemRoom {
   lastAccessedAt: Date | null;
 }
+
+type RoomListFilter = "all" | "active" | "archived";
 
 interface RoomListProps {
   canCreate: boolean;
@@ -32,7 +33,8 @@ const LoadingState = (
 );
 
 export function RoomList(props: RoomListProps) {
-  const [filter, setFilter] = useState<readonly string[]>(["all"]);
+  const [filter, setFilter] = useState<readonly RoomListFilter[]>(["all"]);
+  const db = useDb();
   const session = useSession();
   const scrollParentRef = useRef<HTMLDivElement>(null);
   const participantRows = useAll(
@@ -66,6 +68,8 @@ export function RoomList(props: RoomListProps) {
             shareToken: room.shareToken,
             title: metadata?.title ?? "",
             editorLanguage: metadata?.editorLanguage ?? "plaintext",
+            isArchived: room.archivedAt !== undefined && room.archivedAt !== null,
+            canUnarchive: isCreator,
             lastAccessedAt: ownParticipant?.lastAccessedAt ?? null,
           },
         ];
@@ -73,9 +77,24 @@ export function RoomList(props: RoomListProps) {
       .toSorted(compareRoomAccess);
   }, [metadataRows, participantRows, roomRows, session]);
 
-  const roomIds = rooms.map((room) => room.id);
+  const activeCandidateRooms = rooms.filter((room) => room.isArchived === false);
+  const roomIds = activeCandidateRooms.map((room) => room.id);
   const { activeRoomIds } = useDashboardPresence(roomIds);
-  const displayedRooms = filter[0] === "active" ? rooms.filter((room) => activeRoomIds.has(room.id)) : rooms;
+  const displayedRooms = rooms.filter((room) => {
+    if (filter[0] === "archived") {
+      return room.isArchived === true;
+    }
+
+    if (room.isArchived === true) {
+      return false;
+    }
+
+    if (filter[0] === "active") {
+      return activeRoomIds.has(room.id);
+    }
+
+    return true;
+  });
   const isLoading = session !== null && (participantRows === undefined || roomRows === undefined || metadataRows === undefined);
   const rowVirtualizer = useVirtualizer({
     count: displayedRooms.length,
@@ -83,6 +102,15 @@ export function RoomList(props: RoomListProps) {
     estimateSize: () => 48,
     overscan: 5,
   });
+
+  const handleUnarchive = (roomId: string) => {
+    void db
+      .update(app.rooms, roomId, {
+        archivedAt: null,
+        archivedBySessionUserId: null,
+      })
+      .wait({ tier: "edge" });
+  };
 
   const virtualItems = rowVirtualizer.getVirtualItems();
 
@@ -96,18 +124,20 @@ export function RoomList(props: RoomListProps) {
             value={filter}
             onValueChange={(value) => {
               const selected = value?.[0];
-              if (selected === "all" || selected === "active") {
+
+              if (selected === "all" || selected === "active" || selected === "archived") {
                 setFilter([selected]);
               }
             }}
           >
             <ToggleGroupItem value="all">
-              <LayersIcon className="size-3" />
               <span>All</span>
             </ToggleGroupItem>
             <ToggleGroupItem value="active" disabled={activeRoomIds.size === 0}>
-              <ActivityIcon className="size-3" />
               <span>Active</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="archived">
+              <span>Archived</span>
             </ToggleGroupItem>
           </ToggleGroup>
         </div>
@@ -118,7 +148,6 @@ export function RoomList(props: RoomListProps) {
           disabled={props.canCreate === false || props.isCreating === true}
           onClick={props.onCreateRoom}
         >
-          <PlusIcon className="size-3" />
           {props.isCreating === true ? "Creating" : "Create"}
         </Button>
       </div>
@@ -129,7 +158,11 @@ export function RoomList(props: RoomListProps) {
         ) : displayedRooms.length === 0 ? (
           <div className="rounded-xl border border-dashed p-8 text-center">
             <p className="text-sm text-muted-foreground">
-              {filter[0] === "active" ? "No active rooms right now." : "Create a room to start coding."}
+              {filter[0] === "active"
+                ? "No active rooms right now."
+                : filter[0] === "archived"
+                  ? "No archived rooms."
+                  : "Create a room to start coding."}
             </p>
           </div>
         ) : (
@@ -154,7 +187,7 @@ export function RoomList(props: RoomListProps) {
                       transform: `translateY(${virtualItem.start}px)`,
                     }}
                   >
-                    <RoomListItem room={room} />
+                    <RoomListItem room={room} onUnarchive={handleUnarchive} />
                   </div>
                 );
               })}

@@ -73,6 +73,7 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
     allOf([
       { session_user_id: session.user_id },
       canEditSession,
+      policy.exists(policy.rooms.where({ id: metadata.room_id, archivedAt: null })),
       anyOf([
         allowedTo.update("room"),
         policy.rooms.exists.where({
@@ -89,6 +90,7 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
   policy.roomMetadata.allowUpdate.where((metadata) =>
     allOf([
       canEditSession,
+      policy.exists(policy.rooms.where({ id: metadata.room_id, archivedAt: null })),
       anyOf([
         allowedTo.update("room"),
         policy.rooms.exists.where({
@@ -131,6 +133,7 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
     allOf([
       { session_user_id: session.user_id },
       canEditSession,
+      policy.exists(policy.rooms.where({ id: update.room_id, archivedAt: null })),
       anyOf([
         allowedTo.update("room"),
         policy.rooms.exists.where({
@@ -155,6 +158,7 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
     allOf([
       { session_user_id: session.user_id },
       canEditSession,
+      policy.exists(policy.rooms.where({ id: snapshot.room_id, archivedAt: null })),
       anyOf([
         allowedTo.update("room"),
         policy.rooms.exists.where({

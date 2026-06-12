@@ -5,10 +5,11 @@ import {
   InputGroupInput,
 } from "@rcode/ui/ui/input-group";
 import { ChevronDown } from "lucide-react";
-import { memo, useRef, useState, type ComponentType } from "react";
+import { memo, useEffect, useRef, useState, type ComponentType } from "react";
 
 interface RoomTitleProps {
   value: string;
+  editRequest?: number;
   logo?: ComponentType<LanguageLogoProps>;
   onValueCommit: (value: string) => void;
 }
@@ -21,12 +22,30 @@ interface RoomTitleInputState {
 
 export const RoomTitle = memo(function RoomTitle(props: RoomTitleProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const previousEditRequestRef = useRef(props.editRequest);
+  const skipNextBlurCommitRef = useRef(false);
   const [inputState, setInputState] = useState<RoomTitleInputState>({
     externalValue: props.value,
     inputValue: props.value,
     isFocused: false,
   });
   const Logo = props.logo;
+
+  useEffect(() => {
+    if (props.editRequest === undefined || props.editRequest === previousEditRequestRef.current) {
+      return;
+    }
+
+    previousEditRequestRef.current = props.editRequest;
+    const input = inputRef.current;
+
+    if (input === null) {
+      return;
+    }
+
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }, [props.editRequest]);
 
   if (props.value !== inputState.externalValue) {
     setInputState({
@@ -62,6 +81,12 @@ export const RoomTitle = memo(function RoomTitle(props: RoomTitleProps) {
         }}
         onBlur={(event) => {
           const nextValue = event.currentTarget.value;
+
+          if (skipNextBlurCommitRef.current === true) {
+            skipNextBlurCommitRef.current = false;
+            return;
+          }
+
           setInputState((currentState) => ({
             externalValue: currentState.externalValue,
             inputValue: nextValue,
@@ -74,6 +99,17 @@ export const RoomTitle = memo(function RoomTitle(props: RoomTitleProps) {
         }}
         onKeyDown={(event) => {
           if (event.key === "Enter") {
+            inputRef.current?.blur();
+            return;
+          }
+
+          if (event.key === "Escape") {
+            skipNextBlurCommitRef.current = true;
+            setInputState((currentState) => ({
+              externalValue: currentState.externalValue,
+              inputValue: currentState.externalValue,
+              isFocused: false,
+            }));
             inputRef.current?.blur();
           }
         }}
