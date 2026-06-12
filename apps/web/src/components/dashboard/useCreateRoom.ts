@@ -38,24 +38,22 @@ export function useCreateRoom() {
       const shareToken = newRoomToken();
       const staticToken = newRoomToken();
 
-      const batch = db.batch((batch) => {
-        const room = batch.insert(app.rooms, {
-          shareToken,
-          staticToken,
-          creator_session_user_id: session.user_id,
-        });
+      const roomWrite = db.insert(app.rooms, {
+        shareToken,
+        staticToken,
+        creator_session_user_id: session.user_id,
+      });
+      const room = roomWrite.value;
 
-        batch.insert(app.roomParticipants, {
-          room_id: room.id,
-          session_user_id: session.user_id,
-          lastAccessedAt: new Date(),
-        });
+      await roomWrite.wait({ tier: "edge" });
 
-        return room;
+      const participantWrite = db.insert(app.roomParticipants, {
+        room_id: room.id,
+        session_user_id: session.user_id,
+        lastAccessedAt: new Date(),
       });
 
-      const room = batch.value;
-      await batch.wait({ tier: "edge" });
+      await participantWrite.wait({ tier: "edge" });
 
       await db.insert(app.roomMetadata, {
         room_id: room.id,

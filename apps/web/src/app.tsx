@@ -20,7 +20,7 @@ export default function App() {
   const { config, isLoading, refreshJwt } = useAuthConfig();
 
   if (isLoading === true) {
-    return <div>Loading auth...</div>;
+    // return <div>Loading auth...</div>;
   }
 
   // Jazz clients are bound to a single principal on a live db.

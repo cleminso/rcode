@@ -67,7 +67,7 @@ function EditorContent() {
     >
       {isReady === false ? (
         <div className="flex h-full items-center justify-center bg-muted/30">
-          <div className="text-muted-foreground text-sm">Loading editor...</div>
+          {/*<div className="text-muted-foreground text-sm">Loading editor...</div>*/}
         </div>
       ) : (
         <div className="h-full bg-muted/30">

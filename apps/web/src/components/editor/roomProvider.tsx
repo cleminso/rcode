@@ -242,23 +242,11 @@ export function RoomProvider(props: RoomProviderProps) {
 
     const canUpdateMetadata = await ensureParticipant();
 
-    if (canUpdateMetadata === false) {
+    if (canUpdateMetadata === false || metadata === null) {
       return;
     }
 
-    if (metadata !== null) {
-      await db.update(app.roomMetadata, metadata.id, metadataPatch).wait({ tier: "edge" });
-      return;
-    }
-
-    await db
-      .insert(app.roomMetadata, {
-        room_id: room.id,
-        session_user_id: session?.user_id ?? "",
-        title: metadataPatch.title ?? "",
-        editorLanguage: metadataPatch.editorLanguage ?? "plaintext",
-      })
-      .wait({ tier: "edge" });
+    await db.update(app.roomMetadata, metadata.id, metadataPatch).wait({ tier: "edge" });
   };
 
   const updateTitle = async (title: string) => {
