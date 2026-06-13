@@ -4,6 +4,7 @@ import { useAll, useDb, useSession } from "jazz-tools/react";
 import { useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
 import { hashString } from "../lib/hash";
+import { toYjsUpdate } from "../lib/yjsUpdate";
 
 const ACTIVE_SNAPSHOT_INTERVAL_MS = 5 * 60 * 1000;
 const IDLE_SNAPSHOT_DELAY_MS = 2 * 60 * 1000;
@@ -36,10 +37,6 @@ interface YjsRoomRuntime {
 
 const remoteUpdateOrigin: RemoteUpdateOrigin = { provider: "jazz" };
 
-function isByteValue(value: unknown) {
-  return typeof value === "number" && Number.isInteger(value) === true && value >= 0 && value <= 255;
-}
-
 function reportYjsPersistError(error: unknown) {
   console.error("Failed to persist Yjs update.", error);
 }
@@ -67,46 +64,6 @@ function createYjsProviderError(type: YjsProviderError["type"], error: unknown):
     title: type === "persist" ? "Editor changes could not be saved" : "Editor changes could not be loaded",
     description: getErrorDescription(error),
   };
-}
-
-// Jazz bytes normally hydrate as Uint8Array. The extra shapes keep Y.applyUpdate
-// safe across storage/devtool serialization boundaries without guessing strings.
-function toYjsUpdate(value: unknown) {
-  if (value instanceof Uint8Array) {
-    return value;
-  }
-
-  if (value instanceof ArrayBuffer) {
-    return new Uint8Array(value);
-  }
-
-  if (ArrayBuffer.isView(value) === true) {
-    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-  }
-
-  if (Array.isArray(value) === true) {
-    if (value.every(isByteValue) === false) {
-      throw new Error("Expected Yjs update array values to be bytes.");
-    }
-
-    return Uint8Array.from(value);
-  }
-
-  if (typeof value === "object" && value !== null) {
-    const entries = Object.entries(value).sort(([left], [right]) => Number(left) - Number(right));
-
-    if (entries.length === 0) {
-      throw new Error("Expected Yjs update object to contain bytes.");
-    }
-
-    if (entries.every(([key, byte], index) => Number(key) === index && isByteValue(byte) === true) === false) {
-      throw new Error("Expected Yjs update object values to be contiguous bytes.");
-    }
-
-    return Uint8Array.from(entries.map(([, byte]) => Number(byte)));
-  }
-
-  throw new Error("Expected a Yjs update byte array.");
 }
 
 export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {

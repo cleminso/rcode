@@ -14,6 +14,10 @@
       "types": "./dist/components/ui/*.d.ts",
       "import": "./dist/components/ui/*.mjs"
     },
+    "./hooks/*": {
+      "types": "./dist/hooks/*.d.ts",
+      "import": "./dist/hooks/*.mjs"
+    },
     "./lib/*": {
       "types": "./dist/lib/*.d.ts",
       "import": "./dist/lib/*.mjs"

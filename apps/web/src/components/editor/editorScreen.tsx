@@ -1,4 +1,5 @@
 import { languages } from "@rcode/icons/languages";
+import { Separator } from "@rcode/ui/ui/separator";
 import { Button } from "@rcode/ui/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -66,6 +67,7 @@ function EditorContent() {
               aria-label="Go to dashboard"
               onClick={() => void navigate({ to: "/dashboard" })}
             >rcode</Button>
+            <Separator className="mx-1" orientation="vertical" />
             {isReady === false ? (
               <div className="h-8 w-36 animate-pulse rounded bg-muted" />
             ) : (
