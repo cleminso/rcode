@@ -18,6 +18,6 @@
     },
   },
   // TODO: Restore "src/hooks" when implemented
-"include": ["src/components/ui", "src/lib"],
+  "include": ["src/components/atoms", "src/components/ui", "src/lib"],
   "exclude": ["dist", "node_modules"],
 }

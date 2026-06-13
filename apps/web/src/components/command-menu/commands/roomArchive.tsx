@@ -1,4 +1,4 @@
-import { CommandItem } from "@rcode/ui/ui/command";
+import { CommandItem } from "@rcode/ui/command";
 
 const ARCHIVE_ROOM_KEYWORDS = ["delete", "remove"];
 

@@ -1,4 +1,4 @@
-import { CommandItem } from "@rcode/ui/ui/command";
+import { CommandItem } from "@rcode/ui/command";
 
 const EDIT_ROOM_TITLE_KEYWORDS = ["rename", "title"];
 

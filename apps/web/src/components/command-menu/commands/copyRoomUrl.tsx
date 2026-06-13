@@ -1,4 +1,4 @@
-import { CommandItem } from "@rcode/ui/ui/command";
+import { CommandItem } from "@rcode/ui/command";
 import { useMemo } from "react";
 import { toast } from "sonner";
 
@@ -27,7 +27,7 @@ export function CopyRoomUrlCommand(props: CopyRoomUrlCommandProps) {
   return (
     <CommandItem value={props.label} keywords={keywords} onSelect={() => void handleSelect()}>
       <span className="truncate">{props.label}</span>
-      <span className="ml-auto max-w-56 truncate text-muted-foreground">{props.url}</span>
+      <span className="ml-4 max-w-auto truncate text-muted-foreground">{props.url}</span>
     </CommandItem>
   );
 }

@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { Awareness } from "y-protocols/awareness";
 import { CommandMenu } from "../command-menu/commandMenu";
 import { EditorLayout } from "../layout/editorLayout";
-import { EditorLanguageCombobox } from "./editorLanguageCombobox";
+import { EditorLanguageCombobox } from "./editorLanguagePicker";
 import { EditorTextArea } from "./editorTextArea";
 import { EditorUsersList } from "./editorUsersList";
 import { RoomTitle } from "./roomTitle";

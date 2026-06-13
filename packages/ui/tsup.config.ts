@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup'
 export default defineConfig({
   tsconfig: './tsconfig.json',
   // TODO: Add './src/hooks' when implemented
-  entry: ['./src/components/ui', './src/lib', '!./src/**/*.stories.*'],
+  entry: ['./src/components/atoms', './src/components/ui', './src/lib', '!./src/**/*.stories.*'],
   format: ['esm'],
   minify: false,
   dts: true,

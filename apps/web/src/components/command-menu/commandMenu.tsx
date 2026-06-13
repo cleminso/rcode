@@ -5,7 +5,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandList,
-} from "@rcode/ui/ui/command";
+} from "@rcode/ui/command";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -73,22 +73,22 @@ export function CommandMenu(props: CommandMenuProps) {
       }}
       title="Editor command menu"
       description="Search room commands."
-      className="top-24 w-[calc(100vw-2rem)] sm:max-w-[34rem] !rounded-sm translate-y-0 border-border/70 bg-popover/95 shadow-2xl backdrop-blur"
+      className="top-14 sm:max-w-126"
     >
       <Command>
         <CommandInput placeholder="Execute a command..." />
-        <CommandList className="max-h-80">
+        <CommandList>
           <CommandEmpty>No command found.</CommandEmpty>
           <CommandGroup>
             <CopyRoomUrlCommand
-              label="Copy room link..."
+              label="Copy room link"
               url={liveUrl}
               toastTitle="Room link copied to your clipboard - share it!"
               onComplete={closeMenu}
             />
             {staticUrl !== null ? (
               <CopyRoomUrlCommand
-                label="Copy static room link..."
+                label="Copy static room link"
                 url={staticUrl}
                 toastTitle="Static room link copied to your clipboard - share it!"
                 onComplete={closeMenu}

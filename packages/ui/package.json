@@ -5,6 +5,11 @@
   "version": "0.0.1",
   "type": "module",
   "exports": {
+    "./*": {
+      "types": "./dist/components/atoms/*.d.ts",
+      "import": "./dist/components/atoms/*.mjs",
+      "require": "./dist/components/atoms/*.js"
+    },
     "./ui/*": {
       "types": "./dist/components/ui/*.d.ts",
       "import": "./dist/components/ui/*.mjs"
