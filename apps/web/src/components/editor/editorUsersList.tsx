@@ -1,12 +1,10 @@
 import { Avatar, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarImage } from "@rcode/ui/ui/avatar";
-import type { Awareness } from "y-protocols/awareness";
-import { colors } from "../../lib/awareness";
-import { useAwarenessUsers } from "../../hooks/useAwarenessUsers";
-import type { AwarenessUser } from "../../hooks/useRoomAwareness";
+import { baseColors, colors, type BaseColor } from "../../lib/awareness";
+import type { RoomPresence, RoomPresenceUser } from "../../hooks/useRoomPresence";
 
 interface EditorUsersListProps {
-  awareness: Awareness;
   maxUsers?: number;
+  presence: RoomPresence;
 }
 
 function getInitials(displayName: string) {
@@ -17,8 +15,22 @@ function getInitials(displayName: string) {
     .slice(0, 2);
 }
 
-function UserAvatarItem({ user }: { user: AwarenessUser }) {
-  const color = colors[user.color];
+// Deterministic color assignment from sessionUserId. The same user always
+// gets the same color across tabs and sessions, replacing the previous
+// awareness-based approach where color was picked from the least-used palette
+// (which produced different colors per tab for the same user).
+function getUserColor(sessionUserId: string): BaseColor {
+  let hash = 0;
+
+  for (let index = 0; index < sessionUserId.length; index += 1) {
+    hash = (hash + sessionUserId.charCodeAt(index)) % baseColors.length;
+  }
+
+  return baseColors[hash]!;
+}
+
+function UserAvatarItem({ user }: { user: RoomPresenceUser }) {
+  const color = colors[getUserColor(user.sessionUserId)];
 
   return (
     <Avatar
@@ -37,20 +49,18 @@ function UserAvatarItem({ user }: { user: AwarenessUser }) {
 }
 
 export function EditorUsersList(props: EditorUsersListProps) {
-  const { awareness, maxUsers = 4 } = props;
-  const users = useAwarenessUsers(awareness);
-  const localClientId = awareness.clientID;
+  const { maxUsers = 4, presence } = props;
 
-  const sortedUsers = users.toSorted((a, b) => {
-    if (a.clientId === localClientId) {
+  const sortedUsers = presence.users.toSorted((a, b) => {
+    if (a.isLocal === true) {
       return -1;
     }
 
-    if (b.clientId === localClientId) {
+    if (b.isLocal === true) {
       return 1;
     }
 
-    return a.clientId - b.clientId;
+    return a.sessionUserId.localeCompare(b.sessionUserId);
   });
 
   const displayedUsers = sortedUsers.slice(0, maxUsers);
@@ -60,14 +70,13 @@ export function EditorUsersList(props: EditorUsersListProps) {
     <div
       className="flex items-center select-none"
       aria-label={`${sortedUsers.length} active user${sortedUsers.length === 1 ? "" : "s"}`}
-      title={sortedUsers.map((entry) => {
-        const isLocal = entry.clientId === localClientId;
-        return `${entry.user.displayName}${isLocal ? " (you)" : ""}`;
+      title={sortedUsers.map((user) => {
+        return `${user.displayName}${user.isLocal === true ? " (you)" : ""}`;
       }).join(", ")}
     >
       <AvatarGroup>
-        {displayedUsers.map((entry) => (
-          <UserAvatarItem key={entry.clientId} user={entry.user} />
+        {displayedUsers.map((user) => (
+          <UserAvatarItem key={user.sessionUserId} user={user} />
         ))}
         {remainingCount > 0 ? (
           <AvatarGroupCount>

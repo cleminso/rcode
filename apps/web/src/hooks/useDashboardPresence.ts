@@ -1,7 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 
-interface PresenceSummary {
-  rooms: Array<{ roomId: string; userCount: number }>;
+// These types mirror the server-side interfaces in awarenessServer.ts.
+// They are the wire format deserialized from the /api/presence/stream SSE events.
+// Exported so useRoomPresence can reuse them without duplicating the shape.
+export interface PresenceUserSummary {
+  displayName: string;
+  picture?: string;
+  sessionUserId: string;
+}
+
+export interface PresenceRoomSummary {
+  roomId: string;
+  userCount: number;
+  users: PresenceUserSummary[];
+}
+
+export interface PresenceSummary {
+  rooms: PresenceRoomSummary[];
   timestamp: number;
 }
 
@@ -10,7 +25,9 @@ interface DashboardPresence {
   userCountByRoomId: Map<string, number>;
 }
 
-function getPresenceStreamUrl(roomIds: readonly string[]) {
+// Shared between useDashboardPresence (multi-room) and useRoomPresence
+// (single-room). Centralized here so both hooks build the same SSE URL.
+export function getPresenceStreamUrl(roomIds: readonly string[]) {
   const baseUrl = import.meta.env.VITE_AUTH_BASE_URL ?? window.location.origin;
   const url = new URL("/api/presence/stream", baseUrl);
 

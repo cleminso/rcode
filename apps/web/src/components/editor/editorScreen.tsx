@@ -3,7 +3,6 @@ import { Separator } from "@rcode/ui/ui/separator";
 import { Button } from "@rcode/ui/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import type { Awareness } from "y-protocols/awareness";
 import { CommandMenu } from "../command-menu/commandMenu";
 import { EditorLayout } from "../layout/editorLayout";
 import { EditorLanguageCombobox } from "./editorLanguagePicker";
@@ -25,7 +24,7 @@ export function EditorScreen(props: EditorScreenProps) {
 }
 
 function EditorContent() {
-  const { awareness, editorLanguage, isArchived, isLoading, isYjsReady, roomExists, title, updateEditorLanguage, updateTitle } = useRoom();
+  const { editorLanguage, isArchived, isLoading, isYjsReady, roomExists, roomPresence, title, updateEditorLanguage, updateTitle } = useRoom();
   const navigate = useNavigate();
   const [titleEditRequest, setTitleEditRequest] = useState(0);
 
@@ -89,7 +88,7 @@ function EditorContent() {
             />
           )}
 
-          <EditorActions awareness={awareness} />
+          <EditorActions roomPresence={roomPresence} />
         </div>
       }
     >
@@ -126,10 +125,10 @@ function EditorToolbarSkeleton({ onDashboardClick }: { onDashboardClick: () => v
   );
 }
 
-function EditorActions({ awareness }: { awareness: Awareness }) {
+function EditorActions({ roomPresence }: { roomPresence: ReturnType<typeof useRoom>["roomPresence"] }) {
   return (
     <div className="flex min-w-0 items-center justify-end gap-3">
-      <EditorUsersList awareness={awareness} maxUsers={4} />
+      <EditorUsersList maxUsers={4} presence={roomPresence} />
     </div>
   );
 }

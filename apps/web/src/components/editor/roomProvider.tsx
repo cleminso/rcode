@@ -4,12 +4,9 @@ import { useAll, useDb, useSession } from "jazz-tools/react";
 import { toast } from "sonner";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
-import {
-  awarenessConnectionClosedOrigin,
-  type AwarenessState,
-  useRoomAwareness,
-} from "../../hooks/useRoomAwareness";
+import { useRoomAwareness } from "../../hooks/useRoomAwareness";
 import { type YjsProviderError, useJazzYjsDocument } from "../../hooks/useJazzYjsDocument";
+import { type RoomPresence, useRoomPresence } from "../../hooks/useRoomPresence";
 
 interface RoomContextValue {
   awareness: Awareness;
@@ -20,6 +17,7 @@ interface RoomContextValue {
   isArchived: boolean;
   isCreator: boolean;
   roomExists: boolean;
+  roomPresence: RoomPresence;
   title: string;
   editorLanguage: string;
   isLoading: boolean;
@@ -32,8 +30,6 @@ interface RoomContextValue {
 }
 
 const RoomContext = createContext<RoomContextValue | null>(null);
-const PRESENCE_TOAST_HYDRATION_DELAY_MS = 500;
-const PRESENCE_LEAVE_TOAST_DELAY_MS = 100;
 
 interface RoomProviderProps {
   shareToken: string;
@@ -47,6 +43,8 @@ export function RoomProvider(props: RoomProviderProps) {
   // the ref dedupes concurrent metadata/Yjs writes for the same in-flight insert.
   const participantWriteRef = useRef<Promise<void> | null>(null);
   const participantAccessUpdateKeyRef = useRef<string | null>(null);
+  const knownPresenceUsersRef = useRef<Map<string, string>>(new Map());
+  const didHydratePresenceToastsRef = useRef(false);
   const rooms = useAll(app.rooms.where({ shareToken: props.shareToken }).limit(1));
   const room = rooms?.[0] ?? null;
   const metadataRows = useAll(room !== null ? app.roomMetadata.where({ room_id: room.id }).limit(1) : undefined);
@@ -148,100 +146,50 @@ export function RoomProvider(props: RoomProviderProps) {
     roomId: room?.id ?? null,
     ydoc,
   });
+  // Only subscribe to presence once the Yjs document is ready and the room is
+  // not archived. Before that, there's no editor session to show presence for.
+  const presenceRoomId = isYjsReady === true && isArchived === false ? (room?.id ?? null) : null;
+  const roomPresence = useRoomPresence(presenceRoomId, session?.user_id ?? null);
 
+  // Reset toast tracking state when switching rooms so the previous room's
+  // known users don't trigger spurious "left" toasts.
   useEffect(() => {
-    if (isYjsReady === false) {
+    knownPresenceUsersRef.current = new Map();
+    didHydratePresenceToastsRef.current = false;
+  }, [presenceRoomId]);
+
+  // Show join/leave toasts based on server-backed user-level presence (not
+  // awareness clients). The first SSE event is treated as hydration — it
+  // seeds the known users without firing toasts for users who were already
+  // in the room before this tab connected.
+  useEffect(() => {
+    if (isYjsReady === false || roomPresence.isLoaded === false) {
       return;
     }
 
-    const knownDisplayNames = new Map<number, string>();
-    const leaveToastTimeouts = new Map<number, number>();
-    let canShowPresenceToasts = false;
+    const previousUsers = knownPresenceUsersRef.current;
+    const nextUsers = new Map(roomPresence.users.map((user) => [user.sessionUserId, user.displayName]));
 
-    const getDisplayName = (clientId: number) => {
-      const state = awareness.getStates().get(clientId) as AwarenessState | undefined;
-      return state?.user?.displayName ?? knownDisplayNames.get(clientId) ?? "Someone";
-    };
+    if (didHydratePresenceToastsRef.current === false) {
+      knownPresenceUsersRef.current = nextUsers;
+      didHydratePresenceToastsRef.current = true;
+      return;
+    }
 
-    const rememberDisplayNames = () => {
-      for (const [clientId, state] of awareness.getStates()) {
-        const typedState = state as AwarenessState;
-
-        if (typedState.user?.displayName !== undefined) {
-          knownDisplayNames.set(clientId, typedState.user.displayName);
-        }
+    for (const user of roomPresence.users) {
+      if (previousUsers.has(user.sessionUserId) === false && user.isLocal === false) {
+        toast.info(`${user.displayName} joined the room.`);
       }
-    };
+    }
 
-    rememberDisplayNames();
-
-    // TODO: Replace this hydration workaround with an explicit initial-awareness-sync signal.
-    const hydrationTimeout = window.setTimeout(() => {
-      rememberDisplayNames();
-      canShowPresenceToasts = true;
-    }, PRESENCE_TOAST_HYDRATION_DELAY_MS);
-
-    const handleChange = (change: { added: number[]; updated: number[]; removed: number[] }, origin: unknown) => {
-      if (origin === awarenessConnectionClosedOrigin) {
-        return;
+    for (const [sessionUserId, displayName] of previousUsers) {
+      if (nextUsers.has(sessionUserId) === false && sessionUserId !== session?.user_id) {
+        toast.info(`${displayName} left the room.`);
       }
+    }
 
-      for (const clientId of change.updated) {
-        const state = awareness.getStates().get(clientId) as AwarenessState | undefined;
-
-        if (state?.user?.displayName !== undefined) {
-          knownDisplayNames.set(clientId, state.user.displayName);
-        }
-      }
-
-      for (const clientId of change.added) {
-        const pendingLeaveToast = leaveToastTimeouts.get(clientId);
-
-        if (pendingLeaveToast !== undefined) {
-          window.clearTimeout(pendingLeaveToast);
-          leaveToastTimeouts.delete(clientId);
-        }
-
-        const displayName = getDisplayName(clientId);
-        knownDisplayNames.set(clientId, displayName);
-
-        if (canShowPresenceToasts === true && clientId !== awareness.clientID) {
-          toast.info(`${displayName} joined the room.`);
-        }
-      }
-
-      for (const clientId of change.removed) {
-        if (clientId === awareness.clientID) {
-          continue;
-        }
-
-        const displayName = knownDisplayNames.get(clientId) ?? "Someone";
-        const timeoutId = window.setTimeout(() => {
-          leaveToastTimeouts.delete(clientId);
-
-          if (awareness.getStates().has(clientId) === false) {
-            knownDisplayNames.delete(clientId);
-
-            if (canShowPresenceToasts === true) {
-              toast.info(`${displayName} left the room.`);
-            }
-          }
-        }, PRESENCE_LEAVE_TOAST_DELAY_MS);
-        leaveToastTimeouts.set(clientId, timeoutId);
-      }
-    };
-
-    awareness.on("change", handleChange);
-
-    return () => {
-      window.clearTimeout(hydrationTimeout);
-      for (const timeoutId of leaveToastTimeouts.values()) {
-        window.clearTimeout(timeoutId);
-      }
-
-      awareness.off("change", handleChange);
-    };
-  }, [awareness, isYjsReady]);
+    knownPresenceUsersRef.current = nextUsers;
+  }, [isYjsReady, roomPresence, session?.user_id]);
 
   const updateMetadata = async (metadataPatch: { title?: string; editorLanguage?: string }) => {
     if (isLoading === true || room === null || isArchived === true) {
@@ -298,6 +246,7 @@ export function RoomProvider(props: RoomProviderProps) {
         shareToken: props.shareToken,
         staticToken: room?.staticToken ?? null,
         roomId: room?.id ?? null,
+        roomPresence,
         canEdit: canEditSession === true && isArchived === false,
         isArchived,
         isCreator,

@@ -11,6 +11,11 @@ import { WebSocket, WebSocketServer, type RawData } from "ws";
 import { env } from "./env";
 
 interface AwarenessClient {
+  // Per-connection map of sessionUserId -> user summary. A single WebSocket can
+  // own multiple awareness clientIds, but presence is tracked
+  // at the connection level so the user stays "present" as long as the socket
+  // is open, even if awareness states expire or are cleared.
+  presenceUsers: Map<string, PresenceUserSummary>;
   room: AwarenessRoom;
   roomId: string;
   socket: WebSocket;
@@ -33,6 +38,15 @@ const awarenessPath = "/api/awareness";
 interface PresenceRoomSummary {
   roomId: string;
   userCount: number;
+  users: PresenceUserSummary[];
+}
+
+// Wire format published to SSE subscribers. Shared between the API server
+// (producer) and the web app (consumer via useDashboardPresence / useRoomPresence).
+export interface PresenceUserSummary {
+  displayName: string;
+  picture?: string;
+  sessionUserId: string;
 }
 
 interface PresenceSubscriber {
@@ -82,12 +96,42 @@ export function subscribePresenceSummary(
   };
 }
 
+// Deep equality check for presence user arrays. Used to suppress redundant SSE
+// notifications when an awareness update changes nothing meaningful (e.g. a
+// heartbeat or cursor move that doesn't alter displayName, picture, or membership).
+function arePresenceUsersEqual(left: PresenceUserSummary[], right: PresenceUserSummary[]) {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((user, index) => {
+    const other = right[index];
+
+    if (other === undefined) {
+      return false;
+    }
+
+    return (
+      user.displayName === other.displayName &&
+      user.picture === other.picture &&
+      user.sessionUserId === other.sessionUserId
+    );
+  });
+}
+
+// Compares the previous and next room summary to decide whether SSE subscribers
+// need to be notified. Without this guard, every awareness heartbeat would
+// trigger a presence broadcast even when the user list is unchanged.
 function arePresenceSummariesEqual(left: PresenceRoomSummary | undefined, right: PresenceRoomSummary | null) {
   if (left === undefined || right === null) {
     return left === undefined && right === null;
   }
 
-  return left.roomId === right.roomId && left.userCount === right.userCount;
+  return (
+    left.roomId === right.roomId &&
+    left.userCount === right.userCount &&
+    arePresenceUsersEqual(left.users, right.users) === true
+  );
 }
 
 function notifyPresenceSubscribers(roomId: string) {
@@ -116,18 +160,39 @@ function setPresenceSummary(roomId: string, summary: PresenceRoomSummary | null)
   notifyPresenceSubscribers(roomId);
 }
 
-function getSessionUserId(value: unknown) {
+// Extracts a PresenceUserSummary from a raw awareness state object.
+// The awareness payload is client-provided and untyped, so every field is
+// validated before trust. Returns null if the shape doesn't match, which
+// causes the user to be excluded from the presence summary.
+function getPresenceUser(value: unknown): PresenceUserSummary | null {
   if (typeof value !== "object" || value === null || "user" in value === false) {
     return null;
   }
 
   const user = value.user;
 
-  if (typeof user !== "object" || user === null || "sessionUserId" in user === false) {
+  if (typeof user !== "object" || user === null) {
     return null;
   }
 
-  return typeof user.sessionUserId === "string" ? user.sessionUserId : null;
+  if ("sessionUserId" in user === false || "displayName" in user === false) {
+    return null;
+  }
+
+  if (typeof user.sessionUserId !== "string" || typeof user.displayName !== "string") {
+    return null;
+  }
+
+  const summary: PresenceUserSummary = {
+    displayName: user.displayName,
+    sessionUserId: user.sessionUserId,
+  };
+
+  if ("picture" in user === true && typeof user.picture === "string") {
+    summary.picture = user.picture;
+  }
+
+  return summary;
 }
 
 function getRequestUrl(request: IncomingMessage) {
@@ -186,25 +251,34 @@ export function attachAwarenessServer(server: AwarenessUpgradeServer) {
   const websocketServer = new WebSocketServer({ noServer: true });
   const rooms = new Map<string, AwarenessRoom>();
 
+  // Rebuilds the room presence summary from active WebSocket connections.
+  // Unlike the previous awareness-based approach, this iterates connections
+  // (not awareness states), so a user stays present while their socket is open
+  // even if their awareness state has expired or been cleared by the 30s
+  // y-protocols timeout. Users are deduped by sessionUserId, so multiple tabs
+  // from the same user count as one participant.
   const updatePresenceStore = (roomId: string, room: AwarenessRoom) => {
-    const sessionUserIds = new Set<string>();
+    const usersBySessionUserId = new Map<string, PresenceUserSummary>();
 
-    for (const state of room.awareness.getStates().values()) {
-      const sessionUserId = getSessionUserId(state);
-
-      if (sessionUserId !== null) {
-        sessionUserIds.add(sessionUserId);
+    for (const client of room.clients) {
+      for (const user of client.presenceUsers.values()) {
+        usersBySessionUserId.set(user.sessionUserId, user);
       }
     }
 
-    if (sessionUserIds.size === 0) {
+    if (usersBySessionUserId.size === 0) {
       setPresenceSummary(roomId, null);
       return;
     }
 
+    const users = Array.from(usersBySessionUserId.values()).toSorted((left, right) =>
+      left.sessionUserId.localeCompare(right.sessionUserId),
+    );
+
     setPresenceSummary(roomId, {
       roomId,
-      userCount: sessionUserIds.size,
+      userCount: users.length,
+      users,
     });
   };
 
@@ -236,6 +310,17 @@ export function attachAwarenessServer(server: AwarenessUpgradeServer) {
 
       if (isAwarenessClient(origin) === true) {
         for (const clientId of change.added.concat(change.updated)) {
+          // Extract user identity from the awareness state and associate it
+          // with this connection. This is how the server learns which user
+          // is behind a given WebSocket, since the connection itself has no
+          // auth header (WebSocket upgrade doesn't carry custom headers
+          // from browsers).
+          const user = getPresenceUser(room.awareness.getStates().get(clientId));
+
+          if (user !== null) {
+            origin.presenceUsers.set(user.sessionUserId, user);
+          }
+
           room.clientOwners.set(clientId, origin);
         }
       }
@@ -288,7 +373,7 @@ export function attachAwarenessServer(server: AwarenessUpgradeServer) {
 
   websocketServer.on("connection", (socket: WebSocket, _request: IncomingMessage, roomId: string) => {
     const room = getRoom(roomId);
-    const client: AwarenessClient = { room, roomId, socket };
+    const client: AwarenessClient = { presenceUsers: new Map(), room, roomId, socket };
     const knownClientIds = Array.from(room.awareness.getStates().keys());
 
     if (knownClientIds.length > 0 && socket.readyState === WebSocket.OPEN) {
@@ -328,6 +413,11 @@ export function attachAwarenessServer(server: AwarenessUpgradeServer) {
       if (ownedClientIds.length > 0) {
         removeAwarenessStates(room.awareness, ownedClientIds, client);
       }
+
+      // Recalculate presence after the socket closes. This is what makes the
+      // user "leave" — when their last connection drops, their sessionUserId
+      // disappears from all client.presenceUsers maps and the summary updates.
+      updatePresenceStore(roomId, room);
 
       deleteRoomIfEmpty(roomId, room);
     });
