@@ -1,9 +1,27 @@
+import { app } from "@rcode/schema";
+import { Navigate } from "@tanstack/react-router";
+import { useAll, useSession } from "jazz-tools/react";
 import { AuthButton } from "../auth/authButton";
 import { RoomList } from "./roomList";
 import { useCreateRoom } from "./useCreateRoom";
 
 export function DashboardScreen() {
+  const session = useSession();
+  const sessionUserId = session?.user_id ?? null;
+  const profileRows = useAll(
+    sessionUserId !== null ? app.profiles.where({ session_user_id: sessionUserId }).limit(1) : undefined,
+  );
+  const profile = profileRows?.[0] ?? null;
+  const isLoadingProfile = sessionUserId !== null && profileRows === undefined;
   const { canCreate, createRoom, error, isCreating } = useCreateRoom();
+
+  if (isLoadingProfile === true) {
+    return <main className="min-h-screen bg-background p-6 text-sm text-muted-foreground">Loading profile...</main>;
+  }
+
+  if (profile?.displayName.trim() === "" || profile === null) {
+    return <Navigate replace to="/" />;
+  }
 
   return (
     <main className="min-h-screen bg-background text-foreground">

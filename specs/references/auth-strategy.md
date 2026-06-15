@@ -6,6 +6,7 @@
 - [User Journeys](#user-journeys)
 - [Identity Model](#identity-model)
 - [Schema Responsibilities](#schema-responsibilities)
+- [Implementation Notes](#implementation-notes)
 
 ## Problem Statement
 
@@ -17,8 +18,8 @@ A web editor that quickly shares links needs low-friction entry. Is not acceptab
 
 Support `read-only` user session through Jazz `anonymous`.
 
-- who is viewing the room?
-- get generated names and colors.
+- view static shared rooms without creating a local identity secret
+- cannot edit or create rooms
 
 Support `guest-editing` user session through Jazz `local-first` mode.
 
@@ -61,7 +62,8 @@ A read-only viewer opens a shared link and can view persisted room content witho
 
 - Uses Jazz `anonymous` mode.
 - Cannot edit or create rooms.
-- May receive temporary display metadata for viewing presence.
+- Does not create a durable app profile.
+- Does not receive a local-first recovery phrase.
 
 ### Guest editor
 
@@ -115,14 +117,15 @@ Better Auth tables are auth/account infrastructure:
 - linked provider accounts
 - JWT signing keys
 
-rcode `profiles` are product identity:
+rcode `profiles` are durable product identity:
 
 - display name in rooms
 - avatar shown in collaboration UI
 - cursor color
-- guest/account display state
 
 rcode should use `profiles` for product surfaces and use Better Auth tables only for auth/account workflows.
+
+Guest, account, and read-only status should be derived from Jazz auth mode and Better Auth session state rather than stored on profile rows.
 
 Room ownership, participants, and Yjs update metadata should store Jazz session user ids as strings rather than refs to `better_auth_user`, because local-first users can exist without a Better Auth user row.
 
@@ -135,3 +138,69 @@ Use these names for app-owned identity columns:
 - `roomYjsSnapshots.session_user_id`
 
 This keeps the source of the value explicit and avoids confusing Jazz session identity with Better Auth account rows or profile row ids.
+
+## Implementation Notes
+
+Static shared routes should run inside an anonymous Jazz provider/config so reads happen without a browser-held local-first secret.
+
+Editable routes should run inside the normal auth provider that resolves to:
+
+1. Better Auth JWT when a Better Auth session exists.
+2. Local-first secret when no Better Auth session exists.
+
+This preserves the separation between read-only viewers and guest editors. A static route rendered through the normal local-first provider would still be read-only by UI convention, but it would not match the intended anonymous auth mode.
+
+---
+
+## UI Representation
+
+| Intent  | Method     | Meaning                                                                     |
+| ------- | ---------- | --------------------------------------------------------------------------- |
+| Sign in | Email      | Access an existing Better Auth-linked Jazz identity                         |
+| Sign in | Passphrase | Restore local-first Jazz identity                                           |
+| Sign up | Email      | Create/upgrade the active local-first identity to Better Auth               |
+| Sign up | Passphrase | Use the active/generated local-first identity and expose its recovery phras |
+
+**Sign up with email**
+
+1.  User chooses Sign Up
+2.  User chooses Email
+3.  User enters name, display name, email
+4.  App ensures a local-first Jazz identity exists
+5.  App generates local-first identity proof
+6.  App starts Better Auth Email OTP signup
+7.  User enters OTP
+8.  Server verifies proof
+9.  Better Auth user is created with the Jazz user ID
+10. Jazz reconnects using Better Auth JWT
+    This preserves local-first identity and gives email-based access from other devices.
+
+**Sign in with email**
+
+1. User chooses Sign In
+2. User chooses Email
+3. User enters email
+4. Better Auth sends OTP
+5. User enters OTP
+6. Client gets Better Auth JWT
+7. Jazz runs with jwtToken
+
+No local-first proof is needed for normal sign-in, because the Better Auth user already maps to the Jazz user ID.
+
+**Sign up with passphrase**
+
+This is local-first only.
+
+- “Use this device right away”
+- “Save this phrase to access the same identity elsewhere”
+- “You can add email access later”
+
+- “Add email sign-in later without losing this identity”
+
+**Sign in with passphrase**
+
+This restores the Jazz secret.
+
+- “Paste your recovery phrase”
+- not “password”
+- not “passphrase password”

@@ -33,6 +33,8 @@ export function useAuthConfig() {
 
   const [jwt, setJwt] = useState<string | null>(null);
   const [isFetchingJwt, setIsFetchingJwt] = useState(false);
+  const hasExternalSession = sessionData?.session != null;
+  const isWaitingForJwt = hasExternalSession === true && jwt === null;
 
   // Refetch JWT whenever the active session identity changes.
   // The dependency on `session.id` ensures we react to login/logout/switch.
@@ -75,7 +77,8 @@ export function useAuthConfig() {
 
   return {
     config,
-    isLoading: localFirstLoading || sessionPending || isFetchingJwt,
+    isLoading: localFirstLoading || sessionPending || isFetchingJwt || isWaitingForJwt,
     refreshJwt,
+    sessionKey: jwt ?? localFirstSecret ?? "anonymous",
   };
 }

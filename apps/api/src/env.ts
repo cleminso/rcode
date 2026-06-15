@@ -91,6 +91,7 @@ export const env = {
   allowedOrigins,
   betterAuthUrl: readOptionalEnv("BETTER_AUTH_URL") ?? "https://api.rcode.localhost",
   betterAuthBasePath: readOptionalEnv("BETTER_AUTH_BASE_PATH") ?? "/auth",
+  emailOtpWebhookUrl: readOptionalEnv("EMAIL_OTP_WEBHOOK_URL"),
   jazzAppId: readEnv("JAZZ_APP_ID"),
   jazzServerUrl: readEnv("JAZZ_SERVER_URL"),
   backendSecret: readEnv("BACKEND_SECRET"),

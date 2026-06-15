@@ -19,7 +19,6 @@ const schema = {
     session_user_id: s.string(),
     displayName: s.string(),
     avatar: s.string().optional(),
-    isGuest: s.boolean(),
   }),
   // Protected room identity, sharing, and ownership fields. Participant-editable
   // display/editor metadata lives in roomMetadata so permissions stay row-level.

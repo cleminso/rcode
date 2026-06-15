@@ -9,16 +9,22 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LoginRouteImport } from './routes/login'
+import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ShareTokenRouteImport } from './routes/$shareToken'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SStaticTokenRouteImport } from './routes/s/$staticToken'
 import { Route as RoomsShareTokenRouteImport } from './routes/rooms/$shareToken'
 
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const SignUpRoute = SignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -51,7 +57,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$shareToken': typeof ShareTokenRoute
   '/dashboard': typeof DashboardRoute
-  '/login': typeof LoginRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
   '/rooms/$shareToken': typeof RoomsShareTokenRoute
   '/s/$staticToken': typeof SStaticTokenRoute
 }
@@ -59,7 +66,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$shareToken': typeof ShareTokenRoute
   '/dashboard': typeof DashboardRoute
-  '/login': typeof LoginRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
   '/rooms/$shareToken': typeof RoomsShareTokenRoute
   '/s/$staticToken': typeof SStaticTokenRoute
 }
@@ -68,7 +76,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$shareToken': typeof ShareTokenRoute
   '/dashboard': typeof DashboardRoute
-  '/login': typeof LoginRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
   '/rooms/$shareToken': typeof RoomsShareTokenRoute
   '/s/$staticToken': typeof SStaticTokenRoute
 }
@@ -78,7 +87,8 @@ export interface FileRouteTypes {
     | '/'
     | '/$shareToken'
     | '/dashboard'
-    | '/login'
+    | '/sign-in'
+    | '/sign-up'
     | '/rooms/$shareToken'
     | '/s/$staticToken'
   fileRoutesByTo: FileRoutesByTo
@@ -86,7 +96,8 @@ export interface FileRouteTypes {
     | '/'
     | '/$shareToken'
     | '/dashboard'
-    | '/login'
+    | '/sign-in'
+    | '/sign-up'
     | '/rooms/$shareToken'
     | '/s/$staticToken'
   id:
@@ -94,7 +105,8 @@ export interface FileRouteTypes {
     | '/'
     | '/$shareToken'
     | '/dashboard'
-    | '/login'
+    | '/sign-in'
+    | '/sign-up'
     | '/rooms/$shareToken'
     | '/s/$staticToken'
   fileRoutesById: FileRoutesById
@@ -103,18 +115,26 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ShareTokenRoute: typeof ShareTokenRoute
   DashboardRoute: typeof DashboardRoute
-  LoginRoute: typeof LoginRoute
+  SignInRoute: typeof SignInRoute
+  SignUpRoute: typeof SignUpRoute
   RoomsShareTokenRoute: typeof RoomsShareTokenRoute
   SStaticTokenRoute: typeof SStaticTokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/sign-up': {
+      id: '/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof SignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -159,7 +179,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ShareTokenRoute: ShareTokenRoute,
   DashboardRoute: DashboardRoute,
-  LoginRoute: LoginRoute,
+  SignInRoute: SignInRoute,
+  SignUpRoute: SignUpRoute,
   RoomsShareTokenRoute: RoomsShareTokenRoute,
   SStaticTokenRoute: SStaticTokenRoute,
 }
