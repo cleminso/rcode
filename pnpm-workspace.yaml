@@ -29,8 +29,8 @@ catalog:
   class-variance-authority: ^0.7.1
   clsx: ^2.1.1
   hono: ^4.12.25
-  jazz-napi: 2.0.0-alpha.49
-  "jazz-tools": 2.0.0-alpha.49
+  jazz-napi: 2.0.0-alpha.51
+  "jazz-tools": 2.0.0-alpha.51
   lucide-react: ^1.18.0
   nanoid: ^5.1.11
   portless: ^0.14.0

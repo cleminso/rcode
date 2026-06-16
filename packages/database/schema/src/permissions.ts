@@ -1,7 +1,7 @@
 // Permissions are row-level gates evaluated against the active Jazz session.
 // Once a compiled permission bundle is loaded, every table operation needs an explicit policy.
 // Reads that fail are filtered out; writes that fail are rejected.
-import { definePermissions } from "jazz-tools";
+import { definePermissions, type RowRefValue } from "jazz-tools";
 import { app } from "./schema";
 
 export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedTo }) => {
@@ -9,6 +9,26 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
     session.where({ authMode: "local-first" }),
     session.where({ authMode: "external" }),
   ]);
+
+  // A row tied to a room is writable only while the room is still active (not
+  // archived) and the session holds editor access to it: a relationship-based
+  // room grant, room creatorship, or a participant row. Shared by the metadata,
+  // Yjs update, and snapshot rules.
+  const roomEditorAccess = (roomId: RowRefValue) =>
+    allOf([
+      policy.exists(policy.rooms.where({ id: roomId, archivedAt: null })),
+      anyOf([
+        allowedTo.update("room"),
+        policy.rooms.exists.where({
+          id: roomId,
+          creator_session_user_id: session.user_id,
+        }),
+        policy.roomParticipants.exists.where({
+          room_id: roomId,
+          session_user_id: session.user_id,
+        }),
+      ]),
+    ]);
 
   // Better Auth owns account infrastructure. Browser clients should not query or mutate
   // credentials, sessions, linked accounts, verification codes, or JWT signing keys.
@@ -73,36 +93,11 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
     allOf([
       { session_user_id: session.user_id },
       canEditSession,
-      policy.exists(policy.rooms.where({ id: metadata.room_id, archivedAt: null })),
-      anyOf([
-        allowedTo.update("room"),
-        policy.rooms.exists.where({
-          id: metadata.room_id,
-          creator_session_user_id: session.user_id,
-        }),
-        policy.roomParticipants.exists.where({
-          room_id: metadata.room_id,
-          session_user_id: session.user_id,
-        }),
-      ]),
+      roomEditorAccess(metadata.room_id),
     ]),
   );
   policy.roomMetadata.allowUpdate.where((metadata) =>
-    allOf([
-      canEditSession,
-      policy.exists(policy.rooms.where({ id: metadata.room_id, archivedAt: null })),
-      anyOf([
-        allowedTo.update("room"),
-        policy.rooms.exists.where({
-          id: metadata.room_id,
-          creator_session_user_id: session.user_id,
-        }),
-        policy.roomParticipants.exists.where({
-          room_id: metadata.room_id,
-          session_user_id: session.user_id,
-        }),
-      ]),
-    ]),
+    allOf([canEditSession, roomEditorAccess(metadata.room_id)]),
   );
   policy.roomMetadata.allowDelete.never();
 
@@ -133,18 +128,7 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
     allOf([
       { session_user_id: session.user_id },
       canEditSession,
-      policy.exists(policy.rooms.where({ id: update.room_id, archivedAt: null })),
-      anyOf([
-        allowedTo.update("room"),
-        policy.rooms.exists.where({
-          id: update.room_id,
-          creator_session_user_id: session.user_id,
-        }),
-        policy.roomParticipants.exists.where({
-          room_id: update.room_id,
-          session_user_id: session.user_id,
-        }),
-      ]),
+      roomEditorAccess(update.room_id),
     ]),
   );
   policy.roomYjsUpdates.allowUpdate.never();
@@ -158,18 +142,7 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
     allOf([
       { session_user_id: session.user_id },
       canEditSession,
-      policy.exists(policy.rooms.where({ id: snapshot.room_id, archivedAt: null })),
-      anyOf([
-        allowedTo.update("room"),
-        policy.rooms.exists.where({
-          id: snapshot.room_id,
-          creator_session_user_id: session.user_id,
-        }),
-        policy.roomParticipants.exists.where({
-          room_id: snapshot.room_id,
-          session_user_id: session.user_id,
-        }),
-      ]),
+      roomEditorAccess(snapshot.room_id),
     ]),
   );
   policy.roomYjsSnapshots.allowUpdate.never();
