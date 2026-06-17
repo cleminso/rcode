@@ -1,37 +1,35 @@
-import { Button } from "@rcode/ui/ui/button";
-import { Input } from "@rcode/ui/ui/input";
-import { type FormEvent } from "react";
-import { Field } from "./authFields";
+import { OtpInput } from "@rcode/ui/otpInput";
+import Button from "@rcode/ui/button";
 
 interface OtpVerificationFormProps {
   email: string;
-  isSubmitting: boolean;
+  isResending: boolean;
   otp: string;
-  onBack: () => void;
+  resendSecondsLeft: number;
   onOtpChange: (value: string) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onResend: () => void;
 }
 
-export function OtpVerificationForm({ email, isSubmitting, otp, onBack, onOtpChange, onSubmit }: OtpVerificationFormProps) {
+export function OtpVerificationForm({ email, isResending, otp, resendSecondsLeft, onOtpChange, onResend }: OtpVerificationFormProps) {
+  const canResend = resendSecondsLeft === 0 && isResending === false;
+
   return (
-    <form className="space-y-5" onSubmit={onSubmit}>
-      <Field label={`Enter the code sent to ${email}`}>
-        <Input
-          className="h-10 text-center tracking-[0.5em]"
-          value={otp}
-          onChange={(event) => onOtpChange(event.target.value)}
-          autoComplete="one-time-code"
-          inputMode="numeric"
-          maxLength={6}
-          required
-        />
-      </Field>
-      <Button className="h-10 w-full" type="submit" disabled={isSubmitting === true}>
-        {isSubmitting === true ? "Verifying..." : "Continue"}
-      </Button>
-      <button className="w-full text-sm text-muted-foreground hover:text-foreground" type="button" onClick={onBack}>
-        Use a different email
-      </button>
-    </form>
+    <div className="mx-auto flex w-full max-w-150 rounded-xs flex-col gap-5 py-1">
+      <div className="flex flex-col gap-1 text-base font-sans text-muted-foreground">
+        <p>Enter the code sent to</p>
+        <p className="font-medium text-foreground text-base font-sans">{email}</p>
+      </div>
+      <OtpInput value={otp} onChange={onOtpChange} aria-label="Verification code" autoFocus />
+      <div className="flex justify-center gap-1 text-sm font-sans text-muted-foreground">
+        <span>Didn't receive the code?</span>
+        {canResend === true ? (
+          <Button className="h-auto rounded-none px-0 text-sm underline underline-offset-2 hover:bg-transparent hover:text-foreground" size="none" variant="ghost" type="button" onClick={onResend}>
+            Resend now
+          </Button>
+        ) : (
+          <span className="underline underline-offset-2">Resend in {resendSecondsLeft}s</span>
+        )}
+      </div>
+    </div>
   );
 }

@@ -7,6 +7,7 @@
 - [Identity Model](#identity-model)
 - [Schema Responsibilities](#schema-responsibilities)
 - [Implementation Notes](#implementation-notes)
+- [UI Representation](#ui-representation)
 
 ## Problem Statement
 
@@ -29,7 +30,7 @@ Support `guest-editing` user session through Jazz `local-first` mode.
 
 Support `signed-in` user session through Jazz `external` mode.
 
-- create/has a Better Auth account (name; picture)
+- create/has a Better Auth account through email OTP
 - wants persistent identity across devices.
 - can create multiple rooms, CRUD actions
 
@@ -111,7 +112,7 @@ A user can also sign up without creating a room. In that path, Better Auth creat
 
 Better Auth tables are auth/account infrastructure:
 
-- account credentials
+- account identity rows
 - email and verification state
 - sessions
 - linked provider accounts
@@ -165,11 +166,11 @@ This preserves the separation between read-only viewers and guest editors. A sta
 
 1.  User chooses Sign Up
 2.  User chooses Email
-3.  User enters name, display name, email
+3.  User enters display name and email
 4.  App ensures a local-first Jazz identity exists
 5.  App generates local-first identity proof
-6.  App starts Better Auth Email OTP signup
-7.  User enters OTP
+6.  App starts Better Auth Email OTP sign-up
+7.  User enters OTP or the OTP auto-submits when complete
 8.  Server verifies proof
 9.  Better Auth user is created with the Jazz user ID
 10. Jazz reconnects using Better Auth JWT
@@ -180,12 +181,16 @@ This preserves the separation between read-only viewers and guest editors. A sta
 1. User chooses Sign In
 2. User chooses Email
 3. User enters email
-4. Better Auth sends OTP
-5. User enters OTP
-6. Client gets Better Auth JWT
-7. Jazz runs with jwtToken
+4. API verifies that a Better Auth user exists for that email
+5. If no account exists, UI shows a short message and redirects to `/sign-up` with the email prefilled
+6. Better Auth sends OTP for existing accounts
+7. User enters OTP or the OTP auto-submits when complete
+8. Client gets Better Auth JWT
+9. Jazz runs with jwtToken
 
 No local-first proof is needed for normal sign-in, because the Better Auth user already maps to the Jazz user ID.
+
+OTP resend calls Better Auth again and follows the Better Auth default OTP behavior.
 
 **Sign up with passphrase**
 
@@ -204,3 +209,5 @@ This restores the Jazz secret.
 - “Paste your recovery phrase”
 - not “password”
 - not “passphrase password”
+- malformed recovery phrases show an invalid recovery phrase message
+- valid recovery phrases without a matching rcode profile show that no rcode profile was found for the passphrase

@@ -35,7 +35,7 @@ Better Auth is not a browser-only library and is not served by the Jazz sync ser
 - local-first proof verification during sign-up
 - health endpoints for local and deployment checks
 
-The Jazz sync server validates external JWTs, but it does not handle Better Auth sign-in, cookies, account creation, or email/password flows. The API is the bridge between Better Auth account infrastructure and Jazz external auth.
+The Jazz sync server validates external JWTs, but it does not handle Better Auth sign-in, cookies, account creation, or email OTP flows. The API is the bridge between Better Auth account infrastructure and Jazz external auth.
 
 ## Auth Systems
 
@@ -96,11 +96,12 @@ The browser connects to the Jazz sync URL with a JWT. The Jazz sync server verif
 
 1. User starts as a local-first Jazz identity.
 2. Web app asks Jazz for a local-first identity proof.
-3. Web app submits email/password plus `proofToken` to Better Auth sign-up.
-4. `apps/api` verifies the proof with `verifyLocalFirstIdentityProof(..., "betterauth-signup")`.
-5. Better Auth stores the proven Jazz id as the Better Auth user id.
-6. Future JWTs use that id as `sub`.
-7. Existing rooms and profile rows still point to the same `session.user_id`.
+3. Web app submits email plus `proofToken` to start Better Auth email OTP sign-up.
+4. User verifies the OTP.
+5. `apps/api` verifies the proof with `verifyLocalFirstIdentityProof(..., "betterauth-signup")`.
+6. Better Auth stores the proven Jazz id as the Better Auth user id.
+7. Future JWTs use that id as `sub`.
+8. Existing rooms and profile rows still point to the same `session.user_id`.
 
 ### Signed-in external flow
 

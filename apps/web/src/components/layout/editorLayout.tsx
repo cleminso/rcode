@@ -9,7 +9,7 @@ interface EditorLayoutProps {
 export function EditorLayout(props: EditorLayoutProps) {
   return (
     <main className="grid min-h-screen grid-rows-[auto_1fr_auto] bg-background text-foreground">
-      <header className="flex h-[38px] items-center border-b border-border">
+      <header className="flex h-9.5 items-center border-b border-border">
         <div className="flex w-full items-center px-3">
           {props.toolbar}
         </div>
@@ -17,7 +17,7 @@ export function EditorLayout(props: EditorLayoutProps) {
       <section className="grid min-h-0 grid-cols-[1fr_auto]">
         <div className="min-h-0">{props.children}</div>
       </section>
-      <footer className="flex h-[34px] items-center border-t border-border">
+      <footer className="flex h-8.5 items-center border-t border-border">
         <div className="flex w-full items-center px-3">
           {props.footer}
         </div>

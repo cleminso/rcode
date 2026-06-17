@@ -13,7 +13,7 @@ const Command = ({ className, ...props }: CommandProps) => (
   <CommandPrimitive
     data-slot="command"
     className={cn(
-      "flex size-full flex-col overflow-hidden bg-card text-card-foreground",
+      "flex size-full flex-col overflow-hidden rounded-sm bg-card text-card-foreground",
       className
     )}
     {...props}
@@ -50,7 +50,7 @@ const CommandDialog = ({
       <DialogPrimitive.Popup
         data-slot="command-dialog-content"
         className={cn(
-          "fixed top-24 left-1/2 z-50 w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-md border border-border/80 bg-card text-card-foreground shadow-2xl outline-none sm:max-w-3xl",
+          "fixed top-24 left-1/2 z-50 w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-sm border border-border/80 bg-card text-card-foreground shadow-2xl outline-none sm:max-w-3xl",
           className
         )}
       >

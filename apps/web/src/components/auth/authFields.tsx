@@ -1,42 +1,42 @@
-import { Input } from "@rcode/ui/ui/input";
-import { Label } from "@rcode/ui/ui/label";
-import { type ReactNode } from "react";
+import { Input } from "@rcode/ui/input";
+import { Textarea } from "@rcode/ui/ui/textarea";
+import { Field, FieldLabel } from "@rcode/ui/field";
+import { type ComponentProps } from "react";
 
-interface FieldProps {
-  children: ReactNode;
+interface AuthFieldProps extends ComponentProps<typeof Input> {
+  error?: string | null;
   label: string;
 }
 
-export function Field({ children, label }: FieldProps) {
+export function AuthField({ error = null, id, label, ...props }: AuthFieldProps) {
+  const inputId = id ?? label.toLowerCase().replace(/\s+/g, "-");
+
   return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      {children}
-    </div>
+    <Field data-invalid={error !== null}>
+      <div className="flex items-center justify-between gap-3">
+        <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
+        {error !== null ? <span className="font-mono text-xs uppercase text-destructive">REQUIRED</span> : null}
+      </div>
+      <Input id={inputId} aria-invalid={error !== null} {...props} />
+    </Field>
   );
 }
 
-interface SignUpProfileFieldsProps {
-  displayName: string;
-  name: string;
-  onDisplayNameChange: (value: string) => void;
-  onNameChange: (value: string) => void;
+interface AuthTextareaFieldProps extends ComponentProps<typeof Textarea> {
+  error?: string | null;
+  label: string;
 }
 
-export function SignUpProfileFields({ displayName, name, onDisplayNameChange, onNameChange }: SignUpProfileFieldsProps) {
+export function AuthTextareaField({ error = null, id, label, ...props }: AuthTextareaFieldProps) {
+  const inputId = id ?? label.toLowerCase().replace(/\s+/g, "-");
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <Field label="Name">
-        <Input value={name} onChange={(event) => onNameChange(event.target.value)} autoComplete="name" />
-      </Field>
-      <Field label="Display name">
-        <Input
-          value={displayName}
-          onChange={(event) => onDisplayNameChange(event.target.value)}
-          autoComplete="nickname"
-          required
-        />
-      </Field>
-    </div>
+    <Field data-invalid={error !== null}>
+      <div className="flex items-center justify-between gap-3">
+        <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
+        {error !== null ? <span className="font-mono text-xs uppercase text-destructive">REQUIRED</span> : null}
+      </div>
+      <Textarea id={inputId} aria-invalid={error !== null} {...props} />
+    </Field>
   );
 }
