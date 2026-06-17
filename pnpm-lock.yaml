@@ -57,6 +57,9 @@ catalogs:
     jazz-tools:
       specifier: 2.0.0-alpha.51
       version: 2.0.0-alpha.51
+    little-timestamp:
+      specifier: ^1.0.0
+      version: 1.0.0
     lucide-react:
       specifier: ^1.18.0
       version: 1.18.0
@@ -104,6 +107,9 @@ importers:
       '@better-auth/infra':
         specifier: ^0.2.14
         version: 0.2.14(@better-auth/core@1.6.18(@opentelemetry/api@1.9.1)(jose@6.2.3)(kysely@0.28.17)(nanostores@1.3.0))(@better-auth/sso@1.6.11(@better-auth/core@1.6.18(@opentelemetry/api@1.9.1)(jose@6.2.3)(kysely@0.28.17)(nanostores@1.3.0))(better-auth@1.6.18(@opentelemetry/api@1.9.1)(better-sqlite3@12.10.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)))(better-auth@1.6.18(@opentelemetry/api@1.9.1)(better-sqlite3@12.10.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(zod@4.4.3)
+      little-timestamp:
+        specifier: ^1.0.0
+        version: 1.0.0
 
   apps/api:
     dependencies:
@@ -159,6 +165,9 @@ importers:
       '@fontsource-variable/geist':
         specifier: 'catalog:'
         version: 5.2.9
+      '@fontsource/commit-mono':
+        specifier: 5.2.5
+        version: 5.2.5
       '@monaco-editor/react':
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.55.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -204,6 +213,9 @@ importers:
       jazz-tools:
         specifier: 'catalog:'
         version: 2.0.0-alpha.51(better-auth@1.6.18(@opentelemetry/api@1.9.1)(better-sqlite3@12.10.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)
+      little-timestamp:
+        specifier: 'catalog:'
+        version: 1.0.0
       lucide-react:
         specifier: 'catalog:'
         version: 1.18.0(react@19.2.6)
@@ -324,6 +336,9 @@ importers:
       cmdk:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      little-timestamp:
+        specifier: 'catalog:'
+        version: 1.0.0
       lucide-react:
         specifier: 'catalog:'
         version: 1.18.0(react@19.2.6)
@@ -994,6 +1009,9 @@ packages:
 
   '@fontsource-variable/geist@5.2.9':
     resolution: {integrity: sha512-TP+QSBG3wxKGPE33CbMy/L0Nu3qvJ6Fy81Yc4LnQ95xH+i+cfEp8fyU8/kfV14YwszxIFPhnoMTbjL71waVpyQ==}
+
+  '@fontsource/commit-mono@5.2.5':
+    resolution: {integrity: sha512-htX8yQWtiPt5L1Hzh4sirvfUJT2+KYiquDB/Q2sY2tWQYplpBUOD5zHnIM3k36Hnm4V+JIIqA/wmwupSQ68WjA==}
 
   '@garden-co/jazz-napi-darwin-arm64@2.0.0-alpha.51':
     resolution: {integrity: sha512-kzpB7roSZ3Jn3gWHhr3xLoRhOMaWiRDLxii7hhyZE/RZtGp98X7m1nfbHlqxdP6eTL+SD0MY4g9wqDKBUVHCWA==}
@@ -2959,6 +2977,10 @@ packages:
   lines-and-columns@1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
 
+  little-timestamp@1.0.0:
+    resolution: {integrity: sha512-8xH0V9ERNGjuzuVBmLAfMN1fnZ/L+uW/Lg9cxl7/Ynxfvke3d/HRXD2akqiErGs4oqWFcs4SIFuzoJ6pUf//Cw==}
+    engines: {node: '>=16.0.0'}
+
   load-tsconfig@0.2.5:
     resolution: {integrity: sha512-IXO6OCs9yg8tMKzfPZ1YmheJbZCiEsnBdcB03l0OcfK9prKnJb96siuHCr5Fl37/yo9DnKU+TLpxzTUspw9shg==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
@@ -4524,6 +4546,8 @@ snapshots:
   '@floating-ui/utils@0.2.11': {}
 
   '@fontsource-variable/geist@5.2.9': {}
+
+  '@fontsource/commit-mono@5.2.5': {}
 
   '@garden-co/jazz-napi-darwin-arm64@2.0.0-alpha.51':
     optional: true
@@ -6236,6 +6260,8 @@ snapshots:
   lilconfig@3.1.3: {}
 
   lines-and-columns@1.2.4: {}
+
+  little-timestamp@1.0.0: {}
 
   load-tsconfig@0.2.5: {}
 

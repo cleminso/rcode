@@ -1,8 +1,7 @@
 import { languages } from "@rcode/icons/languages";
-import { Separator } from "@rcode/ui/ui/separator";
-import { Button } from "@rcode/ui/ui/button";
-import { useNavigate } from "@tanstack/react-router";
+import Button from "@rcode/ui/button";
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { CommandMenu } from "../command-menu/commandMenu";
 import { EditorLayout } from "../layout/editorLayout";
 import { EditorLanguageCombobox } from "./editorLanguagePicker";
@@ -13,6 +12,16 @@ import { RoomProvider, useRoom } from "./roomProvider";
 
 interface EditorScreenProps {
   shareToken: string;
+}
+
+function LogoButton() {
+  const navigate = useNavigate();
+
+  return (
+    <Button variant="ghost" size="icon" onClick={() => navigate({ to: "/dashboard" })}>
+      <div className="h-4 w-4 rounded-xs bg-primary" />
+    </Button>
+  );
 }
 
 export function EditorScreen(props: EditorScreenProps) {
@@ -29,23 +38,38 @@ function EditorContent() {
   const [titleEditRequest, setTitleEditRequest] = useState(0);
 
   const isReady = isLoading === false && isYjsReady === true && isArchived === false && roomExists === true;
-  const currentLanguageLogo = languages.find((language) => language.value === editorLanguage)?.logo;
+  const currentLanguage = languages.find((language) => language.value === editorLanguage);
+  const currentLanguageLogo = currentLanguage?.logo;
 
   if (isLoading === false && (roomExists === false || isArchived === true)) {
     return (
-      <EditorLayout toolbar={<EditorToolbarSkeleton onDashboardClick={() => void navigate({ to: "/dashboard" })} />}>
-        <div className="flex h-full items-center justify-center bg-muted/30 px-6 text-center">
-          <div className="max-w-sm rounded-xl border bg-background p-6 shadow-sm">
-            <h1 className="text-sm font-semibold tracking-[-0.01575em]">
+      <EditorLayout
+        toolbar={
+          <div className="flex h-full w-full items-center gap-2">
+            <LogoButton />
+            <Button variant="ghost" onClick={() => void navigate({ to: "/dashboard" })}>
+              [D] DASHBOARD
+            </Button>
+          </div>
+        }
+        footer={
+          <div className="flex w-full items-center justify-between">
+            <span className="text-xs  text-muted-foreground">[T] THEME</span>
+          </div>
+        }
+      >
+        <div className="flex h-full items-center justify-center px-6 text-center">
+          <div className="max-w-sm rounded-xs border border-border bg-card p-6">
+            <h1 className="text-[16px] font-semibold ">
               {isArchived === true ? "This room has been archived" : "Room unavailable"}
             </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-xs text-muted-foreground">
               {isArchived === true
                 ? "The room owner archived this room. It is not accessible from shared links."
                 : "This room does not exist or is no longer available."}
             </p>
-            <Button type="button" size="sm" className="mt-4" onClick={() => void navigate({ to: "/dashboard" })}>
-              Go to dashboard
+            <Button variant="primary" className="mt-4" onClick={() => void navigate({ to: "/dashboard" })}>
+              [D] DASHBOARD
             </Button>
           </div>
         </div>
@@ -56,19 +80,11 @@ function EditorContent() {
   return (
     <EditorLayout
       toolbar={
-        <div className="grid h-full grid-cols-[1fr_auto_1fr] items-center gap-4">
+        <div className="grid h-full w-full grid-cols-[1fr_auto_1fr] items-center gap-4">
           <div className="flex min-w-0 items-center gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="text-primary-foreground"
-              aria-label="Go to dashboard"
-              onClick={() => void navigate({ to: "/dashboard" })}
-            >rcode</Button>
-            <Separator className="mx-1" orientation="vertical" />
+            <LogoButton />
             {isReady === false ? (
-              <div className="h-8 w-36 animate-pulse rounded bg-muted" />
+              <div className="h-6.25 w-24 animate-pulse rounded-xs bg-muted" />
             ) : (
               <EditorLanguageCombobox
                 value={editorLanguage}
@@ -78,7 +94,7 @@ function EditorContent() {
           </div>
 
           {isReady === false ? (
-            <div className="h-6 w-48 animate-pulse rounded bg-muted" />
+            <div className="h-6 w-48 animate-pulse rounded-xs bg-muted" />
           ) : (
             <RoomTitle
               editRequest={titleEditRequest}
@@ -88,47 +104,27 @@ function EditorContent() {
             />
           )}
 
-          <EditorActions roomPresence={roomPresence} />
+          <div className="flex min-w-0 items-center justify-end gap-3">
+            <EditorUsersList maxUsers={4} presence={roomPresence} />
+          </div>
+        </div>
+      }
+      footer={
+        <div className="flex w-full items-center justify-between">
+          <div className="flex items-center gap-4">
+            <span className="text-xs  text-muted-foreground">[T] THEME</span>
+          </div>
         </div>
       }
     >
       {isReady === false ? (
-        <div className="flex h-full items-center justify-center bg-muted/30">
-          {/*<div className="text-muted-foreground text-sm">Loading editor...</div>*/}
-        </div>
+        <div className="flex h-full items-center justify-center" />
       ) : (
-        <div className="h-full bg-muted/30">
+        <div className="h-full">
           <CommandMenu onEditTitle={() => setTitleEditRequest((currentRequest) => currentRequest + 1)} />
           <EditorTextArea />
         </div>
       )}
     </EditorLayout>
-  );
-}
-
-function EditorToolbarSkeleton({ onDashboardClick }: { onDashboardClick: () => void }) {
-  return (
-    <div className="grid h-full grid-cols-[1fr_auto_1fr] items-center gap-4">
-      <div className="flex min-w-0 items-center gap-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="text-primary-foreground"
-          aria-label="Go to dashboard"
-          onClick={onDashboardClick}
-        >Dashboard</Button>
-      </div>
-      <div className="h-6 w-48 rounded bg-muted" />
-      <div />
-    </div>
-  );
-}
-
-function EditorActions({ roomPresence }: { roomPresence: ReturnType<typeof useRoom>["roomPresence"] }) {
-  return (
-    <div className="flex min-w-0 items-center justify-end gap-3">
-      <EditorUsersList maxUsers={4} presence={roomPresence} />
-    </div>
   );
 }

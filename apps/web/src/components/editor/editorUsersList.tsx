@@ -35,13 +35,13 @@ function UserAvatarItem({ user }: { user: RoomPresenceUser }) {
   return (
     <Avatar
       size="sm"
-      className={color.avatarBg}
+      className={`rounded-xs ${color.avatarBg}`}
       title={user.displayName}
     >
       {user.picture !== undefined ? (
-        <AvatarImage src={user.picture} alt={user.displayName} />
+        <AvatarImage src={user.picture} alt={user.displayName} className="rounded-xs" />
       ) : null}
-      <AvatarFallback className={`${color.avatarBg} text-white`}>
+      <AvatarFallback className={`rounded-xs ${color.avatarBg} text-white`}>
         {getInitials(user.displayName)}
       </AvatarFallback>
     </Avatar>
@@ -74,12 +74,12 @@ export function EditorUsersList(props: EditorUsersListProps) {
         return `${user.displayName}${user.isLocal === true ? " (you)" : ""}`;
       }).join(", ")}
     >
-      <AvatarGroup>
+      <AvatarGroup className="-space-x-1 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:ring-background">
         {displayedUsers.map((user) => (
           <UserAvatarItem key={user.sessionUserId} user={user} />
         ))}
         {remainingCount > 0 ? (
-          <AvatarGroupCount>
+          <AvatarGroupCount className="rounded-xs bg-muted text-[10px] text-muted-foreground">
             <span>+{remainingCount}</span>
           </AvatarGroupCount>
         ) : null}

@@ -6,7 +6,8 @@ import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
 import { useRoomAwareness } from "../../hooks/useRoomAwareness";
 import { type YjsProviderError, useJazzYjsDocument } from "../../hooks/useJazzYjsDocument";
-import { type RoomPresence, useRoomPresence } from "../../hooks/useRoomPresence";
+import { type RoomPresence, type RoomPresenceUser, useRoomPresence } from "../../hooks/useRoomPresence";
+import { useCurrentProfile } from "../../hooks/useCurrentProfile";
 
 interface RoomContextValue {
   awareness: Awareness;
@@ -45,13 +46,14 @@ export function RoomProvider(props: RoomProviderProps) {
   const participantAccessUpdateKeyRef = useRef<string | null>(null);
   const knownPresenceUsersRef = useRef<Map<string, string>>(new Map());
   const didHydratePresenceToastsRef = useRef(false);
-  const rooms = useAll(app.rooms.where({ shareToken: props.shareToken }).limit(1));
+  const rooms = useAll(app.rooms.where({ shareToken: props.shareToken }).limit(1), { tier: "edge" });
   const room = rooms?.[0] ?? null;
   const metadataRows = useAll(room !== null ? app.roomMetadata.where({ room_id: room.id }).limit(1) : undefined);
   const metadata = metadataRows?.[0] ?? null;
   const canEditSession =
     session !== null &&
     (session.authMode === "local-first" || session.authMode === "external");
+  const isSessionLoading = session === null;
   const isArchived = room?.archivedAt !== undefined && room.archivedAt !== null;
   const isCreator = session !== null && room?.creator_session_user_id === session.user_id;
   const participantRows = useAll(
@@ -62,7 +64,7 @@ export function RoomProvider(props: RoomProviderProps) {
   const participant = participantRows?.[0] ?? null;
   const isParticipantLoading = room !== null && canEditSession === true && participantRows === undefined;
   const isLoading =
-    rooms === undefined || (room !== null && metadataRows === undefined) || isParticipantLoading === true;
+    isSessionLoading === true || rooms === undefined || (room !== null && metadataRows === undefined) || isParticipantLoading === true;
 
   const ensureParticipant = useCallback(async () => {
     if (canEditSession === false || room === null || session === null || isArchived === true) {
@@ -149,7 +151,18 @@ export function RoomProvider(props: RoomProviderProps) {
   // Only subscribe to presence once the Yjs document is ready and the room is
   // not archived. Before that, there's no editor session to show presence for.
   const presenceRoomId = isYjsReady === true && isArchived === false ? (room?.id ?? null) : null;
-  const roomPresence = useRoomPresence(presenceRoomId, session?.user_id ?? null);
+  const currentProfile = useCurrentProfile({
+    autoCreate: isLoading === false && room !== null && isArchived === false,
+  });
+  const localPresenceUser: RoomPresenceUser | undefined = currentProfile.sessionUserId === null
+    ? undefined
+    : {
+        displayName: currentProfile.displayName,
+        isLocal: true,
+        picture: currentProfile.profile?.avatar ?? undefined,
+        sessionUserId: currentProfile.sessionUserId,
+      };
+  const roomPresence = useRoomPresence(presenceRoomId, session?.user_id ?? null, localPresenceUser);
 
   // Reset toast tracking state when switching rooms so the previous room's
   // known users don't trigger spurious "left" toasts.

@@ -1,5 +1,4 @@
 import { Button } from "@rcode/ui/ui/button";
-import { cn } from "@rcode/ui/lib/utils";
 import { useClipboard } from "@rcode/ui/hooks/use-clipboard";
 import { CheckIcon, CopyIcon, TriangleAlertIcon } from "lucide-react";
 
@@ -22,10 +21,9 @@ export function CopyCodeButton({ content, className, ...props }: CopyCodeButtonP
     <Button
       type="button"
       size="icon-sm"
-      variant="secondary"
+      variant="ghost"
       aria-label={label}
       title={label}
-      className={cn("shadow-sm", className)}
       onClick={handleCopyCode}
       {...props}
     >

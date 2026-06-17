@@ -50,7 +50,7 @@ const CommandDialog = ({
       <DialogPrimitive.Popup
         data-slot="command-dialog-content"
         className={cn(
-          "fixed top-24 left-1/2 z-50 w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-md border border-border/80 bg-card text-card-foreground shadow-2xl outline-none sm:max-w-[48rem]",
+          "fixed top-24 left-1/2 z-50 w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-md border border-border/80 bg-card text-card-foreground shadow-2xl outline-none sm:max-w-3xl",
           className
         )}
       >
@@ -79,7 +79,7 @@ const CommandInput = ({
 }: CommandInputProps) => (
   <div
     data-slot="command-input-wrapper"
-    className={cn("border-b border-border/70", wrapperClassName)}
+    className={cn("border-b border-border/70 font-sans font-normal", wrapperClassName)}
   >
     <CommandPrimitive.Input
       data-slot="command-input"
@@ -165,7 +165,7 @@ const CommandItem = ({
   <CommandPrimitive.Item
     data-slot="command-item"
     className={cn(
-      "group/command-item relative flex min-h-7 cursor-default items-center gap-3 rounded-sm px-2.5 py-1.5 text-sm/relaxed outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-muted data-selected:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-selected:*:[svg]:text-foreground",
+      "group/command-item relative flex min-h-7 cursor-default items-center gap-3 rounded-sm px-2.5 py-1.5 text-sm/relaxed font-sans font-normal outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-muted data-selected:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-selected:*:[svg]:text-foreground",
       className
     )}
     {...props}

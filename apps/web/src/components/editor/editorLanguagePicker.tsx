@@ -1,5 +1,5 @@
 import { getLanguage, languages, type Language } from "@rcode/icons/languages";
-import { Button } from "@rcode/ui/ui/button";
+import Button from "@rcode/ui/button";
 import {
   Command,
   CommandDialog,
@@ -27,16 +27,11 @@ export const EditorLanguageCombobox = memo(function EditorLanguageCombobox(props
 
   return (
     <div className="flex items-center gap-2">
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="justify-between font-normal"
-        onClick={() => {
-          setOpen(true);
-        }}
-      >
-        {selectedLanguage.name}
+      <Button variant="ghost" onClick={() => {
+        setOpen(true);
+      }}>
+        <span>[L]</span>
+        <span>{selectedLanguage.name}</span>
       </Button>
 
       <CommandDialog

@@ -14,6 +14,7 @@
   "dependencies": {
     "@base-ui/react": "catalog:",
     "@fontsource-variable/geist": "catalog:",
+    "@fontsource/commit-mono": "5.2.5",
     "@monaco-editor/react": "^4.7.0",
     "@rcode/icons": "workspace:*",
     "@rcode/schema": "workspace:*",
@@ -29,6 +30,7 @@
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "jazz-tools": "catalog:",
+    "little-timestamp": "catalog:",
     "lucide-react": "catalog:",
     "monaco-editor": "^0.55.1",
     "nanoid": "catalog:",

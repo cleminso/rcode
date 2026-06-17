@@ -52,28 +52,34 @@ function getRoomPresenceKey(room: PresenceRoomSummary | null) {
 // Transforms raw SSE data into the consumer-facing RoomPresence by adding
 // isLocal. Called via useMemo so sessionUserId changes don't recreate the
 // EventSource — they only re-derive isLocal on existing data.
-function toRoomPresence(rawPresence: RawRoomPresence, sessionUserId: string | null): RoomPresence {
+function toRoomPresence(rawPresence: RawRoomPresence, sessionUserId: string | null, localUser: RoomPresenceUser | undefined): RoomPresence {
   if (rawPresence.isLoaded === false) {
-    return emptyPresence;
+    return localUser === undefined ? emptyPresence : { isLoaded: false, users: [localUser] };
   }
 
   if (rawPresence.room === null) {
     return {
       isLoaded: true,
-      users: [],
+      users: localUser === undefined ? [] : [localUser],
     };
+  }
+
+  const users = rawPresence.room.users.map((user) => ({
+    ...user,
+    isLocal: user.sessionUserId === sessionUserId,
+  }));
+
+  if (localUser !== undefined && users.some((user) => user.sessionUserId === localUser.sessionUserId) === false) {
+    users.unshift(localUser);
   }
 
   return {
     isLoaded: true,
-    users: rawPresence.room.users.map((user) => ({
-      ...user,
-      isLocal: user.sessionUserId === sessionUserId,
-    })),
+    users,
   };
 }
 
-export function useRoomPresence(roomId: string | null, sessionUserId: string | null) {
+export function useRoomPresence(roomId: string | null, sessionUserId: string | null, localUser?: RoomPresenceUser) {
   const [rawPresence, setRawPresence] = useState<RawRoomPresence>(emptyRawPresence);
   const lastPresenceKeyRef = useRef<string | null>(null);
 
@@ -124,5 +130,5 @@ export function useRoomPresence(roomId: string | null, sessionUserId: string | n
     };
   }, [roomId]);
 
-  return useMemo(() => toRoomPresence(rawPresence, sessionUserId), [rawPresence, sessionUserId]);
+  return useMemo(() => toRoomPresence(rawPresence, sessionUserId, localUser), [localUser, rawPresence, sessionUserId]);
 }
