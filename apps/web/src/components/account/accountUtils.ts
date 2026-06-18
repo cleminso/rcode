@@ -4,20 +4,6 @@ export type AccountTheme = "system" | "light" | "dark";
 
 export const accountThemes: AccountTheme[] = ["system", "light", "dark"];
 
-const avatarFileIdCacheBySessionUserId = new Map<string, string | null>();
-
-export function getCachedAvatarFileId(sessionUserId: string | null) {
-  if (sessionUserId === null) {
-    return null;
-  }
-
-  return avatarFileIdCacheBySessionUserId.get(sessionUserId) ?? null;
-}
-
-export function setCachedAvatarFileId(sessionUserId: string, avatarFileId: string | null) {
-  avatarFileIdCacheBySessionUserId.set(sessionUserId, avatarFileId);
-}
-
 export function getInitials(displayName: string) {
   const parts = displayName.trim().split(/\s+/).filter((part) => part !== "");
   const firstInitial = parts[0]?.[0] ?? "R";

@@ -5,12 +5,15 @@ import { useAll, useSession } from "jazz-tools/react";
 import { useMemo, useRef, useState } from "react";
 import { useDashboardPresence } from "../../hooks/useDashboardPresence";
 import { RoomListItem, roomListItemHeight, type DashboardRoomListItemRoom } from "./roomListItem";
+import type { RoomParticipant } from "./roomParticipantsCell";
 
 interface DashboardRoomListRoom extends DashboardRoomListItemRoom {
   lastAccessedAt: Date | null;
 }
 
 type RoomListFilter = "all" | "active" | "archived";
+
+const emptyParticipants: RoomParticipant[] = [];
 
 function compareRoomAccess(a: DashboardRoomListRoom, b: DashboardRoomListRoom) {
   const left = a.lastAccessedAt?.getTime() ?? 0;
@@ -79,6 +82,7 @@ export function RoomList() {
             editorLanguage: metadata?.editorLanguage ?? "plaintext",
             isArchived: room.archivedAt !== undefined && room.archivedAt !== null,
             canUnarchive: isCreator,
+            creatorSessionUserId: room.creator_session_user_id,
             lastAccessedAt: ownParticipant?.lastAccessedAt ?? null,
           },
         ];
@@ -87,8 +91,8 @@ export function RoomList() {
   }, [metadataRows, participantRows, roomRows, session]);
 
   const activeCandidateRooms = rooms.filter((room) => room.isArchived === false);
-  const roomIds = activeCandidateRooms.map((room) => room.id);
-  const { activeRoomIds, userCountByRoomId } = useDashboardPresence(roomIds);
+  const roomIds = activeCandidateRooms.map((room) => room.id).toSorted();
+  const { activeRoomIds, usersByRoomId } = useDashboardPresence(roomIds);
   const displayedRooms = rooms.filter((room) => {
     if (filter === "archived") {
       return room.isArchived === true;
@@ -135,7 +139,7 @@ export function RoomList() {
       </div>
 
       <section>
-        <div className="grid grid-cols-[minmax(0,1fr)_160px_132px] items-center gap-3 border-b border-border pb-1.5 mb-1.5 text-xs  text-muted-foreground">
+        <div className="grid grid-cols-[minmax(0,1fr)_160px_80px_80px] items-center gap-3 border-b border-border pb-1.5 mb-1.5 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <span>/</span>
             <span>NAME</span>
@@ -147,6 +151,10 @@ export function RoomList() {
           <div className="flex justify-self-end items-center gap-1">
             <span>/</span>
             <span>PARTICIPANTS</span>
+          </div>
+          <div className="flex justify-self-end items-center gap-1">
+            <span>/</span>
+            <span>CREATOR</span>
           </div>
         </div>
 
@@ -188,7 +196,7 @@ export function RoomList() {
                       <RoomListItem
                         room={room}
                         lastAccessedAt={room.lastAccessedAt}
-                        participantCount={userCountByRoomId.get(room.id) ?? 0}
+                        participants={usersByRoomId.get(room.id) ?? emptyParticipants}
                       />
                     </div>
                   );

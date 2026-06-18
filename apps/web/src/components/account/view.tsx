@@ -6,10 +6,11 @@ import { Textarea } from "@rcode/ui/textarea";
 import { Navigate, useNavigate } from "@tanstack/react-router";
 import { RecoveryPhrase } from "jazz-tools/passphrase";
 import { useAll, useDb, useLocalFirstAuth, useSession } from "jazz-tools/react";
-import { type ChangeEvent, type FocusEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { authClient } from "../../lib/auth-client";
-import { avatarMaxBytes, getCachedAvatarFileId, isAllowedAvatarFile, isValidEmail, setCachedAvatarFileId } from "./accountUtils";
+import { selectProfileRow } from "../../lib/profile";
+import { avatarMaxBytes, isAllowedAvatarFile, isValidEmail } from "./accountUtils";
 import { ProfileAvatar } from "./profileAvatar";
 import { ThemeTabs } from "./themeTabs";
 
@@ -66,15 +67,10 @@ export function AccountView() {
     sessionUserId !== null ? app.profiles.where({ session_user_id: sessionUserId }).limit(1) : undefined,
     { tier: "edge" },
   );
-  const avatarRows = useAll(
-    sessionUserId !== null ? app.profileAvatars.where({ session_user_id: sessionUserId }).orderBy("createdAt", "desc").limit(1) : undefined,
-    { tier: "local" },
-  );
-  const profile = profileRows?.[0] ?? null;
-  const avatar = avatarRows?.[0] ?? null;
-  const avatarFileId = avatarRows === undefined ? getCachedAvatarFileId(sessionUserId) : (avatar?.fileId ?? null);
+  const profile = selectProfileRow(profileRows, sessionUserId);
+  const avatarFileId = profile?.avatarFileId ?? null;
   const isLoadingProfile = sessionUserId !== null && profileRows === undefined;
-  const displayName = profile?.displayName ?? authSession?.user.name ?? "Profile";
+  const displayName = profile?.displayName ?? authSession?.user.name ?? "";
   const savedEmail = authSession?.user.email ?? "";
   const recoveryPhrase = useMemo(() => {
     if (localFirstAuth.secret === null || localFirstAuth.secret === undefined) return null;
@@ -112,14 +108,6 @@ export function AccountView() {
     };
   }, [avatarPreviewUrl]);
 
-  useEffect(() => {
-    if (sessionUserId === null || avatarRows === undefined) {
-      return;
-    }
-
-    setCachedAvatarFileId(sessionUserId, avatar?.fileId ?? null);
-  }, [avatar?.fileId, avatarRows, sessionUserId]);
-
   if (session === null && isLoadingProfile === false) {
     return <Navigate replace to="/sign-up" />;
   }
@@ -140,8 +128,8 @@ export function AccountView() {
   const canSubmitEmail = emailHasChanged === true && isValidEmail(trimmedEmail) === true && isEmailSubmitting === false;
   const hasCustomAvatar = avatarFileId !== null;
 
-  const commitDisplayName = async (event: FocusEvent<HTMLInputElement>) => {
-    const nextDisplayName = event.currentTarget.value.trim();
+  const commitDisplayName = async (value: string) => {
+    const nextDisplayName = value.trim();
 
     if (nextDisplayName === "") {
       setDisplayNameInput(profile.displayName);
@@ -153,8 +141,14 @@ export function AccountView() {
       return;
     }
 
+    if (profile === null) {
+      return;
+    }
+
     try {
-      await db.update(app.profiles, profile.id, { displayName: nextDisplayName }).wait({ tier: "edge" });
+      await db
+        .update(app.profiles, profile.id, { displayName: nextDisplayName })
+        .wait({ tier: "edge" });
       toast("Display name saved");
     } catch (caughtError) {
       setDisplayNameInput(profile.displayName);
@@ -187,8 +181,7 @@ export function AccountView() {
 
     try {
       const fileRow = await db.createFileFromBlob(app, file, { tier: "edge" });
-      await db.insert(app.profileAvatars, { session_user_id: profile.session_user_id, fileId: fileRow.id, createdAt: new Date() }).wait({ tier: "edge" });
-      setCachedAvatarFileId(profile.session_user_id, fileRow.id);
+      await db.update(app.profiles, profile.id, { avatarFileId: fileRow.id }).wait({ tier: "edge" });
       toast("Avatar saved");
     } catch (caughtError) {
       setAvatarPreviewUrl(null);
@@ -207,8 +200,7 @@ export function AccountView() {
 
     try {
       setAvatarPreviewUrl(null);
-      await db.insert(app.profileAvatars, { session_user_id: profile.session_user_id, createdAt: new Date() }).wait({ tier: "edge" });
-      setCachedAvatarFileId(profile.session_user_id, null);
+      await db.update(app.profiles, profile.id, { avatarFileId: null }).wait({ tier: "edge" });
       toast("Avatar removed");
     } catch (caughtError) {
       toast.error(getErrorMessage(caughtError));
@@ -396,8 +388,13 @@ export function AccountView() {
             <Input
               className="h-8 font-mono text-xs"
               value={displayNameInput}
-              onBlur={commitDisplayName}
+              onBlur={(event) => void commitDisplayName(event.currentTarget.value)}
               onChange={(event) => setDisplayNameInput(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.currentTarget.blur();
+                }
+              }}
             />
           </AccountSection>
 

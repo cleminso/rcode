@@ -18,6 +18,7 @@ const schema = {
   profiles: s.table({
     session_user_id: s.string(),
     displayName: s.string(),
+    avatarFileId: s.ref("files").optional(),
   }),
   file_parts: s.table({
     data: s.bytes(),
@@ -27,11 +28,6 @@ const schema = {
     mimeType: s.string(),
     partIds: s.array(s.ref("file_parts")),
     partSizes: s.array(s.int()),
-  }),
-  profileAvatars: s.table({
-    session_user_id: s.string(),
-    fileId: s.ref("files").optional(),
-    createdAt: s.timestamp(),
   }),
   // Protected room identity, sharing, and ownership fields. Participant-editable
   // display/editor metadata lives in roomMetadata so permissions stay row-level.

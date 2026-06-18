@@ -1,8 +1,8 @@
-import { app } from "@rcode/schema";
 import { Avatar, AvatarFallback, AvatarImage } from "@rcode/ui/avatar";
 import { Button } from "@rcode/ui/ui/button";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useAll, useSession } from "jazz-tools/react";
+import { useSession } from "jazz-tools/react";
+import { useProfileIdentity } from "../../hooks/useProfileIdentity";
 import { authClient } from "../../lib/auth-client";
 
 function getInitials(displayName: string) {
@@ -18,13 +18,10 @@ export function AuthButton() {
   const { data: session, isPending } = authClient.useSession();
   const jazzSession = useSession();
   const sessionUserId = jazzSession?.user_id ?? null;
-  const profileRows = useAll(
-    sessionUserId !== null ? app.profiles.where({ session_user_id: sessionUserId }).limit(1) : undefined,
-  );
-  const profile = profileRows?.[0] ?? null;
-  const displayName = profile?.displayName ?? session?.user.name ?? "Profile";
+  const profileIdentity = useProfileIdentity(sessionUserId);
+  const displayName = profileIdentity.displayName ?? session?.user.name ?? null;
 
-  if (isPending === true) {
+  if (isPending === true || profileIdentity.isLoading === true || displayName === null) {
     return <span className="text-sm text-muted-foreground">Checking session...</span>;
   }
 

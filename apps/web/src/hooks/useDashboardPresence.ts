@@ -22,7 +22,7 @@ export interface PresenceSummary {
 
 interface DashboardPresence {
   activeRoomIds: Set<string>;
-  userCountByRoomId: Map<string, number>;
+  usersByRoomId: Map<string, PresenceUserSummary[]>;
 }
 
 // Shared between useDashboardPresence (multi-room) and useRoomPresence
@@ -40,29 +40,31 @@ export function getPresenceStreamUrl(roomIds: readonly string[]) {
 
 const emptyPresence: DashboardPresence = {
   activeRoomIds: new Set(),
-  userCountByRoomId: new Map(),
+  usersByRoomId: new Map(),
 };
 
 function toDashboardPresence(summary: PresenceSummary): DashboardPresence {
   const activeRoomIds = new Set<string>();
-  const userCountByRoomId = new Map<string, number>();
+  const usersByRoomId = new Map<string, PresenceUserSummary[]>();
 
   for (const room of summary.rooms) {
     activeRoomIds.add(room.roomId);
-    userCountByRoomId.set(room.roomId, room.userCount);
+    usersByRoomId.set(room.roomId, room.users);
   }
 
-  return { activeRoomIds, userCountByRoomId };
+  return { activeRoomIds, usersByRoomId };
 }
 
 function getPresenceKey(summary: PresenceSummary) {
-  return summary.rooms.map((room) => `${room.roomId}:${room.userCount}`).join("\n");
+  return summary.rooms
+    .map((room) => `${room.roomId}:${room.userCount}:${room.users.map((user) => `${user.sessionUserId}:${user.displayName}:${user.picture ?? ""}`).join(",")}`)
+    .join("\n");
 }
 
 export function useDashboardPresence(roomIds: readonly string[]) {
   const [presence, setPresence] = useState<DashboardPresence>({
     activeRoomIds: new Set(),
-    userCountByRoomId: new Map(),
+    usersByRoomId: new Map(),
   });
   const lastPresenceKeyRef = useRef("");
   const roomIdsKey = roomIds.join("\n");

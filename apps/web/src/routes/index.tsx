@@ -1,7 +1,7 @@
-import { app } from "@rcode/schema";
 import Button from "@rcode/ui/button";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useAll, useSession } from "jazz-tools/react";
+import { useSession } from "jazz-tools/react";
+import { useProfileIdentity } from "../hooks/useProfileIdentity";
 import { authClient } from "../lib/auth-client";
 
 export const Route = createFileRoute("/")({
@@ -22,14 +22,10 @@ function IndexRoute() {
   const navigate = useNavigate();
   const session = useSession();
   const sessionUserId = session?.user_id ?? null;
-  const profileRows = useAll(
-    sessionUserId !== null ? app.profiles.where({ session_user_id: sessionUserId }).limit(1) : undefined,
-  );
-  const profile = profileRows?.[0] ?? null;
-  const isLoadingProfile = sessionUserId !== null && profileRows === undefined;
+  const profileIdentity = useProfileIdentity(sessionUserId);
 
   const { data: authSession } = authClient.useSession();
-  const isProfileComplete = profile !== null ? profile.displayName.trim() !== "" : false;
+  const isProfileComplete = profileIdentity.displayName !== null ? profileIdentity.displayName.trim() !== "" : false;
   const isSignedInWithEmail = authSession?.user.email !== undefined;
 
   const handleSignOut = async () => {
@@ -37,7 +33,7 @@ function IndexRoute() {
     await navigate({ to: "/" });
   };
 
-  if (isLoadingProfile === true) {
+  if (profileIdentity.isLoading === true) {
     return <main className="min-h-screen bg-background p-6 text-sm text-muted-foreground">Loading profile...</main>;
   }
 

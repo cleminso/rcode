@@ -112,18 +112,19 @@ function EditorContent() {
           <div className="flex min-w-0 items-center justify-end gap-3">
             <EditorUsersList maxUsers={4} presence={roomPresence} />
             <Separator orientation="vertical"></Separator>
-            <AccountMenu
-              avatarFileId={currentProfile.avatarFileId}
-              displayName={currentProfile.displayName}
-            />
+            {currentProfile.isLoading === true || currentProfile.displayName === null ? (
+              <div className="size-6 animate-pulse rounded-xs bg-muted" />
+            ) : (
+              <AccountMenu
+                avatarFileId={currentProfile.avatarFileId}
+                displayName={currentProfile.displayName}
+              />
+            )}
           </div>
         </div>
       }
       footer={
         <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-4">
-            <span className="text-xs  text-muted-foreground">[T] THEME</span>
-          </div>
         </div>
       }
     >

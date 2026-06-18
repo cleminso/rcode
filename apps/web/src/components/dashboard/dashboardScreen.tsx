@@ -1,7 +1,7 @@
-import { app } from "@rcode/schema";
 import Button from "@rcode/ui/button";
 import { Navigate, useNavigate } from "@tanstack/react-router";
-import { useAll, useSession } from "jazz-tools/react";
+import { useSession } from "jazz-tools/react";
+import { useProfileIdentity } from "../../hooks/useProfileIdentity";
 import { RoomList } from "./roomList";
 import { useCreateRoom } from "./useCreateRoom";
 
@@ -18,19 +18,15 @@ function LogoButton() {
 export function DashboardScreen() {
   const session = useSession();
   const sessionUserId = session?.user_id ?? null;
-  const profileRows = useAll(
-    sessionUserId !== null ? app.profiles.where({ session_user_id: sessionUserId }).limit(1) : undefined,
-  );
-  const profile = profileRows?.[0] ?? null;
-  const isLoadingProfile = sessionUserId !== null && profileRows === undefined;
+  const profileIdentity = useProfileIdentity(sessionUserId);
   const { canCreate, createRoom, error, isCreating } = useCreateRoom();
   const navigate = useNavigate();
 
-  if (isLoadingProfile === true) {
+  if (profileIdentity.isLoading === true) {
     return <main className="min-h-screen bg-background p-6 text-sm text-muted-foreground">Loading profile...</main>;
   }
 
-  if (profile?.displayName.trim() === "" || profile === null) {
+  if (profileIdentity.displayName === null || profileIdentity.displayName.trim() === "") {
     return <Navigate replace to="/" />;
   }
 

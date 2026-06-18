@@ -3,6 +3,8 @@ import Button from "@rcode/ui/button";
 import { FormattedDate } from "@rcode/ui/formattedDate";
 import { useNavigate } from "@tanstack/react-router";
 import { memo } from "react";
+import { ProfileIdentityAvatar } from "../account/profileIdentityAvatar";
+import { RoomParticipantsCell, type RoomParticipant } from "./roomParticipantsCell";
 
 export interface DashboardRoomListItemRoom {
   id: string;
@@ -11,12 +13,13 @@ export interface DashboardRoomListItemRoom {
   editorLanguage: string;
   isArchived: boolean;
   canUnarchive: boolean;
+  creatorSessionUserId: string;
 }
 
 interface RoomListItemProps {
   room: DashboardRoomListItemRoom;
   lastAccessedAt: Date | null;
-  participantCount: number;
+  participants: RoomParticipant[];
 }
 
 export const roomListItemHeight = 36;
@@ -39,7 +42,7 @@ export const RoomListItem = memo(function RoomListItem(props: RoomListItemProps)
     <Button
       variant="row"
       size="none"
-      className="grid w-full grid-cols-[minmax(0,1fr)_160px_132px] justify-items-start gap-3 px-0"
+      className="grid w-full grid-cols-[minmax(0,1fr)_160px_80px_80px] justify-items-start gap-3 px-0"
       style={{ height: roomListItemHeight }}
       onClick={handleClick}
     >
@@ -55,15 +58,10 @@ export const RoomListItem = memo(function RoomListItem(props: RoomListItemProps)
         <FormattedDate date={props.lastAccessedAt} variant="default" className="text-xs" />
       </span>
       <span className="flex justify-self-end items-center gap-1">
-        {props.participantCount > 0 ? (
-          <>
-            <span className="flex h-5 w-5 items-center justify-center rounded-xs bg-primary text-[10px] text-primary-foreground">
-              {props.participantCount > 9 ? "9+" : props.participantCount}
-            </span>
-          </>
-        ) : (
-          <span className="text-xs  text-muted-foreground">—</span>
-        )}
+        <RoomParticipantsCell creatorSessionUserId={props.room.creatorSessionUserId} participants={props.participants} />
+      </span>
+      <span className="flex justify-self-end items-center gap-1">
+        <ProfileIdentityAvatar sessionUserId={props.room.creatorSessionUserId} size="sm" />
       </span>
     </Button>
   );

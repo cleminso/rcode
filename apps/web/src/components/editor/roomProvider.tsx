@@ -136,6 +136,9 @@ export function RoomProvider(props: RoomProviderProps) {
     });
   }, []);
 
+  const currentProfile = useCurrentProfile({
+    autoCreate: isLoading === false && room !== null && isArchived === false,
+  });
   const { isYjsReady, ydoc } = useJazzYjsDocument({
     // Expose roomId only with room metadata and participant state loaded;
     // otherwise the editor can bootstrap without its write permission path.
@@ -144,17 +147,15 @@ export function RoomProvider(props: RoomProviderProps) {
     onError: notifyYjsProviderError,
   });
   const awareness = useRoomAwareness({
-    isReady: isYjsReady,
+    displayName: currentProfile.displayName,
+    isReady: isYjsReady === true && currentProfile.profile !== null,
     roomId: room?.id ?? null,
     ydoc,
   });
   // Only subscribe to presence once the Yjs document is ready and the room is
   // not archived. Before that, there's no editor session to show presence for.
   const presenceRoomId = isYjsReady === true && isArchived === false ? (room?.id ?? null) : null;
-  const currentProfile = useCurrentProfile({
-    autoCreate: isLoading === false && room !== null && isArchived === false,
-  });
-  const localPresenceUser: RoomPresenceUser | undefined = currentProfile.sessionUserId === null
+  const localPresenceUser: RoomPresenceUser | undefined = currentProfile.sessionUserId === null || currentProfile.displayName === null
     ? undefined
     : {
         displayName: currentProfile.displayName,

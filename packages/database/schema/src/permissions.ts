@@ -69,9 +69,9 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
     .whereNew(allOf([{ session_user_id: session.user_id }, canEditSession]));
   policy.profiles.allowDelete.never();
 
-  // Avatar files are created before the avatar event points at them, so inserts are
-  // direct for authenticated sessions. Reads inherit from the public avatar event row.
-  policy.files.allowRead.where(allowedTo.readReferencing(policy.profileAvatars, "fileId"));
+  // Avatar files are created before a profile points at them, so inserts are
+  // direct for authenticated sessions. Reads inherit from the public profile row.
+  policy.files.allowRead.where(allowedTo.readReferencing(policy.profiles, "avatarFileId"));
   policy.files.allowInsert.where(canEditSession);
   policy.files.allowUpdate.never();
   policy.files.allowDelete.never();
@@ -80,13 +80,6 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
   policy.file_parts.allowInsert.where(canEditSession);
   policy.file_parts.allowUpdate.never();
   policy.file_parts.allowDelete.never();
-
-  policy.profileAvatars.allowRead.always();
-  policy.profileAvatars.allowInsert.where(
-    allOf([{ session_user_id: session.user_id }, canEditSession]),
-  );
-  policy.profileAvatars.allowUpdate.never();
-  policy.profileAvatars.allowDelete.never();
 
   // Rooms carry protected ownership and sharing fields, so creates/updates/deletes
   // are creator-scoped. Anonymous sessions can read rooms but cannot create them.

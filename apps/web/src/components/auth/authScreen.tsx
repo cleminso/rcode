@@ -6,6 +6,7 @@ import { useAll, useDb, useLocalFirstAuth, useSession } from "jazz-tools/react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { authClient } from "../../lib/auth-client";
+import { selectProfileRow } from "../../lib/profile";
 import { type AuthMethod, AuthShell } from "./authShell";
 import { EmailSignInForm } from "./emailSignInForm";
 import { EmailSignUpForm } from "./emailSignUpForm";
@@ -67,7 +68,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
     sessionUserId !== null ? app.profiles.where({ session_user_id: sessionUserId }).limit(1) : undefined,
     { tier: "edge" },
   );
-  const profile = profileRows?.[0] ?? null;
+  const profile = selectProfileRow(profileRows, sessionUserId);
   const profileIsLoading = sessionUserId !== null && profileRows === undefined;
   const [method, setMethod] = useState<AuthMethod>("email");
   const [otpStep, setOtpStep] = useState<OtpStep>("input");
@@ -105,7 +106,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
       return;
     }
 
-    if (profileRows.length > 0) {
+    if (profileRows.some((profileRow) => isCompletedDisplayName(profileRow.displayName)) === true) {
       setIsCheckingPassphraseProfile(false);
       void navigate({ to: "/dashboard" });
       return;

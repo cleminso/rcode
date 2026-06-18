@@ -1,5 +1,4 @@
-import { app } from "@rcode/schema";
-import { useAll, useSession } from "jazz-tools/react";
+import { useSession } from "jazz-tools/react";
 import { useEffect, useMemo } from "react";
 import {
   applyAwarenessUpdate,
@@ -16,6 +15,7 @@ import {
 } from "../lib/awareness";
 
 interface UseRoomAwarenessArgs {
+  displayName: string | null;
   isReady: boolean;
   roomId: string | null;
   ydoc: Y.Doc;
@@ -70,17 +70,9 @@ function getUsedColors(awareness: Awareness) {
 }
 
 export function useRoomAwareness(args: UseRoomAwarenessArgs) {
-  const { isReady, roomId, ydoc } = args;
+  const { displayName: profileDisplayName, isReady, roomId, ydoc } = args;
   const session = useSession();
   const sessionUserId = session?.user_id ?? null;
-
-  // Read the user's profile to get their persisted display name.
-  const profileRows = useAll(
-    sessionUserId !== null
-      ? app.profiles.where({ session_user_id: sessionUserId }).limit(1)
-      : undefined,
-  );
-  const profile = profileRows?.[0] ?? null;
 
   const awareness = useMemo(() => new Awareness(ydoc), [ydoc]);
 
@@ -105,7 +97,7 @@ export function useRoomAwareness(args: UseRoomAwarenessArgs) {
     const usedColors = getUsedColors(awareness);
     const color = existingUser?.color ?? assignOption([...baseColors], usedColors);
 
-    const displayName = profile?.displayName ?? existingUser?.displayName ?? generateUniqueName();
+    const displayName = profileDisplayName ?? existingUser?.displayName ?? generateUniqueName();
     const picture = existingUser?.picture;
 
     awareness.setLocalState({
@@ -118,7 +110,7 @@ export function useRoomAwareness(args: UseRoomAwarenessArgs) {
         ...(picture !== undefined ? { picture } : {}),
       } satisfies AwarenessUser,
     });
-  }, [awareness, isReady, profile, roomId, sessionUserId]);
+  }, [awareness, isReady, profileDisplayName, roomId, sessionUserId]);
 
   useEffect(() => {
     if (isReady === false || roomId === null || sessionUserId === null) {

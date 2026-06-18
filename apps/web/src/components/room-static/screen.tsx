@@ -1,6 +1,7 @@
 import { app } from "@rcode/schema";
 import { useAll } from "jazz-tools/react";
 import { useMemo } from "react";
+import { useProfileIdentity } from "../../hooks/useProfileIdentity";
 import * as Y from "yjs";
 import { toYjsUpdate } from "../../lib/yjsUpdate";
 import { StaticRoomContent } from "./content";
@@ -76,19 +77,7 @@ export function StaticRoomScreen(props: StaticRoomScreenProps) {
   const activeRoomId = room !== null && isArchived === false ? room.id : null;
   const metadataRows = useAll(activeRoomId !== null ? app.roomMetadata.where({ room_id: activeRoomId }).limit(1) : undefined);
   const metadata = metadataRows?.[0] ?? null;
-  const creatorRows = useAll(
-    room !== null && isArchived === false
-      ? app.profiles.where({ session_user_id: room.creator_session_user_id }).limit(1)
-      : undefined,
-  );
-  const creator = creatorRows?.[0] ?? null;
-  const creatorAvatarRows = useAll(
-    room !== null && isArchived === false
-      ? app.profileAvatars.where({ session_user_id: room.creator_session_user_id }).orderBy("createdAt", "desc").limit(1)
-      : undefined,
-    { tier: "edge" },
-  );
-  const creatorAvatar = creatorAvatarRows?.[0] ?? null;
+  const creator = useProfileIdentity(room !== null && isArchived === false ? room.creator_session_user_id : null, { tier: "edge" });
   const snapshotRows = useAll(activeRoomId !== null ? app.roomYjsSnapshots.where({ room_id: activeRoomId }) : undefined);
   const updateRows = useAll(activeRoomId !== null ? app.roomYjsUpdates.where({ room_id: activeRoomId }) : undefined);
   const codeResult = useMemo(() => {
@@ -116,7 +105,7 @@ export function StaticRoomScreen(props: StaticRoomScreenProps) {
     return <EmptyState title="This room has been archived" description="The static room link is not accessible anymore." />;
   }
 
-  if (metadataRows === undefined || creatorRows === undefined || creatorAvatarRows === undefined || codeResult.status === "loading") {
+  if (metadataRows === undefined || creator.isLoading === true || codeResult.status === "loading") {
     return <LoadingState />;
   }
 
@@ -128,8 +117,8 @@ export function StaticRoomScreen(props: StaticRoomScreenProps) {
     <StaticRoomContent
       code={codeResult.code}
       creator={{
-        avatarFileId: creatorAvatar?.fileId ?? null,
-        displayName: creator?.displayName ?? "Unknown creator",
+        avatarFileId: creator.avatarFileId,
+        displayName: creator.displayName ?? "Unknown creator",
       }}
       editorLanguage={metadata?.editorLanguage ?? "plaintext"}
       title={metadata?.title ?? ""}

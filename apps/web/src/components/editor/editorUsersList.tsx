@@ -1,51 +1,10 @@
-import { Avatar, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarImage } from "@rcode/ui/avatar";
-import { baseColors, colors, type BaseColor } from "../../lib/awareness";
-import type { RoomPresence, RoomPresenceUser } from "../../hooks/useRoomPresence";
+import { AvatarGroup, AvatarGroupCount } from "@rcode/ui/avatar";
+import { ProfileIdentityAvatar } from "../account/profileIdentityAvatar";
+import type { RoomPresence } from "../../hooks/useRoomPresence";
 
 interface EditorUsersListProps {
   maxUsers?: number;
   presence: RoomPresence;
-}
-
-function getInitials(displayName: string) {
-  return displayName
-    .split("-")
-    .map((segment) => segment[0]?.toUpperCase() ?? "")
-    .join("")
-    .slice(0, 2);
-}
-
-// Deterministic color assignment from sessionUserId. The same user always
-// gets the same color across tabs and sessions, replacing the previous
-// awareness-based approach where color was picked from the least-used palette
-// (which produced different colors per tab for the same user).
-function getUserColor(sessionUserId: string): BaseColor {
-  let hash = 0;
-
-  for (let index = 0; index < sessionUserId.length; index += 1) {
-    hash = (hash + sessionUserId.charCodeAt(index)) % baseColors.length;
-  }
-
-  return baseColors[hash]!;
-}
-
-function UserAvatarItem({ user }: { user: RoomPresenceUser }) {
-  const color = colors[getUserColor(user.sessionUserId)];
-
-  return (
-    <Avatar
-      size="sm"
-      className={`rounded-xs ${color.avatarBg}`}
-      title={user.displayName}
-    >
-      {user.picture !== undefined ? (
-        <AvatarImage src={user.picture} alt={user.displayName} className="rounded-xs" />
-      ) : null}
-      <AvatarFallback className={`rounded-xs ${color.avatarBg} text-white`}>
-        {getInitials(user.displayName)}
-      </AvatarFallback>
-    </Avatar>
-  );
 }
 
 export function EditorUsersList(props: EditorUsersListProps) {
@@ -76,7 +35,13 @@ export function EditorUsersList(props: EditorUsersListProps) {
     >
       <AvatarGroup className="-space-x-1 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:ring-background">
         {displayedUsers.map((user) => (
-          <UserAvatarItem key={user.sessionUserId} user={user} />
+          <ProfileIdentityAvatar
+            key={user.sessionUserId}
+            fallbackDisplayName={user.displayName}
+            imageUrl={user.picture}
+            sessionUserId={user.sessionUserId}
+            size="sm"
+          />
         ))}
         {remainingCount > 0 ? (
           <AvatarGroupCount className="rounded-xs bg-muted text-[10px] text-muted-foreground">

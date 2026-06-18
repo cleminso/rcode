@@ -50,7 +50,7 @@ AvatarBadge.displayName = "AvatarBadge"
 export type AvatarGroupProps = React.ComponentProps<typeof ShadAvatarGroup>
 
 const AvatarGroup = ({ ref, className, ...props }: AvatarGroupProps) => (
-  <ShadAvatarGroup ref={ref} className={className} {...props} />
+  <ShadAvatarGroup ref={ref} className={cn("*:data-[slot=avatar]:ring-0", className)} {...props} />
 )
 
 AvatarGroup.displayName = "AvatarGroup"
