@@ -1,9 +1,12 @@
 import { languages } from "@rcode/icons/languages";
 import Button from "@rcode/ui/button";
+import { Separator } from "@rcode/ui/ui/separator"
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { CommandMenu } from "../command-menu/commandMenu";
 import { EditorLayout } from "../layout/editorLayout";
+import { AccountMenu } from "../account/accountMenu";
+import { useCurrentProfile } from "../../hooks/useCurrentProfile";
 import { EditorLanguageCombobox } from "./editorLanguagePicker";
 import { EditorTextArea } from "./editorTextArea";
 import { EditorUsersList } from "./editorUsersList";
@@ -35,6 +38,7 @@ export function EditorScreen(props: EditorScreenProps) {
 function EditorContent() {
   const { editorLanguage, isArchived, isLoading, isYjsReady, roomExists, roomPresence, title, updateEditorLanguage, updateTitle } = useRoom();
   const navigate = useNavigate();
+  const currentProfile = useCurrentProfile({ autoCreate: false });
   const [titleEditRequest, setTitleEditRequest] = useState(0);
 
   const isReady = isLoading === false && isYjsReady === true && isArchived === false && roomExists === true;
@@ -83,6 +87,7 @@ function EditorContent() {
         <div className="grid h-full w-full grid-cols-[1fr_auto_1fr] items-center gap-4">
           <div className="flex min-w-0 items-center gap-2">
             <LogoButton />
+            <Separator orientation="vertical"></Separator>
             {isReady === false ? (
               <div className="h-6.25 w-24 animate-pulse rounded-xs bg-muted" />
             ) : (
@@ -106,6 +111,11 @@ function EditorContent() {
 
           <div className="flex min-w-0 items-center justify-end gap-3">
             <EditorUsersList maxUsers={4} presence={roomPresence} />
+            <Separator orientation="vertical"></Separator>
+            <AccountMenu
+              avatarFileId={currentProfile.avatarFileId}
+              displayName={currentProfile.displayName}
+            />
           </div>
         </div>
       }

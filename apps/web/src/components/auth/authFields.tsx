@@ -1,5 +1,5 @@
 import { Input } from "@rcode/ui/input";
-import { Textarea } from "@rcode/ui/ui/textarea";
+import { Textarea } from "@rcode/ui/textarea";
 import { Field, FieldLabel } from "@rcode/ui/field";
 import { type ComponentProps } from "react";
 

@@ -1,11 +1,11 @@
 import { getLanguage } from "@rcode/icons/languages";
 import Button from "@rcode/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@rcode/ui/ui/avatar";
 import { useNavigate } from "@tanstack/react-router";
+import { ProfileAvatar } from "../account/profileAvatar";
 import { CodeBlock } from "./codeBlock";
 
 interface StaticRoomCreator {
-  avatar: string | null;
+  avatarFileId: string | null;
   displayName: string;
 }
 
@@ -14,19 +14,6 @@ interface StaticRoomContentProps {
   creator: StaticRoomCreator;
   editorLanguage: string;
   title: string;
-}
-
-function getInitials(displayName: string) {
-  const parts = displayName.trim().split(/\s+/).filter((part) => part.length > 0);
-
-  if (parts.length === 0) {
-    return "?";
-  }
-
-  return parts
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
 }
 
 export function StaticRoomContent(props: StaticRoomContentProps) {
@@ -69,10 +56,7 @@ export function StaticRoomContent(props: StaticRoomContentProps) {
 
             <dt className="font-medium font-sans font-normal text-muted-foreground">Creator</dt>
             <dd className="flex min-w-0 items-center gap-2">
-              <Avatar className="rounded-xs size-5">
-                <AvatarImage src={props.creator.avatar ?? undefined} alt={props.creator.displayName} className="rounded-xs size-5" />
-                <AvatarFallback className="rounded-xs size-5">{getInitials(props.creator.displayName)}</AvatarFallback>
-              </Avatar>
+              <ProfileAvatar avatarFileId={props.creator.avatarFileId} displayName={props.creator.displayName} imageClassName="size-5" loadTier="edge" size="sm" />
               <span className="truncate font-sans font-normal">{props.creator.displayName}</span>
             </dd>
           </dl>

@@ -82,6 +82,13 @@ export function StaticRoomScreen(props: StaticRoomScreenProps) {
       : undefined,
   );
   const creator = creatorRows?.[0] ?? null;
+  const creatorAvatarRows = useAll(
+    room !== null && isArchived === false
+      ? app.profileAvatars.where({ session_user_id: room.creator_session_user_id }).orderBy("createdAt", "desc").limit(1)
+      : undefined,
+    { tier: "edge" },
+  );
+  const creatorAvatar = creatorAvatarRows?.[0] ?? null;
   const snapshotRows = useAll(activeRoomId !== null ? app.roomYjsSnapshots.where({ room_id: activeRoomId }) : undefined);
   const updateRows = useAll(activeRoomId !== null ? app.roomYjsUpdates.where({ room_id: activeRoomId }) : undefined);
   const codeResult = useMemo(() => {
@@ -109,7 +116,7 @@ export function StaticRoomScreen(props: StaticRoomScreenProps) {
     return <EmptyState title="This room has been archived" description="The static room link is not accessible anymore." />;
   }
 
-  if (metadataRows === undefined || creatorRows === undefined || codeResult.status === "loading") {
+  if (metadataRows === undefined || creatorRows === undefined || creatorAvatarRows === undefined || codeResult.status === "loading") {
     return <LoadingState />;
   }
 
@@ -121,7 +128,7 @@ export function StaticRoomScreen(props: StaticRoomScreenProps) {
     <StaticRoomContent
       code={codeResult.code}
       creator={{
-        avatar: creator?.avatar ?? null,
+        avatarFileId: creatorAvatar?.fileId ?? null,
         displayName: creator?.displayName ?? "Unknown creator",
       }}
       editorLanguage={metadata?.editorLanguage ?? "plaintext"}

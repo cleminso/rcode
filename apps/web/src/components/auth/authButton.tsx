@@ -1,5 +1,5 @@
 import { app } from "@rcode/schema";
-import { Avatar, AvatarFallback, AvatarImage } from "@rcode/ui/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@rcode/ui/avatar";
 import { Button } from "@rcode/ui/ui/button";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useAll, useSession } from "jazz-tools/react";
@@ -37,7 +37,7 @@ export function AuthButton() {
     <div className="flex items-center gap-3">
       <Link className="flex items-center gap-2 text-sm font-medium" to="/sign-in">
         <Avatar size="sm">
-          <AvatarImage src={profile?.avatar ?? session?.user.image ?? undefined} alt={displayName} />
+          <AvatarImage src={session?.user.image ?? undefined} alt={displayName} />
           <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
         </Avatar>
         <span>{displayName}</span>

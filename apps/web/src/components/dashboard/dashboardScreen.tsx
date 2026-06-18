@@ -1,19 +1,9 @@
 import { app } from "@rcode/schema";
 import Button from "@rcode/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@rcode/ui/ui/avatar";
 import { Navigate, useNavigate } from "@tanstack/react-router";
 import { useAll, useSession } from "jazz-tools/react";
 import { RoomList } from "./roomList";
 import { useCreateRoom } from "./useCreateRoom";
-import { authClient } from "../../lib/auth-client";
-
-function getInitials(displayName: string) {
-  const parts = displayName.trim().split(/\s+/).filter((part) => part !== "");
-  const firstInitial = parts[0]?.[0] ?? "R";
-  const secondInitial = parts[1]?.[0] ?? "";
-
-  return `${firstInitial}${secondInitial}`.toUpperCase();
-}
 
 function LogoButton() {
   const navigate = useNavigate();
@@ -34,9 +24,7 @@ export function DashboardScreen() {
   const profile = profileRows?.[0] ?? null;
   const isLoadingProfile = sessionUserId !== null && profileRows === undefined;
   const { canCreate, createRoom, error, isCreating } = useCreateRoom();
-
-  const { data: authSession } = authClient.useSession();
-  const displayName = profile?.displayName ?? authSession?.user.name ?? "Profile";
+  const navigate = useNavigate();
 
   if (isLoadingProfile === true) {
     return <main className="min-h-screen bg-background p-6 text-sm text-muted-foreground">Loading profile...</main>;
@@ -65,12 +53,10 @@ export function DashboardScreen() {
               <span>[C]</span>
               <span>{isCreating === true ? "CREATING" : "CREATE ROOM"}</span>
             </Button>
-            <div className="flex items-center gap-1">
-              <Avatar size="sm" className="rounded-xs">
-                <AvatarImage src={profile?.avatar ?? authSession?.user.image ?? undefined} alt={displayName} className="rounded-xs" />
-                <AvatarFallback className="rounded-xs text-[10px]">{getInitials(displayName)}</AvatarFallback>
-              </Avatar>
-            </div>
+            <Button variant="default" onClick={() => navigate({ to: "/account" })}>
+              <span>[A]</span>
+              <span>ACCOUNT</span>
+            </Button>
           </div>
         </header>
       </div>

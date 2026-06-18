@@ -159,7 +159,6 @@ export function RoomProvider(props: RoomProviderProps) {
     : {
         displayName: currentProfile.displayName,
         isLocal: true,
-        picture: currentProfile.profile?.avatar ?? undefined,
         sessionUserId: currentProfile.sessionUserId,
       };
   const roomPresence = useRoomPresence(presenceRoomId, session?.user_id ?? null, localPresenceUser);

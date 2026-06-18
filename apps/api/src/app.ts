@@ -63,7 +63,7 @@ export const app = new Hono()
   .use(
     "/auth/*",
     cors({
-      origin: env.appUrl,
+      origin: env.allowedOrigins,
       credentials: true,
       allowHeaders: ["Content-Type", "Authorization"],
       allowMethods: ["GET", "POST", "OPTIONS"],
@@ -72,7 +72,7 @@ export const app = new Hono()
   .use(
     "/api/*",
     cors({
-      origin: env.appUrl,
+      origin: env.allowedOrigins,
       credentials: true,
       allowHeaders: ["Content-Type", "Authorization"],
       allowMethods: ["GET", "OPTIONS"],

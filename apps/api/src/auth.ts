@@ -69,7 +69,7 @@ export const auth = betterAuth({
   secret: env.betterAuthSecret,
   baseURL: env.betterAuthUrl,
   basePath: env.betterAuthBasePath,
-  trustedOrigins: [env.appUrl, env.betterAuthUrl],
+  trustedOrigins: [...env.allowedOrigins, env.betterAuthUrl],
   database: jazzAdapter({
     db: () => jazzContext.asBackend(schemaApp),
     schema: schemaApp.wasmSchema,
@@ -147,6 +147,9 @@ export const auth = betterAuth({
   },
   plugins: [
     emailOTP({
+      changeEmail: {
+        enabled: true,
+      },
       async sendVerificationOTP({ email, otp, type }) {
         if (process.env.NODE_ENV !== "production") {
           console.info(`[rcode] Better Auth ${type} OTP for ${email}: ${otp}`);

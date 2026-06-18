@@ -106,7 +106,7 @@ export function useRoomAwareness(args: UseRoomAwarenessArgs) {
     const color = existingUser?.color ?? assignOption([...baseColors], usedColors);
 
     const displayName = profile?.displayName ?? existingUser?.displayName ?? generateUniqueName();
-    const picture = profile?.avatar ?? existingUser?.picture;
+    const picture = existingUser?.picture;
 
     awareness.setLocalState({
       ...currentState,

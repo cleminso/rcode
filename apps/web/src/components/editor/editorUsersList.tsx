@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarImage } from "@rcode/ui/ui/avatar";
+import { Avatar, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarImage } from "@rcode/ui/avatar";
 import { baseColors, colors, type BaseColor } from "../../lib/awareness";
 import type { RoomPresence, RoomPresenceUser } from "../../hooks/useRoomPresence";
 

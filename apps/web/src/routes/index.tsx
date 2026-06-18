@@ -1,17 +1,8 @@
 import { app } from "@rcode/schema";
 import Button from "@rcode/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@rcode/ui/ui/avatar";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAll, useSession } from "jazz-tools/react";
 import { authClient } from "../lib/auth-client";
-
-function getInitials(displayName: string) {
-  const parts = displayName.trim().split(/\s+/).filter((part) => part !== "");
-  const firstInitial = parts[0]?.[0] ?? "R";
-  const secondInitial = parts[1]?.[0] ?? "";
-
-  return `${firstInitial}${secondInitial}`.toUpperCase();
-}
 
 export const Route = createFileRoute("/")({
   component: IndexRoute,
@@ -38,7 +29,6 @@ function IndexRoute() {
   const isLoadingProfile = sessionUserId !== null && profileRows === undefined;
 
   const { data: authSession } = authClient.useSession();
-  const displayName = profile?.displayName ?? authSession?.user.name ?? "Profile";
   const isProfileComplete = profile !== null ? profile.displayName.trim() !== "" : false;
   const isSignedInWithEmail = authSession?.user.email !== undefined;
 
@@ -62,12 +52,10 @@ function IndexRoute() {
                 <span>[D]</span>
                 <span>DASHBOARD</span>
               </Button>
-              <div className="flex items-center gap-1">
-                <Avatar size="sm" className="rounded-xs">
-                  <AvatarImage src={profile?.avatar ?? authSession?.user.image ?? undefined} alt={displayName} className="rounded-xs" />
-                  <AvatarFallback className="rounded-xs text-[10px]">{getInitials(displayName)}</AvatarFallback>
-                </Avatar>
-              </div>
+              <Button variant="default" onClick={() => navigate({ to: "/account" })}>
+                <span>[A]</span>
+                <span>ACCOUNT</span>
+              </Button>
               {isSignedInWithEmail === true ? (
                 <Button variant="ghost" onClick={() => void handleSignOut()}>
                   <span>[X]</span>
