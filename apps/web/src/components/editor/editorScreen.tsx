@@ -1,8 +1,9 @@
 import { languages } from "@rcode/icons/languages";
-import Button from "@rcode/ui/button";
+import { buttonVariants } from "@rcode/ui/button";
 import { Separator } from "@rcode/ui/ui/separator"
+import { useHotkeys } from "@tanstack/react-hotkeys";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { CommandMenu } from "../command-menu/commandMenu";
 import { EditorLayout } from "../layout/editorLayout";
 import { AccountMenu } from "../account/accountMenu";
@@ -19,12 +20,10 @@ interface EditorScreenProps {
 }
 
 function LogoButton() {
-  const navigate = useNavigate();
-
   return (
-    <Button variant="ghost" size="icon" onClick={() => navigate({ to: "/dashboard" })}>
+    <Link to="/dashboard" className={buttonVariants({ variant: "ghost", size: "icon" })}>
       <div className="h-4 w-4 rounded-xs bg-primary" />
-    </Button>
+    </Link>
   );
 }
 
@@ -42,6 +41,7 @@ function EditorContent() {
   const currentProfile = useCurrentProfile({ autoCreate: false });
   const [languagePickerOpen, setLanguagePickerOpen] = useState(false);
   const [titleEditRequest, setTitleEditRequest] = useState(0);
+  const [switchRoomsRequest, setSwitchRoomsRequest] = useState(0);
   const [cursorPosition, setCursorPosition] = useState<{ line: number; column: number } | null>(null);
 
   const handleCursorPositionChange = useCallback((line: number, column: number) => {
@@ -53,6 +53,34 @@ function EditorContent() {
   });
 
   const isReady = isLoading === false && isYjsReady === true && isArchived === false && roomExists === true;
+
+  useHotkeys([
+    {
+      hotkey: "Escape",
+      callback: () => {
+        if (document.querySelector('[role="dialog"]') !== null) {
+          return;
+        }
+
+        const activeElement = document.activeElement;
+
+        if ((activeElement instanceof HTMLElement) === true) {
+          const tagName = activeElement.tagName.toLowerCase();
+
+          if (activeElement.isContentEditable === true || tagName === "input" || tagName === "select") {
+            return;
+          }
+        }
+
+        void navigate({ to: "/dashboard" });
+      },
+      options: {
+        enabled: isReady,
+        meta: { name: "Exit room" },
+      },
+    },
+  ]);
+
   const currentLanguage = languages.find((language) => language.value === editorLanguage);
   const currentLanguageLogo = currentLanguage?.logo;
 
@@ -62,9 +90,9 @@ function EditorContent() {
         toolbar={
           <div className="flex h-full w-full items-center gap-2">
             <LogoButton />
-            <Button variant="ghost" onClick={() => void navigate({ to: "/dashboard" })}>
+            <Link to="/dashboard" className={buttonVariants({ variant: "ghost" })}>
               [D] DASHBOARD
-            </Button>
+            </Link>
           </div>
         }
         footer={
@@ -83,9 +111,9 @@ function EditorContent() {
                 ? "The room owner archived this room. It is not accessible from shared links."
                 : "This room does not exist or is no longer available."}
             </p>
-            <Button variant="primary" className="mt-4" onClick={() => void navigate({ to: "/dashboard" })}>
+            <Link to="/dashboard" className={buttonVariants({ variant: "primary", className: "mt-4" })}>
               [D] DASHBOARD
-            </Button>
+            </Link>
           </div>
         </div>
       </EditorLayout>
@@ -114,12 +142,13 @@ function EditorContent() {
           {isReady === false ? (
             <div className="h-6 w-48 animate-pulse rounded-xs bg-muted" />
           ) : (
-            <RoomTitle
-              editRequest={titleEditRequest}
-              logo={currentLanguageLogo}
-              value={title}
-              onValueCommit={(nextTitle) => void updateTitle(nextTitle)}
-            />
+              <RoomTitle
+                editRequest={titleEditRequest}
+                logo={currentLanguageLogo}
+                value={title}
+                onSwitchRooms={() => setSwitchRoomsRequest((currentRequest) => currentRequest + 1)}
+                onValueCommit={(nextTitle) => void updateTitle(nextTitle)}
+              />
           )}
 
           <div className="flex min-w-0 items-center justify-end gap-3">
@@ -150,7 +179,10 @@ function EditorContent() {
         <div className="flex h-full items-center justify-center" />
       ) : (
         <div className="h-full">
-          <CommandMenu onEditTitle={() => setTitleEditRequest((currentRequest) => currentRequest + 1)} />
+          <CommandMenu
+            switchRoomsRequest={switchRoomsRequest}
+            onEditTitle={() => setTitleEditRequest((currentRequest) => currentRequest + 1)}
+          />
           <EditorTextArea onCursorPositionChange={handleCursorPositionChange} />
         </div>
       )}

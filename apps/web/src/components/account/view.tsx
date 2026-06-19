@@ -1,16 +1,16 @@
 import { app } from "@rcode/schema";
-import Button from "@rcode/ui/button";
+import Button, { buttonVariants } from "@rcode/ui/button";
 import { Input } from "@rcode/ui/input";
 import { OtpInput } from "@rcode/ui/otpInput";
 import { Textarea } from "@rcode/ui/textarea";
-import { Navigate, useNavigate } from "@tanstack/react-router";
+import { Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { RecoveryPhrase } from "jazz-tools/passphrase";
 import { useAll, useDb, useLocalFirstAuth, useSession } from "jazz-tools/react";
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
 import { useNavigationHotkeys } from "../../hooks/useNavigationHotkeys";
 import { authClient } from "../../lib/auth-client";
 import { selectProfileRow } from "../../lib/profile";
+import { toasts } from "../../lib/toasts";
 import { avatarMaxBytes, isAllowedAvatarFile, isValidEmail } from "./accountUtils";
 import { ProfileAvatar } from "./profileAvatar";
 import { ThemeTabs } from "./themeTabs";
@@ -48,12 +48,10 @@ function AccountSection({ children, label, right }: { children?: React.ReactNode
 }
 
 function LogoButton() {
-  const navigate = useNavigate();
-
   return (
-    <Button variant="ghost" size="icon-lg" onClick={() => navigate({ to: "/" })}>
+    <Link to="/" className={buttonVariants({ variant: "ghost", size: "icon-lg" })}>
       <div className="h-4 w-4 rounded-xs bg-primary" />
-    </Button>
+    </Link>
   );
 }
 
@@ -151,10 +149,10 @@ export function AccountView() {
       await db
         .update(app.profiles, profile.id, { displayName: nextDisplayName })
         .wait({ tier: "edge" });
-      toast("Display name saved");
+      toasts.account.displayNameSaved();
     } catch (caughtError) {
       setDisplayNameInput(profile.displayName);
-      toast.error(getErrorMessage(caughtError));
+      toasts.account.error(getErrorMessage(caughtError));
     }
   };
 
@@ -168,12 +166,12 @@ export function AccountView() {
     event.currentTarget.value = "";
 
     if (isAllowedAvatarFile(file) === false) {
-      toast.error("Avatar must be PNG, JPEG, or WebP.");
+      toasts.account.avatarInvalidType();
       return;
     }
 
     if (file.size > avatarMaxBytes) {
-      toast.error("Avatar must be 2MB or smaller.");
+      toasts.account.avatarFileTooLarge();
       return;
     }
 
@@ -184,10 +182,10 @@ export function AccountView() {
     try {
       const fileRow = await db.createFileFromBlob(app, file, { tier: "edge" });
       await db.update(app.profiles, profile.id, { avatarFileId: fileRow.id }).wait({ tier: "edge" });
-      toast("Avatar saved");
+      toasts.account.avatarSaved();
     } catch (caughtError) {
       setAvatarPreviewUrl(null);
-      toast.error(getErrorMessage(caughtError));
+      toasts.account.error(getErrorMessage(caughtError));
     } finally {
       setIsAvatarUploading(false);
     }
@@ -203,9 +201,9 @@ export function AccountView() {
     try {
       setAvatarPreviewUrl(null);
       await db.update(app.profiles, profile.id, { avatarFileId: null }).wait({ tier: "edge" });
-      toast("Avatar removed");
+      toasts.account.avatarRemoved();
     } catch (caughtError) {
-      toast.error(getErrorMessage(caughtError));
+      toasts.account.error(getErrorMessage(caughtError));
     } finally {
       setIsAvatarUploading(false);
     }
@@ -241,14 +239,14 @@ export function AccountView() {
 
       setPendingEmail(trimmedEmail);
       setOtp("");
-      toast(`Code sent to ${trimmedEmail}`);
+      toasts.account.emailCodeSent(trimmedEmail);
     } catch (caughtError) {
       const message = getErrorMessage(caughtError);
 
       if (isExistingEmailError(message) === true) {
-        toast.error("A user already exists for this email.");
+        toasts.account.emailExists();
       } else {
-        toast.error(message);
+        toasts.account.error(message);
       }
     } finally {
       setIsEmailSubmitting(false);
@@ -291,12 +289,12 @@ export function AccountView() {
       setPendingEmail(null);
       setEmailIsActive(false);
       setOtp("");
-      toast("Email verified");
+      toasts.account.emailVerified();
       await navigate({ to: "/account" });
     } catch (caughtError) {
       setOtp("");
       setOtpIsInvalid(true);
-      toast.error(getErrorMessage(caughtError));
+      toasts.account.error(getErrorMessage(caughtError));
     } finally {
       setIsEmailSubmitting(false);
     }
@@ -312,13 +310,13 @@ export function AccountView() {
 
   const copyPassphrase = async () => {
     if (recoveryPhrase === null) {
-      toast.error("No passphrase is available.");
+      toasts.account.missingPassphrase();
       return;
     }
 
     await navigator.clipboard.writeText(recoveryPhrase);
     setPassphraseIsRevealed(true);
-    toast("Passphrase copied");
+    toasts.account.passphraseCopied();
   };
 
   return (
@@ -327,10 +325,14 @@ export function AccountView() {
         <header className="flex items-center justify-between py-3">
           <div className="flex items-center gap-2">
             <LogoButton />
-            <Button variant="default" onClick={() => navigate({ to: "/dashboard" })}>
+            {/*<Button variant="default" onClick={() => navigate({ to: "/dashboard" })}>
               <span>[D]</span>
               <span>DASHBOARD</span>
-            </Button>
+            </Button>*/}
+            <Link to="/dashboard" className={buttonVariants({ variant: "default" })}>
+              <span>[D]</span>
+              <span>DASHBOARD</span>
+            </Link>
           </div>
           <Button variant="primary">
             <span>[A]</span>

@@ -11,6 +11,7 @@ interface RoomTitleProps {
   value: string;
   editRequest?: number;
   logo?: ComponentType<LanguageLogoProps>;
+  onSwitchRooms?: () => void;
   onValueCommit: (value: string) => void;
 }
 
@@ -56,7 +57,7 @@ export const RoomTitle = memo(function RoomTitle(props: RoomTitleProps) {
   }
 
   return (
-    <InputGroup className="mx-auto h-6 w-fit max-w-[400px] min-w-0 gap-1 border-transparent bg-transparent shadow-none rounded-xs hover:border-border has-[[data-slot=input-group-control]:focus-visible]:border-border has-[[data-slot=input-group-control]:focus-visible]:ring-1">
+    <InputGroup className="mx-auto h-6 w-fit max-w-100 min-w-0 gap-1 border-transparent bg-transparent shadow-none rounded-xs hover:border-border has-[[data-slot=input-group-control]:focus-visible]:border-border has-[[data-slot=input-group-control]:focus-visible]:ring-1">
       {Logo === undefined ? null : (
         <InputGroupAddon align="inline-start" className="px-1.5 pr-0">
           <Logo className="h-4 w-4 shrink-0" />
@@ -118,7 +119,7 @@ export const RoomTitle = memo(function RoomTitle(props: RoomTitleProps) {
         align="inline-end"
         className="cursor-pointer pl-0 pr-1.5"
         onClick={() => {
-          // TODO: wire up dropdown trigger
+          props.onSwitchRooms?.();
         }}
       >
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />

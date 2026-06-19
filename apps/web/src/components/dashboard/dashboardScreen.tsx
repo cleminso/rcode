@@ -1,18 +1,16 @@
-import Button from "@rcode/ui/button";
-import { Navigate, useNavigate } from "@tanstack/react-router";
+import Button, { buttonVariants } from "@rcode/ui/button";
+import { Link, Navigate } from "@tanstack/react-router";
 import { useSession } from "jazz-tools/react";
 import { useNavigationHotkeys } from "../../hooks/useNavigationHotkeys";
 import { useProfileIdentity } from "../../hooks/useProfileIdentity";
 import { RoomList } from "./roomList";
-import { useCreateRoom } from "./useCreateRoom";
+import { useCreateRoom } from "../../hooks/useCreateRoom";
 
 function LogoButton() {
-  const navigate = useNavigate();
-
   return (
-    <Button variant="ghost" size="icon-lg" onClick={() => navigate({ to: "/" })}>
+    <Link to="/" className={buttonVariants({ variant: "ghost", size: "icon-lg" })}>
       <div className="h-4 w-4 rounded-xs bg-primary" />
-    </Button>
+    </Link>
   );
 }
 
@@ -21,7 +19,6 @@ export function DashboardScreen() {
   const sessionUserId = session?.user_id ?? null;
   const profileIdentity = useProfileIdentity(sessionUserId);
   const { canCreate, createRoom, error, isCreating } = useCreateRoom();
-  const navigate = useNavigate();
 
   useNavigationHotkeys({
     account: true,
@@ -41,8 +38,8 @@ export function DashboardScreen() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="w-full px-4 min-[1440px]:mx-auto min-[1440px]:max-w-384">
+    <main className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
+      <div className="w-full shrink-0 px-4 min-[1440px]:mx-auto min-[1440px]:max-w-384">
         <header className="flex items-center justify-between py-3">
           <div className="flex items-center gap-2">
             <LogoButton />
@@ -59,15 +56,15 @@ export function DashboardScreen() {
               <span>[C]</span>
               <span>{isCreating === true ? "CREATING" : "CREATE ROOM"}</span>
             </Button>
-            <Button variant="default" onClick={() => navigate({ to: "/account" })}>
+            <Link to="/account" className={buttonVariants({ variant: "default" })}>
               <span>[A]</span>
               <span>ACCOUNT</span>
-            </Button>
+            </Link>
           </div>
         </header>
       </div>
-      <div className="w-full px-4 min-[1440px]:mx-auto min-[1440px]:max-w-384">
-        <section className="flex h-[calc(100vh-3rem)] flex-col gap-4 py-6">
+      <div className="min-h-0 w-full flex-1 px-4 min-[1440px]:mx-auto min-[1440px]:max-w-384">
+        <section className="flex h-full min-h-0 flex-col gap-4 py-6">
           {error !== null ? <p className="rounded-xs bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
           <RoomList />
         </section>

@@ -1,6 +1,6 @@
 import { CommandItem } from "@rcode/ui/command";
 import { useMemo } from "react";
-import { toast } from "sonner";
+import { toasts } from "../../../lib/toasts";
 
 const COPY_ROOM_URL_KEYWORDS = ["copy", "link"];
 
@@ -17,9 +17,7 @@ export function CopyRoomUrlCommand(props: CopyRoomUrlCommandProps) {
   const handleSelect = async () => {
     await navigator.clipboard.writeText(props.url);
 
-    toast(props.toastTitle, {
-      description: props.url,
-    });
+    toasts.rooms.linkCopied(props.toastTitle, props.url);
 
     props.onComplete();
   };

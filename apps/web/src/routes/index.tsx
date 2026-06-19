@@ -1,5 +1,5 @@
-import Button from "@rcode/ui/button";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import Button, { buttonVariants } from "@rcode/ui/button";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSession } from "jazz-tools/react";
 import { useNavigationHotkeys } from "../hooks/useNavigationHotkeys";
 import { useProfileIdentity } from "../hooks/useProfileIdentity";
@@ -10,12 +10,10 @@ export const Route = createFileRoute("/")({
 });
 
 function LogoButton() {
-  const navigate = useNavigate();
-
   return (
-    <Button variant="ghost" size="icon" onClick={() => navigate({ to: "/" })}>
+    <Link to="/" className={buttonVariants({ variant: "ghost", size: "icon" })}>
       <div className="h-4 w-4 rounded-xs bg-primary" />
-    </Button>
+    </Link>
   );
 }
 
@@ -52,14 +50,14 @@ function IndexRoute() {
             <LogoButton />
           {isProfileComplete === true ? (
             <div className="flex items-center gap-2">
-              <Button variant="default" onClick={() => navigate({ to: "/dashboard" })}>
+              <Link to="/dashboard" className={buttonVariants({ variant: "default" })}>
                 <span>[D]</span>
                 <span>DASHBOARD</span>
-              </Button>
-              <Button variant="default" onClick={() => navigate({ to: "/account" })}>
+              </Link>
+              <Link to="/account" className={buttonVariants({ variant: "default" })}>
                 <span>[A]</span>
                 <span>ACCOUNT</span>
-              </Button>
+              </Link>
               {isSignedInWithEmail === true ? (
                 <Button variant="ghost" onClick={() => void handleSignOut()}>
                   <span>[X]</span>
@@ -69,14 +67,14 @@ function IndexRoute() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Button variant="default" onClick={() => navigate({ to: "/sign-in" })}>
+              <Link to="/sign-in" className={buttonVariants({ variant: "default" })}>
                 <span>[I]</span>
                 <span>SIGN IN</span>
-              </Button>
-              <Button variant="primary" onClick={() => navigate({ to: "/sign-up" })}>
+              </Link>
+              <Link to="/sign-up" className={buttonVariants({ variant: "primary" })}>
                 <span>[U]</span>
                 <span>SIGN UP</span>
-              </Button>
+              </Link>
             </div>
           )}
         </header>

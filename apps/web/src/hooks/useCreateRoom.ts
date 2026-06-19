@@ -2,7 +2,7 @@ import { app } from "@rcode/schema";
 import { useNavigate } from "@tanstack/react-router";
 import { useDb, useSession } from "jazz-tools/react";
 import { useState } from "react";
-import { newRoomToken } from "../../lib/generate";
+import { newRoomToken } from "../lib/generate";
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;

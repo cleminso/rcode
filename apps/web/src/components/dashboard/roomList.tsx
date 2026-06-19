@@ -1,29 +1,16 @@
-import { app } from "@rcode/schema";
 import Button from "@rcode/ui/button";
 import { useHotkeys, type UseHotkeyDefinition } from "@tanstack/react-hotkeys";
-import { useNavigate } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useAll, useSession } from "jazz-tools/react";
 import { useMemo, useRef, useState } from "react";
 import { useDashboardPresence } from "../../hooks/useDashboardPresence";
-import { RoomListItem, roomListItemHeight, type DashboardRoomListItemRoom } from "./roomListItem";
+import { useRooms } from "../../hooks/useRooms";
+import { RoomListItem, roomListItemHeight } from "./roomListItem";
 import type { RoomParticipant } from "./roomParticipantsCell";
-
-interface DashboardRoomListRoom extends DashboardRoomListItemRoom {
-  lastAccessedAt: Date | null;
-}
+import { useRoomListKeyboardNavigation } from "../../hooks/useRoomListKeyboardNavigation";
 
 type RoomListFilter = "all" | "active" | "archived";
 
 const emptyParticipants: RoomParticipant[] = [];
-const roomShortcutKeys = ["1", "2", "3", "4", "5", "6", "7", "8", "9"] as const;
-
-function compareRoomAccess(a: DashboardRoomListRoom, b: DashboardRoomListRoom) {
-  const left = a.lastAccessedAt?.getTime() ?? 0;
-  const right = b.lastAccessedAt?.getTime() ?? 0;
-
-  return right - left;
-}
 
 const FilterTab = ({
   active,
@@ -55,50 +42,9 @@ const FilterTab = ({
 );
 
 export function RoomList() {
-  const navigate = useNavigate();
   const [filter, setFilter] = useState<RoomListFilter>("all");
-  const session = useSession();
   const scrollParentRef = useRef<HTMLDivElement>(null);
-  const participantRows = useAll(
-    session !== null ? app.roomParticipants.where({ session_user_id: session.user_id }) : undefined,
-  );
-  const roomRows = useAll(app.rooms);
-  const metadataRows = useAll(app.roomMetadata);
-
-  const rooms = useMemo(() => {
-    if (session === null || participantRows === undefined || roomRows === undefined || metadataRows === undefined) {
-      return [];
-    }
-
-    const ownParticipantByRoomId = new Map(participantRows.map((participant) => [participant.room_id, participant]));
-    const metadataByRoomId = new Map(metadataRows.map((metadata) => [metadata.room_id, metadata]));
-
-    return roomRows
-      .flatMap((room) => {
-        const ownParticipant = ownParticipantByRoomId.get(room.id) ?? null;
-        const isCreator = room.creator_session_user_id === session.user_id;
-
-        if (ownParticipant === null && isCreator === false) {
-          return [];
-        }
-
-        const metadata = metadataByRoomId.get(room.id) ?? null;
-
-        return [
-          {
-            id: room.id,
-            shareToken: room.shareToken,
-            title: metadata?.title ?? "",
-            editorLanguage: metadata?.editorLanguage ?? "plaintext",
-            isArchived: room.archivedAt !== undefined && room.archivedAt !== null,
-            canUnarchive: isCreator,
-            creatorSessionUserId: room.creator_session_user_id,
-            lastAccessedAt: ownParticipant?.lastAccessedAt ?? null,
-          },
-        ];
-      })
-      .toSorted(compareRoomAccess);
-  }, [metadataRows, participantRows, roomRows, session]);
+  const { isLoading, rooms } = useRooms();
 
   const activeCandidateRooms = rooms.filter((room) => room.isArchived === false);
   const roomIds = activeCandidateRooms.map((room) => room.id).toSorted();
@@ -118,29 +64,6 @@ export function RoomList() {
 
     return true;
   });
-  const isLoading = session !== null && (participantRows === undefined || roomRows === undefined || metadataRows === undefined);
-  const roomHotkeys: UseHotkeyDefinition[] = roomShortcutKeys.flatMap((hotkey, index) => {
-    const room = displayedRooms[index];
-
-    if (room === undefined) {
-      return [];
-    }
-
-    return [
-      {
-        hotkey,
-        callback: () => {
-          void navigate({ to: "/rooms/$shareToken", params: { shareToken: room.shareToken } });
-        },
-        options: {
-          enabled: isLoading === false,
-          meta: { name: `Open room ${index + 1}` },
-        },
-      },
-    ];
-  });
-
-  useHotkeys(roomHotkeys);
 
   const rowVirtualizer = useVirtualizer({
     count: displayedRooms.length,
@@ -150,6 +73,12 @@ export function RoomList() {
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();
+  const { selectedRoomIndex } = useRoomListKeyboardNavigation({
+    isEnabled: isLoading === false,
+    rooms: displayedRooms,
+    scrollParentRef,
+    scrollToIndex: (index) => rowVirtualizer.scrollToIndex(index, { align: "auto" }),
+  });
 
   const focusFilterTab = (nextFilter: RoomListFilter) => {
     window.requestAnimationFrame(() => {
@@ -184,30 +113,30 @@ export function RoomList() {
     return filter;
   };
 
-  const handleFilterKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "ArrowRight") {
-      event.preventDefault();
-      selectFilter(getNextFilter(1));
-      return;
-    }
+  const filterHotkeys = useMemo<UseHotkeyDefinition[]>(() => [
+    {
+      hotkey: "ArrowRight",
+      callback: () => selectFilter(getNextFilter(1)),
+      options: { meta: { name: "Select next room filter" } },
+    },
+    {
+      hotkey: "ArrowLeft",
+      callback: () => selectFilter(getNextFilter(-1)),
+      options: { meta: { name: "Select previous room filter" } },
+    },
+    {
+      hotkey: "Home",
+      callback: () => selectFilter("all"),
+      options: { meta: { name: "Select all room filter" } },
+    },
+    {
+      hotkey: "End",
+      callback: () => selectFilter("archived"),
+      options: { meta: { name: "Select archived room filter" } },
+    },
+  ], [filter, activeRoomIds.size]);
 
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      selectFilter(getNextFilter(-1));
-      return;
-    }
-
-    if (event.key === "Home") {
-      event.preventDefault();
-      selectFilter("all");
-      return;
-    }
-
-    if (event.key === "End") {
-      event.preventDefault();
-      selectFilter("archived");
-    }
-  };
+  useHotkeys(filterHotkeys, { preventDefault: true });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -216,7 +145,7 @@ export function RoomList() {
           <span>/</span>
           <span>CODE ROOMS</span>
         </div>
-        <div role="tablist" aria-label="Room filters" data-room-filter-tablist="true" className="flex items-center gap-4" onKeyDown={handleFilterKeyDown}>
+        <div role="tablist" aria-label="Room filters" data-room-filter-tablist="true" className="flex items-center gap-4">
           <FilterTab
             active={filter === "all"}
             id="room-filter-all"
@@ -242,8 +171,8 @@ export function RoomList() {
         </div>
       </div>
 
-      <section>
-        <div className="grid grid-cols-[minmax(0,1fr)_120px_128px_80px] items-center gap-3 border-b border-border pb-1.5 mb-1.5 text-xs text-muted-foreground">
+      <section className="flex min-h-0 flex-1 flex-col">
+        <div className="mb-1.5 grid shrink-0 grid-cols-[minmax(0,1fr)_120px_116px_max-content] items-center gap-3 border-b border-border pb-1.5 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <span>/</span>
             <span>NAME</span>
@@ -276,7 +205,7 @@ export function RoomList() {
                   : "Create a room to start coding."}
             </div>
           ) : (
-            <div ref={scrollParentRef} className="h-full overflow-y-auto overflow-x-hidden outline-none">
+            <div ref={scrollParentRef} className="h-full overflow-x-hidden overflow-y-auto outline-none" tabIndex={0}>
               <div
                 role="list"
                 className="relative w-full"
@@ -303,6 +232,7 @@ export function RoomList() {
                     >
                       <RoomListItem
                         room={room}
+                        isSelected={virtualItem.index === selectedRoomIndex}
                         lastAccessedAt={room.lastAccessedAt}
                         participants={usersByRoomId.get(room.id) ?? emptyParticipants}
                       />

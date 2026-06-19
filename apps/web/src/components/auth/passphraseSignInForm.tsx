@@ -43,7 +43,7 @@ export function PassphraseSignInForm({ isSubmitting, restorePhrase, onRestorePhr
         error={showPhraseError === true ? "// Recovery phrase is required" : null}
         required
       />
-      <Button className="h-[34px] w-full text-base uppercase" variant="primary" type="submit" disabled={isSubmitting === true || phraseIsEmpty === true}>
+      <Button className="h-8.5 w-full text-base uppercase" variant="primary" type="submit" disabled={isSubmitting === true || phraseIsEmpty === true}>
         {isSubmitting === true ? "RESTORING" : "CONTINUE"}
       </Button>
     </form>

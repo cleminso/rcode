@@ -3,7 +3,7 @@
 // TanStack Router automatically discovers this file as the root of the route tree.
 import { Outlet, createRootRoute, useRouterState } from "@tanstack/react-router";
 import { JazzProvider } from "jazz-tools/react";
-import { useAuthConfig } from "../hooks/use-auth-config";
+import { useAuthConfig } from "../hooks/useAuthConfig";
 
 // Creates the root node of the route tree.
 // Exported as `Route` so TanStack Router's file-based routing discovers it.

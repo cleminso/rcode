@@ -1,12 +1,12 @@
 import { app } from "@rcode/schema";
-import Button from "@rcode/ui/button";
-import { Navigate, useNavigate } from "@tanstack/react-router";
+import { buttonVariants } from "@rcode/ui/button";
+import { Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { RecoveryPhrase } from "jazz-tools/passphrase";
 import { useAll, useDb, useLocalFirstAuth, useSession } from "jazz-tools/react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { authClient } from "../../lib/auth-client";
 import { selectProfileRow } from "../../lib/profile";
+import { toasts } from "../../lib/toasts";
 import { type AuthMethod, AuthShell } from "./authShell";
 import { EmailSignInForm } from "./emailSignInForm";
 import { EmailSignUpForm } from "./emailSignUpForm";
@@ -113,7 +113,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
     }
 
     setIsCheckingPassphraseProfile(false);
-    toast("No rcode profile found for this passphrase");
+    toasts.auth.missingPassphraseProfile();
   }, [isCheckingPassphraseProfile, navigate, profileRows]);
 
   if (hasCompletedProfile === true && profileIsLoading === false && isCheckingPassphraseProfile === false) {
@@ -194,17 +194,17 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
       setOtp("");
       setOtpStep("verify");
       setResendSecondsLeft(30);
-      toast(`Code sent to ${email}`);
+      toasts.auth.codeSent(email);
     } catch (caughtError) {
       const nextMessage = getErrorMessage(caughtError);
 
       if (intent === "sign-in" && isMissingAccountError(nextMessage) === true) {
-        toast("No account found for this email");
+        toasts.auth.missingAccount();
         await navigate({ to: "/sign-up", search: { email } });
         return;
       }
 
-      toast(`${nextMessage}`);
+      toasts.auth.error(nextMessage);
     } finally {
       setIsSubmitting(false);
       setIsResending(false);
@@ -262,7 +262,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
 
       await navigate({ to: "/dashboard" });
     } catch (caughtError) {
-      toast(`${getErrorMessage(caughtError)}`);
+      toasts.auth.error(getErrorMessage(caughtError));
       setOtp("");
     } finally {
       setIsSubmitting(false);
@@ -279,13 +279,13 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
 
   const copyRecoveryPhrase = async () => {
     if (recoveryPhrase === null) {
-      toast("No recovery phrase is available yet");
+      toasts.auth.missingRecoveryPhrase();
       return;
     }
 
     await navigator.clipboard.writeText(recoveryPhrase);
     setCopiedRecoveryPhrase(true);
-    toast("Recovery phrase copied. Save it before continuing.");
+    toasts.auth.recoveryPhraseCopied();
   };
 
   const handlePassphraseSignUp = async (event: FormEvent<HTMLFormElement>) => {
@@ -303,7 +303,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
       await upsertProfile(signUpValues.displayName);
       await navigate({ to: "/dashboard" });
     } catch (caughtError) {
-      toast(`${getErrorMessage(caughtError)}`);
+      toasts.auth.error(getErrorMessage(caughtError));
     } finally {
       setIsSubmitting(false);
     }
@@ -319,7 +319,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
       await localFirstAuth.login(restoredSecret);
       setIsCheckingPassphraseProfile(true);
     } catch {
-      toast("Invalid recovery phrase");
+      toasts.auth.invalidRecoveryPhrase();
     } finally {
       setIsSubmitting(false);
     }
@@ -336,30 +336,24 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
       intent === "sign-in" ? (
         <>
           Don't have an account?{" "}
-          <Button
-            className="h-auto rounded-none px-0 font-sans text-base font-normal underline underline-offset-2 hover:bg-transparent hover:text-foreground"
+          <Link
+            to="/sign-up"
+            className={buttonVariants({ variant: "ghost", size: "none", className: "h-auto rounded-none px-0 font-sans text-base font-normal underline underline-offset-2 hover:bg-transparent hover:text-foreground" })}
             data-auth-tab-trigger="true"
-            size="none"
-            type="button"
-            variant="ghost"
-            onClick={() => void navigate({ to: "/sign-up" })}
           >
             Sign up
-          </Button>
+          </Link>
         </>
       ) : (
         <>
           Already have an account?{" "}
-          <Button
-            className="h-auto rounded-none px-0 font-sans text-base font-normal underline underline-offset-2 hover:bg-transparent hover:text-foreground"
+          <Link
+            to="/sign-in"
+            className={buttonVariants({ variant: "ghost", size: "none", className: "h-auto rounded-none px-0 font-sans text-base font-normal underline underline-offset-2 hover:bg-transparent hover:text-foreground" })}
             data-auth-tab-trigger="true"
-            size="none"
-            type="button"
-            variant="ghost"
-            onClick={() => void navigate({ to: "/sign-in" })}
           >
             Sign in
-          </Button>
+          </Link>
         </>
       )
     ) : undefined;

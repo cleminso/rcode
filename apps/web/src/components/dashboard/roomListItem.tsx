@@ -17,6 +17,7 @@ export interface DashboardRoomListItemRoom {
 
 interface RoomListItemProps {
   room: DashboardRoomListItemRoom;
+  isSelected: boolean;
   lastAccessedAt: Date | null;
   participants: RoomParticipant[];
 }
@@ -36,14 +37,15 @@ export const RoomListItem = memo(function RoomListItem(props: RoomListItemProps)
     <Link
       to="/rooms/$shareToken"
       params={{ shareToken: props.room.shareToken }}
-      className="grid w-full shrink-0 grid-cols-[minmax(0,1fr)_120px_128px_80px] items-center justify-items-start gap-3 rounded-none px-0 text-xs font-medium whitespace-nowrap text-foreground transition-colors outline-none select-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/30"
+      aria-current={props.isSelected === true ? "true" : undefined}
+      className="grid w-full min-w-0 shrink-0 grid-cols-[minmax(0,1fr)_120px_116px_max-content] items-center justify-items-start gap-3 overflow-hidden rounded-none px-0 text-xs font-medium whitespace-nowrap text-foreground transition-colors outline-none select-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/30 aria-current:bg-muted"
       style={{ height: roomListItemHeight }}
     >
-      <span className="flex min-w-0 items-center gap-3">
+      <span className="flex w-full min-w-0 max-w-full items-center gap-3 overflow-hidden">
         <span className="flex size-5 shrink-0 items-center justify-center rounded-xs" title={language?.name ?? "Plain text"}>
           {LanguageLogo !== undefined ? <LanguageLogo className="size-5 rounded-xs" /> : null}
         </span>
-        <span className="overflow-hidden text-left font-sans font-normal  text-base text-foreground">
+        <span className="block min-w-0 flex-1 truncate text-left font-sans text-base font-normal text-foreground">
           {title}
         </span>
       </span>

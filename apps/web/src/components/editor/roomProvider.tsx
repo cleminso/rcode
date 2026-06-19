@@ -1,13 +1,13 @@
 import { app } from "@rcode/schema";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef } from "react";
 import { useAll, useDb, useSession } from "jazz-tools/react";
-import { toast } from "sonner";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
 import { useRoomAwareness } from "../../hooks/useRoomAwareness";
 import { type YjsProviderError, useJazzYjsDocument } from "../../hooks/useJazzYjsDocument";
 import { type RoomPresence, type RoomPresenceUser, useRoomPresence } from "../../hooks/useRoomPresence";
 import { useCurrentProfile } from "../../hooks/useCurrentProfile";
+import { toasts } from "../../lib/toasts";
 
 interface RoomContextValue {
   awareness: Awareness;
@@ -130,10 +130,7 @@ export function RoomProvider(props: RoomProviderProps) {
   }, [canEditSession, db, isArchived, participant, session]);
 
   const notifyYjsProviderError = useCallback((error: YjsProviderError) => {
-    toast.error(error.title, {
-      id: error.id,
-      description: error.description,
-    });
+    toasts.rooms.providerError(error);
   }, []);
 
   const currentProfile = useCurrentProfile({
@@ -191,13 +188,13 @@ export function RoomProvider(props: RoomProviderProps) {
 
     for (const user of roomPresence.users) {
       if (previousUsers.has(user.sessionUserId) === false && user.isLocal === false) {
-        toast.info(`${user.displayName} joined the room.`);
+        toasts.rooms.userJoined(user.displayName);
       }
     }
 
     for (const [sessionUserId, displayName] of previousUsers) {
       if (nextUsers.has(sessionUserId) === false && sessionUserId !== session?.user_id) {
-        toast.info(`${displayName} left the room.`);
+        toasts.rooms.userLeft(displayName);
       }
     }
 

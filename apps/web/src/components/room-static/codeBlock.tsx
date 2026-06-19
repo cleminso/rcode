@@ -79,10 +79,13 @@ export function CodeBlock({ code, lang, className, ...props }: CodeBlockProps) {
     }
 
     const updateScrollEdges = () => {
+      const maxScrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+      const scrollLeft = Math.max(0, Math.min(scroller.scrollLeft, maxScrollLeft));
+
       const nextEdges: ScrollEdges = {
         top: scroller.scrollTop <= 1,
-        left: scroller.scrollLeft <= 1,
-        right: scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 1,
+        left: scrollLeft <= 1,
+        right: scrollLeft >= maxScrollLeft - 1,
         bottom: scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1,
       };
 
@@ -105,10 +108,22 @@ export function CodeBlock({ code, lang, className, ...props }: CodeBlockProps) {
     };
   }, [highlightedHtml]);
 
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+
+    if (scroller === null) {
+      return;
+    }
+
+    scroller.scrollLeft = 0;
+    scroller.scrollTop = 0;
+    setScrollEdges(initialScrollEdges);
+  }, [code, lang]);
+
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border bg-background shadow-sm",
+        "relative overflow-hidden rounded-sm border bg-background shadow-sm",
         "[--room-static-code-bg:hsl(var(--background))]",
         className,
       )}
@@ -117,25 +132,25 @@ export function CodeBlock({ code, lang, className, ...props }: CodeBlockProps) {
       <div className="pointer-events-none absolute inset-0 z-10">
         <div
           className={cn(
-            "absolute top-0 right-0 h-full w-16 bg-gradient-to-l from-background to-transparent transition-opacity",
+            "absolute top-0 right-0 h-full w-16 bg-linear-to-l from-background to-transparent transition-opacity",
             scrollEdges.right === true ? "opacity-0" : "opacity-100",
           )}
         />
         <div
           className={cn(
-            "absolute top-0 left-14 h-full w-12 bg-gradient-to-r from-background to-transparent transition-opacity",
+            "absolute top-0 left-14 h-full w-12 bg-linear-to-r from-background to-transparent transition-opacity",
             scrollEdges.left === true ? "opacity-0" : "opacity-100",
           )}
         />
         <div
           className={cn(
-            "absolute top-0 left-14 h-12 w-full bg-gradient-to-b from-background to-transparent transition-opacity",
+            "absolute top-0 left-14 h-12 w-full bg-linear-to-b from-background to-transparent transition-opacity",
             scrollEdges.top === true ? "opacity-0" : "opacity-100",
           )}
         />
         <div
           className={cn(
-            "absolute bottom-0 left-14 h-12 w-full bg-gradient-to-t from-background to-transparent transition-opacity",
+            "absolute bottom-1.5 left-14 h-12 w-full bg-linear-to-t from-background to-transparent transition-opacity",
             scrollEdges.bottom === true ? "opacity-0" : "opacity-100",
           )}
         />
@@ -156,7 +171,7 @@ export function CodeBlock({ code, lang, className, ...props }: CodeBlockProps) {
           <div className="min-w-0 px-4 pr-14">
             {highlightedHtml !== null ? (
               <div
-                className="[&_code]:!grid [&_code]:min-w-max [&_pre]:!m-0 [&_pre]:!bg-transparent [&_pre]:!p-0 [&_pre]:!font-mono [&_pre]:!leading-6"
+                className="[&_.line]:min-h-6 [&_code]:grid! [&_code]:min-w-max [&_pre]:m-0! [&_pre]:bg-transparent! [&_pre]:p-0! [&_pre]:font-mono! [&_pre]:leading-6!"
                 dangerouslySetInnerHTML={{ __html: highlightedHtml }}
               />
             ) : (

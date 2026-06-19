@@ -147,6 +147,7 @@
 @layer base {
   ::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -156,5 +157,9 @@
   ::-webkit-scrollbar-thumb {
     background: var(--border);
     border-radius: 6px;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }
