@@ -1,6 +1,7 @@
 import Button from "@rcode/ui/button";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSession } from "jazz-tools/react";
+import { useNavigationHotkeys } from "../hooks/useNavigationHotkeys";
 import { useProfileIdentity } from "../hooks/useProfileIdentity";
 import { authClient } from "../lib/auth-client";
 
@@ -28,6 +29,13 @@ function IndexRoute() {
   const isProfileComplete = profileIdentity.displayName !== null ? profileIdentity.displayName.trim() !== "" : false;
   const isSignedInWithEmail = authSession?.user.email !== undefined;
 
+  useNavigationHotkeys({
+    account: isProfileComplete === true,
+    dashboard: isProfileComplete === true,
+    signIn: profileIdentity.isLoading === false && isProfileComplete === false,
+    signUp: profileIdentity.isLoading === false && isProfileComplete === false,
+  });
+
   const handleSignOut = async () => {
     await authClient.signOut();
     await navigate({ to: "/" });
@@ -41,7 +49,7 @@ function IndexRoute() {
     <main className="min-h-screen bg-background text-foreground">
       <div className="w-full px-4 min-[1440px]:mx-auto min-[1440px]:max-w-384">
         <header className="flex items-center justify-between py-3">
-          <LogoButton />
+            <LogoButton />
           {isProfileComplete === true ? (
             <div className="flex items-center gap-2">
               <Button variant="default" onClick={() => navigate({ to: "/dashboard" })}>

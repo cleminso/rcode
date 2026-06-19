@@ -13,7 +13,7 @@ const Command = ({ className, ...props }: CommandProps) => (
   <CommandPrimitive
     data-slot="command"
     className={cn(
-      "flex size-full flex-col overflow-hidden rounded-sm bg-card text-card-foreground",
+      "flex size-full flex-col overflow-hidden rounded-xs bg-card text-card-foreground",
       className
     )}
     {...props}
@@ -30,6 +30,8 @@ export type CommandDialogProps = Omit<
   description?: string
   className?: string
   overlayClassName?: string
+  initialFocus?: React.ComponentProps<typeof DialogPrimitive.Popup>["initialFocus"]
+  finalFocus?: React.ComponentProps<typeof DialogPrimitive.Popup>["finalFocus"]
   children: React.ReactNode
 }
 
@@ -39,6 +41,8 @@ const CommandDialog = ({
   children,
   className,
   overlayClassName,
+  initialFocus,
+  finalFocus,
   ...props
 }: CommandDialogProps) => (
   <DialogPrimitive.Root data-slot="command-dialog" {...props}>
@@ -49,8 +53,10 @@ const CommandDialog = ({
       />
       <DialogPrimitive.Popup
         data-slot="command-dialog-content"
+        initialFocus={initialFocus}
+        finalFocus={finalFocus}
         className={cn(
-          "fixed top-24 left-1/2 z-50 w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-sm border border-border/80 bg-card text-card-foreground shadow-2xl outline-none sm:max-w-3xl",
+          "fixed top-24 left-1/2 z-50 w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-xs border border-border/80 bg-card text-card-foreground shadow-md outline-none sm:max-w-3xl",
           className
         )}
       >
@@ -84,7 +90,7 @@ const CommandInput = ({
     <CommandPrimitive.Input
       data-slot="command-input"
       className={cn(
-        "h-10 w-full border-0 bg-transparent px-4 text-sm/relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
+        "h-9 w-full border-0 bg-transparent px-2 text-sm/relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
       {...props}
@@ -100,7 +106,7 @@ const CommandList = ({ className, ...props }: CommandListProps) => (
   <CommandPrimitive.List
     data-slot="command-list"
     className={cn(
-      "no-scrollbar max-h-80 scroll-py-1 overflow-x-hidden overflow-y-auto p-2 outline-none",
+      "no-scrollbar max-h-80 scroll-py-1 overflow-x-hidden overflow-y-auto px-1 py-2 outline-none",
       className
     )}
     {...props}
@@ -165,7 +171,7 @@ const CommandItem = ({
   <CommandPrimitive.Item
     data-slot="command-item"
     className={cn(
-      "group/command-item relative flex min-h-7 cursor-default items-center gap-3 rounded-sm px-2.5 py-1.5 text-sm/relaxed font-sans font-normal outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-muted data-selected:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-selected:*:[svg]:text-foreground",
+      "group/command-item relative flex min-h-6 cursor-default items-center gap-3 rounded-xs p-1 text-sm/relaxed font-sans font-normal outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-muted data-selected:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-selected:*:[svg]:text-foreground",
       className
     )}
     {...props}

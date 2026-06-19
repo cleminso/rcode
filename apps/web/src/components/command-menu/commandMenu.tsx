@@ -1,3 +1,4 @@
+import { getLanguage, type Language } from "@rcode/icons/languages";
 import {
   Command,
   CommandDialog,
@@ -9,10 +10,14 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { LanguageCommandItems } from "../editor/languageCommandItems";
 import { useRoom } from "../editor/roomProvider";
 import { CopyRoomUrlCommand } from "./commands/copyRoomUrl";
 import { ArchiveRoomCommand } from "./commands/roomArchive";
+import { EditRoomLanguageRootCommand } from "./commands/roomLanguage";
 import { EditRoomTitleRootCommand } from "./commands/roomTitle";
+
+type CommandMenuPage = "root" | "language";
 
 interface CommandMenuProps {
   onEditTitle: () => void;
@@ -22,12 +27,15 @@ export function CommandMenu(props: CommandMenuProps) {
   const room = useRoom();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [page, setPage] = useState<CommandMenuPage>("root");
+  const selectedLanguage = getLanguage(room.editorLanguage);
 
   const liveUrl = `${window.location.origin}/rooms/${room.shareToken}`;
   const staticUrl = room.staticToken !== null ? `${window.location.origin}/s/${room.staticToken}` : null;
 
   const closeMenu = () => {
     setOpen(false);
+    setPage("root");
   };
 
   const editTitle = () => {
@@ -35,6 +43,11 @@ export function CommandMenu(props: CommandMenuProps) {
     window.requestAnimationFrame(() => {
       props.onEditTitle();
     });
+  };
+
+  const selectLanguage = (language: Language) => {
+    void room.updateEditorLanguage(language.value);
+    closeMenu();
   };
 
   const archiveRoom = async () => {
@@ -47,10 +60,14 @@ export function CommandMenu(props: CommandMenuProps) {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.metaKey === true && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setOpen((currentOpen) => currentOpen === false);
+      const isModK = (event.metaKey === true || event.ctrlKey === true) && event.key.toLowerCase() === "k";
+
+      if (isModK === false) {
+        return;
       }
+
+      event.preventDefault();
+      setOpen((currentOpen) => currentOpen === false);
     };
 
     window.addEventListener("keydown", handleKeyDown, { capture: true });
@@ -75,28 +92,35 @@ export function CommandMenu(props: CommandMenuProps) {
       description="Search room commands."
       className="top-14 sm:max-w-126"
     >
-      <Command>
-        <CommandInput placeholder="Execute a command..." />
+      <Command key={page} loop>
+        <CommandInput autoFocus placeholder={page === "language" ? "Select a language..." : "Execute a command..."} />
         <CommandList>
           <CommandEmpty>No command found.</CommandEmpty>
-          <CommandGroup>
-            <CopyRoomUrlCommand
-              label="Copy room link"
-              url={liveUrl}
-              toastTitle="Room link copied to your clipboard - share it!"
-              onComplete={closeMenu}
-            />
-            {staticUrl !== null ? (
+          {page === "root" ? (
+            <CommandGroup>
               <CopyRoomUrlCommand
-                label="Copy static room link"
-                url={staticUrl}
-                toastTitle="Static room link copied to your clipboard - share it!"
+                label="Copy room link"
+                url={liveUrl}
+                toastTitle="Room link copied to your clipboard - share it!"
                 onComplete={closeMenu}
               />
-            ) : null}
-            {room.canEdit === true ? <EditRoomTitleRootCommand onSelect={editTitle} /> : null}
-            {room.isCreator === true ? <ArchiveRoomCommand onArchive={archiveRoom} onComplete={closeMenu} /> : null}
-          </CommandGroup>
+              {staticUrl !== null ? (
+                <CopyRoomUrlCommand
+                  label="Copy static room link"
+                  url={staticUrl}
+                  toastTitle="Static room link copied to your clipboard - share it!"
+                  onComplete={closeMenu}
+                />
+              ) : null}
+              {room.canEdit === true ? <EditRoomTitleRootCommand onSelect={editTitle} /> : null}
+              {room.canEdit === true ? <EditRoomLanguageRootCommand onSelect={() => setPage("language")} /> : null}
+              {room.isCreator === true ? <ArchiveRoomCommand onArchive={archiveRoom} onComplete={closeMenu} /> : null}
+            </CommandGroup>
+          ) : (
+            <CommandGroup>
+              <LanguageCommandItems currentValue={selectedLanguage.value} onSelect={selectLanguage} />
+            </CommandGroup>
+          )}
         </CommandList>
       </Command>
     </CommandDialog>

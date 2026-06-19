@@ -1,6 +1,7 @@
 import { getLanguage } from "@rcode/icons/languages";
 import Button from "@rcode/ui/button";
 import { useNavigate } from "@tanstack/react-router";
+import { useNavigationHotkeys } from "../../hooks/useNavigationHotkeys";
 import { ProfileAvatar } from "../account/profileAvatar";
 import { CodeBlock } from "./codeBlock";
 
@@ -18,6 +19,7 @@ interface StaticRoomContentProps {
 
 export function StaticRoomContent(props: StaticRoomContentProps) {
   const navigate = useNavigate();
+  useNavigationHotkeys({ signUp: true });
   const language = getLanguage(props.editorLanguage);
   const LanguageLogo = language.logo;
   const title = props.title.trim().length > 0 ? props.title : "Untitled room";
@@ -42,7 +44,7 @@ export function StaticRoomContent(props: StaticRoomContentProps) {
             <span className="flex size-7 shrink-0 items-center justify-center text-muted-foreground" title={language.name}>
               {LanguageLogo !== undefined ? <LanguageLogo className="size-7" /> : null}
             </span>
-            <h1 className="truncate text-2xl font-sans font-normal sm:text-3xl">{title}</h1>
+            <h1 className="min-w-0 text-2xl font-sans font-normal sm:text-3xl">{title}</h1>
           </div>
 
           <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-8 gap-y-4 text-sm">

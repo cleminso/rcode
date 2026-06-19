@@ -19,13 +19,13 @@ const highlighterPromise = createHighlighter({
 
 const READ_ONLY_MESSAGE = "Open this room with an editable Jazz identity to make changes.";
 
-// `memo` prevents unnecessary re-renders when the parent updates with stable props.
-// This component receives no props from its parent, so it only re-renders when its
-// internal hooks (`useTheme`, `useRoom`) produce new values. If the parent re-renders
-// for unrelated reasons (e.g. a route transition), `memo` blocks that cascade.
+interface EditorTextAreaProps {
+  onCursorPositionChange?: (line: number, column: number) => void;
+}
+
 export const EditorTextArea = memo(__EditorTextArea);
 
-function __EditorTextArea() {
+function __EditorTextArea(props: EditorTextAreaProps) {
   const { theme, systemTheme } = useTheme();
   const { awareness, canEdit, editorLanguage, isYjsReady, ydoc } = useRoom();
   const { settings } = useUserSettings();
@@ -37,25 +37,8 @@ function __EditorTextArea() {
     theme === "system" ? systemTheme ?? "light" : theme ?? "light";
   const initialTheme = resolvedTheme === "dark" ? "zedokai" : "vitesse-light";
 
-  // `useMemo` prevents re-running the ydoc -> string conversion on every render.
-  // `ydoc.getText("monaco").toString()` is O(n) over the document length. On a large
-  // file this creates garbage and blocks the main thread for no reason because the value
-  // only changes when the `ydoc` reference changes.
   const initialValue = useMemo(() => ydoc.getText("monaco").toString(), [ydoc]);
 
-  // Memoize the options object so the Monaco component receives a stable reference
-  // across renders. In JavaScript, `{} !== {}` even when the contents are identical.
-  // The `@monaco-editor/react` wrapper uses `options` in its internal effect
-  // dependency array. Passing a new object on every render causes Monaco to re-apply
-  // its editor configuration on every parent update, which is expensive
-  // and can reset cursor position or focus.
-  //
-  // The generic type annotation is required because TypeScript widens unannotated
-  // object literals, turning string literal values like "none" into the generic `string`
-  // type. That breaks assignment to union-typed properties such as `renderLineHighlight`.
-  //
-  // User settings are merged so individual preferences override the defaults.
-  // Non-preference options (readOnly, automaticLayout) are always set by the app.
   const options = useMemo<editor.IStandaloneEditorConstructionOptions>(
     () => ({
       ...settings.editor,
@@ -74,12 +57,27 @@ function __EditorTextArea() {
     }
   }, [editorMounted, resolvedTheme]);
 
-  // `onMount` fires exactly once per editor instance. Memoizing the callback with
-  // `useCallback` would add a hook call and dependency array bookkeeping for zero
-  // benefit because the consumer never changes its reference check behavior.
-  //
-  // Rule: only wrap callbacks in `useCallback` when they are passed to
-  // child components that use them in effect dependencies or are wrapped in `memo`.
+  useEffect(() => {
+    if (editorMounted === false || editorRef.current === null) {
+      return;
+    }
+
+    const editorInstance = editorRef.current;
+
+    const reportPosition = () => {
+      const position = editorInstance.getPosition();
+      if (position !== null) {
+        props.onCursorPositionChange?.(position.lineNumber, position.column);
+      }
+    };
+
+    reportPosition();
+    const disposable = editorInstance.onDidChangeCursorPosition(reportPosition);
+    return () => {
+      disposable.dispose();
+    };
+  }, [editorMounted, props.onCursorPositionChange]);
+
   const setupEditor = async (
     editorInstance: editor.IStandaloneCodeEditor,
     monacoInstance: Monaco,

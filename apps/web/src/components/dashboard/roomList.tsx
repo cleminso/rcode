@@ -1,5 +1,7 @@
 import { app } from "@rcode/schema";
 import Button from "@rcode/ui/button";
+import { useHotkeys, type UseHotkeyDefinition } from "@tanstack/react-hotkeys";
+import { useNavigate } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useAll, useSession } from "jazz-tools/react";
 import { useMemo, useRef, useState } from "react";
@@ -14,6 +16,7 @@ interface DashboardRoomListRoom extends DashboardRoomListItemRoom {
 type RoomListFilter = "all" | "active" | "archived";
 
 const emptyParticipants: RoomParticipant[] = [];
+const roomShortcutKeys = ["1", "2", "3", "4", "5", "6", "7", "8", "9"] as const;
 
 function compareRoomAccess(a: DashboardRoomListRoom, b: DashboardRoomListRoom) {
   const left = a.lastAccessedAt?.getTime() ?? 0;
@@ -26,14 +29,20 @@ const FilterTab = ({
   active,
   children,
   disabled,
+  id,
   onClick,
 }: {
   active: boolean;
   children: React.ReactNode;
   disabled?: boolean;
+  id: string;
   onClick: () => void;
 }) => (
   <Button
+    id={id}
+    role="tab"
+    aria-selected={active}
+    tabIndex={active === true ? 0 : -1}
     variant={active === true ? "accent" : "ghost"}
     size="none"
     className="text-xs"
@@ -46,6 +55,7 @@ const FilterTab = ({
 );
 
 export function RoomList() {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<RoomListFilter>("all");
   const session = useSession();
   const scrollParentRef = useRef<HTMLDivElement>(null);
@@ -109,6 +119,29 @@ export function RoomList() {
     return true;
   });
   const isLoading = session !== null && (participantRows === undefined || roomRows === undefined || metadataRows === undefined);
+  const roomHotkeys: UseHotkeyDefinition[] = roomShortcutKeys.flatMap((hotkey, index) => {
+    const room = displayedRooms[index];
+
+    if (room === undefined) {
+      return [];
+    }
+
+    return [
+      {
+        hotkey,
+        callback: () => {
+          void navigate({ to: "/rooms/$shareToken", params: { shareToken: room.shareToken } });
+        },
+        options: {
+          enabled: isLoading === false,
+          meta: { name: `Open room ${index + 1}` },
+        },
+      },
+    ];
+  });
+
+  useHotkeys(roomHotkeys);
+
   const rowVirtualizer = useVirtualizer({
     count: displayedRooms.length,
     getScrollElement: () => scrollParentRef.current,
@@ -118,6 +151,64 @@ export function RoomList() {
 
   const virtualItems = rowVirtualizer.getVirtualItems();
 
+  const focusFilterTab = (nextFilter: RoomListFilter) => {
+    window.requestAnimationFrame(() => {
+      document.getElementById(`room-filter-${nextFilter}`)?.focus();
+    });
+  };
+
+  const selectFilter = (nextFilter: RoomListFilter) => {
+    setFilter(nextFilter);
+    focusFilterTab(nextFilter);
+  };
+
+  const getNextFilter = (direction: 1 | -1) => {
+    const filters: RoomListFilter[] = ["all", "active", "archived"];
+    const currentIndex = filters.indexOf(filter);
+
+    for (let offset = 1; offset <= filters.length; offset += 1) {
+      const nextIndex = (currentIndex + offset * direction + filters.length) % filters.length;
+      const nextFilter = filters[nextIndex];
+
+      if (nextFilter === undefined) {
+        continue;
+      }
+
+      if (nextFilter === "active" && activeRoomIds.size === 0) {
+        continue;
+      }
+
+      return nextFilter;
+    }
+
+    return filter;
+  };
+
+  const handleFilterKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      selectFilter(getNextFilter(1));
+      return;
+    }
+
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      selectFilter(getNextFilter(-1));
+      return;
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault();
+      selectFilter("all");
+      return;
+    }
+
+    if (event.key === "End") {
+      event.preventDefault();
+      selectFilter("archived");
+    }
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex items-end justify-between gap-4 border-b border-border pb-1.5">
@@ -125,34 +216,47 @@ export function RoomList() {
           <span>/</span>
           <span>CODE ROOMS</span>
         </div>
-        <div className="flex items-center gap-4">
-          <FilterTab active={filter === "all"} onClick={() => setFilter("all")}>
+        <div role="tablist" aria-label="Room filters" data-room-filter-tablist="true" className="flex items-center gap-4" onKeyDown={handleFilterKeyDown}>
+          <FilterTab
+            active={filter === "all"}
+            id="room-filter-all"
+            onClick={() => selectFilter("all")}
+          >
             ALL
           </FilterTab>
-          <FilterTab active={filter === "active"} disabled={activeRoomIds.size === 0} onClick={() => setFilter("active")}>
+          <FilterTab
+            active={filter === "active"}
+            disabled={activeRoomIds.size === 0}
+            id="room-filter-active"
+            onClick={() => selectFilter("active")}
+          >
             ACTIVE
           </FilterTab>
-          <FilterTab active={filter === "archived"} onClick={() => setFilter("archived")}>
+          <FilterTab
+            active={filter === "archived"}
+            id="room-filter-archived"
+            onClick={() => selectFilter("archived")}
+          >
             ARCHIVED
           </FilterTab>
         </div>
       </div>
 
       <section>
-        <div className="grid grid-cols-[minmax(0,1fr)_160px_80px_80px] items-center gap-3 border-b border-border pb-1.5 mb-1.5 text-xs text-muted-foreground">
+        <div className="grid grid-cols-[minmax(0,1fr)_120px_128px_80px] items-center gap-3 border-b border-border pb-1.5 mb-1.5 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <span>/</span>
             <span>NAME</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex justify-self-start items-center gap-1">
             <span>/</span>
             <span>LAST ACTIVITY</span>
           </div>
-          <div className="flex justify-self-end items-center gap-1">
+          <div className="flex justify-self-start items-center gap-1">
             <span>/</span>
             <span>PARTICIPANTS</span>
           </div>
-          <div className="flex justify-self-end items-center gap-1">
+          <div className="flex justify-self-start items-center gap-1">
             <span>/</span>
             <span>CREATOR</span>
           </div>
@@ -174,6 +278,7 @@ export function RoomList() {
           ) : (
             <div ref={scrollParentRef} className="h-full overflow-y-auto overflow-x-hidden outline-none">
               <div
+                role="list"
                 className="relative w-full"
                 style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
               >
@@ -187,6 +292,9 @@ export function RoomList() {
                   return (
                     <div
                       key={room.id}
+                      role="listitem"
+                      aria-posinset={virtualItem.index + 1}
+                      aria-setsize={displayedRooms.length}
                       className="absolute top-0 left-0 w-full"
                       style={{
                         height: `${virtualItem.size}px`,

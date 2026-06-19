@@ -1,6 +1,7 @@
 import Button from "@rcode/ui/button";
 import { Navigate, useNavigate } from "@tanstack/react-router";
 import { useSession } from "jazz-tools/react";
+import { useNavigationHotkeys } from "../../hooks/useNavigationHotkeys";
 import { useProfileIdentity } from "../../hooks/useProfileIdentity";
 import { RoomList } from "./roomList";
 import { useCreateRoom } from "./useCreateRoom";
@@ -21,6 +22,15 @@ export function DashboardScreen() {
   const profileIdentity = useProfileIdentity(sessionUserId);
   const { canCreate, createRoom, error, isCreating } = useCreateRoom();
   const navigate = useNavigate();
+
+  useNavigationHotkeys({
+    account: true,
+    createRoom: {
+      enabled: canCreate === true && isCreating === false,
+      onCreate: () => void createRoom(),
+    },
+    dashboard: true,
+  });
 
   if (profileIdentity.isLoading === true) {
     return <main className="min-h-screen bg-background p-6 text-sm text-muted-foreground">Loading profile...</main>;

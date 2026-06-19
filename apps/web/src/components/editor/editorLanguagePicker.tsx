@@ -1,4 +1,4 @@
-import { getLanguage, languages, type Language } from "@rcode/icons/languages";
+import { getLanguage, type Language } from "@rcode/icons/languages";
 import Button from "@rcode/ui/button";
 import {
   Command,
@@ -6,67 +6,49 @@ import {
   CommandEmpty,
   CommandGroup,
   CommandInput,
-  CommandItem,
   CommandList,
 } from "@rcode/ui/command";
-import { memo, useState } from "react";
+import { memo, useRef } from "react";
+import { LanguageCommandItems } from "./languageCommandItems";
 
 interface EditorLanguageComboboxProps {
+  open: boolean;
   value: string;
+  onOpenChange: (open: boolean) => void;
   onValueChange: (value: string) => void;
 }
 
 export const EditorLanguageCombobox = memo(function EditorLanguageCombobox(props: EditorLanguageComboboxProps) {
-  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const selectedLanguage = getLanguage(props.value);
 
   const selectLanguage = (language: Language) => {
     props.onValueChange(language.value);
-    setOpen(false);
+    props.onOpenChange(false);
   };
 
   return (
     <div className="flex items-center gap-2">
       <Button variant="ghost" onClick={() => {
-        setOpen(true);
+        props.onOpenChange(true);
       }}>
-        <span>[L]</span>
         <span>{selectedLanguage.name}</span>
       </Button>
 
       <CommandDialog
-        open={open}
-        onOpenChange={setOpen}
+        open={props.open}
+        initialFocus={() => inputRef.current}
+        onOpenChange={props.onOpenChange}
         title="Select editor language"
         description="Search available editor languages."
         className="top-14 sm:max-w-126"
       >
         <Command loop>
-          <CommandInput placeholder="Select a language..." />
+          <CommandInput ref={inputRef} placeholder="Select a language..." />
           <CommandList className="max-h-90">
             <CommandEmpty>No languages found.</CommandEmpty>
             <CommandGroup>
-              {languages.map((language) => {
-                const Logo = language.logo;
-                const isCurrent = language.value === selectedLanguage.value;
-                const keywords = "keywords" in language ? language.keywords : [];
-
-                return (
-                  <CommandItem
-                    key={language.value}
-                    value={language.name}
-                    keywords={[language.value, ...keywords]}
-                    indicator={isCurrent === true ? "current" : "none"}
-                    aria-current={isCurrent === true ? "true" : undefined}
-                    onSelect={() => {
-                      selectLanguage(language);
-                    }}
-                  >
-                    {Logo !== undefined ? <Logo className="size-5" /> : null}
-                    <span>{language.name}</span>
-                  </CommandItem>
-                );
-              })}
+              <LanguageCommandItems currentValue={selectedLanguage.value} onSelect={selectLanguage} />
             </CommandGroup>
           </CommandList>
         </Command>

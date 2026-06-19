@@ -8,6 +8,7 @@ import { RecoveryPhrase } from "jazz-tools/passphrase";
 import { useAll, useDb, useLocalFirstAuth, useSession } from "jazz-tools/react";
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useNavigationHotkeys } from "../../hooks/useNavigationHotkeys";
 import { authClient } from "../../lib/auth-client";
 import { selectProfileRow } from "../../lib/profile";
 import { avatarMaxBytes, isAllowedAvatarFile, isValidEmail } from "./accountUtils";
@@ -59,6 +60,7 @@ function LogoButton() {
 export function AccountView() {
   const db = useDb();
   const navigate = useNavigate();
+  useNavigationHotkeys({ dashboard: true });
   const session = useSession();
   const localFirstAuth = useLocalFirstAuth();
   const { data: authSession } = authClient.useSession();

@@ -1,12 +1,13 @@
 import { languages } from "@rcode/icons/languages";
 import Button from "@rcode/ui/button";
 import { Separator } from "@rcode/ui/ui/separator"
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { CommandMenu } from "../command-menu/commandMenu";
 import { EditorLayout } from "../layout/editorLayout";
 import { AccountMenu } from "../account/accountMenu";
 import { useCurrentProfile } from "../../hooks/useCurrentProfile";
+import { useNavigationHotkeys } from "../../hooks/useNavigationHotkeys";
 import { EditorLanguageCombobox } from "./editorLanguagePicker";
 import { EditorTextArea } from "./editorTextArea";
 import { EditorUsersList } from "./editorUsersList";
@@ -39,7 +40,17 @@ function EditorContent() {
   const { editorLanguage, isArchived, isLoading, isYjsReady, roomExists, roomPresence, title, updateEditorLanguage, updateTitle } = useRoom();
   const navigate = useNavigate();
   const currentProfile = useCurrentProfile({ autoCreate: false });
+  const [languagePickerOpen, setLanguagePickerOpen] = useState(false);
   const [titleEditRequest, setTitleEditRequest] = useState(0);
+  const [cursorPosition, setCursorPosition] = useState<{ line: number; column: number } | null>(null);
+
+  const handleCursorPositionChange = useCallback((line: number, column: number) => {
+    setCursorPosition({ line, column });
+  }, []);
+
+  useNavigationHotkeys({
+    dashboard: isLoading === false && (roomExists === false || isArchived === true),
+  });
 
   const isReady = isLoading === false && isYjsReady === true && isArchived === false && roomExists === true;
   const currentLanguage = languages.find((language) => language.value === editorLanguage);
@@ -92,7 +103,9 @@ function EditorContent() {
               <div className="h-6.25 w-24 animate-pulse rounded-xs bg-muted" />
             ) : (
               <EditorLanguageCombobox
+                open={languagePickerOpen}
                 value={editorLanguage}
+                onOpenChange={setLanguagePickerOpen}
                 onValueChange={(nextEditorLanguage) => void updateEditorLanguage(nextEditorLanguage)}
               />
             )}
@@ -125,6 +138,11 @@ function EditorContent() {
       }
       footer={
         <div className="flex w-full items-center justify-between">
+          {cursorPosition !== null ? (
+            <span className="ml-auto font-mono text-xs text-muted-foreground">
+              Ln {cursorPosition.line}, Col {cursorPosition.column}
+            </span>
+          ) : null}
         </div>
       }
     >
@@ -133,7 +151,7 @@ function EditorContent() {
       ) : (
         <div className="h-full">
           <CommandMenu onEditTitle={() => setTitleEditRequest((currentRequest) => currentRequest + 1)} />
-          <EditorTextArea />
+          <EditorTextArea onCursorPositionChange={handleCursorPositionChange} />
         </div>
       )}
     </EditorLayout>
