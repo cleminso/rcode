@@ -1,5 +1,5 @@
 import { app } from "@rcode/schema";
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useAll, useDb, useSession } from "jazz-tools/react";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
@@ -12,6 +12,7 @@ import { toasts } from "../../lib/toasts";
 
 interface RoomContextValue {
   awareness: Awareness;
+  currentProfile: ReturnType<typeof useCurrentProfile>;
   shareToken: string;
   staticToken: string | null;
   roomId: string | null;
@@ -47,23 +48,28 @@ export function RoomProvider(props: RoomProviderProps) {
   const participantAccessUpdateKeyRef = useRef<string | null>(null);
   const knownPresenceUsersRef = useRef<Map<string, string>>(new Map());
   const didHydratePresenceToastsRef = useRef(false);
-  const roomLookup = useRoomLookup({ tokenType: "share", token: props.shareToken });
+  const [readyParticipantAccessKey, setReadyParticipantAccessKey] = useState<string | null>(null);
+  const isSessionLoading = session === null;
+  const roomLookup = useRoomLookup({ tokenType: "share", token: props.shareToken, enabled: isSessionLoading === false });
   const room = roomLookup.room;
   const metadataRows = useAll(room !== null ? app.roomMetadata.where({ room_id: room.id }).limit(1) : undefined);
   const metadata = metadataRows?.[0] ?? null;
   const canEditSession =
     session !== null &&
     (session.authMode === "local-first" || session.authMode === "external");
-  const isSessionLoading = session === null;
   const isArchived = room?.archivedAt !== undefined && room.archivedAt !== null;
   const isCreator = session !== null && room?.creator_session_user_id === session.user_id;
+  const participantAccessKey = room !== null && canEditSession === true && isArchived === false && isCreator === false && session !== null
+    ? `${room.id}:${session.user_id}`
+    : null;
   const participantRows = useAll(
-    room !== null && canEditSession === true
+    participantAccessKey !== null && room !== null && session !== null
       ? app.roomParticipants.where({ room_id: room.id, session_user_id: session.user_id }).limit(1)
       : undefined,
   );
   const participant = participantRows?.[0] ?? null;
-  const isParticipantLoading = room !== null && canEditSession === true && participantRows === undefined;
+  const participantAccessReady = participantAccessKey === null || participant !== null || readyParticipantAccessKey === participantAccessKey;
+  const isParticipantLoading = participantAccessKey !== null && (participantRows === undefined || participantAccessReady === false);
   const isLoading =
     isSessionLoading === true ||
     roomLookup.isLoading === true ||
@@ -75,11 +81,11 @@ export function RoomProvider(props: RoomProviderProps) {
       return false;
     }
 
-    if (participant !== null) {
+    if (isCreator === true || participant !== null || (participantAccessKey !== null && readyParticipantAccessKey === participantAccessKey)) {
       return true;
     }
 
-    if (participantRows === undefined) {
+    if (participantAccessKey === null || participantRows === undefined) {
       return false;
     }
 
@@ -91,7 +97,9 @@ export function RoomProvider(props: RoomProviderProps) {
           lastAccessedAt: new Date(),
         })
         .wait({ tier: "edge" })
-        .then(() => undefined)
+        .then(() => {
+          setReadyParticipantAccessKey(participantAccessKey);
+        })
         .finally(() => {
           participantWriteRef.current = null;
         });
@@ -99,15 +107,17 @@ export function RoomProvider(props: RoomProviderProps) {
 
     await participantWriteRef.current;
     return true;
-  }, [canEditSession, db, isArchived, participant, participantRows, room, session]);
+  }, [canEditSession, db, isArchived, isCreator, participant, participantAccessKey, participantRows, readyParticipantAccessKey, room, session]);
 
   useEffect(() => {
-    if (isLoading === true) {
+    if (isSessionLoading === true || roomLookup.isLoading === true || (room !== null && metadataRows === undefined) || participantRows === undefined || participantAccessKey === null || participantAccessReady === true) {
       return;
     }
 
-    void ensureParticipant();
-  }, [ensureParticipant, isLoading]);
+    void ensureParticipant().catch((caughtError: unknown) => {
+      console.error("Failed to create room participant access.", caughtError);
+    });
+  }, [ensureParticipant, isSessionLoading, metadataRows, participantAccessKey, participantAccessReady, participantRows, room, roomLookup.isLoading]);
 
   useEffect(() => {
     if (canEditSession === false || participant === null || session === null || isArchived === true) {
@@ -259,6 +269,7 @@ export function RoomProvider(props: RoomProviderProps) {
     <RoomContext.Provider
       value={{
         awareness,
+        currentProfile,
         shareToken: props.shareToken,
         staticToken: room?.staticToken ?? null,
         roomId: room?.id ?? null,

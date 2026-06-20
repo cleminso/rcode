@@ -5,16 +5,21 @@ type RoomLookupInput =
   | {
       tokenType: "share";
       token: string;
+      enabled?: boolean;
     }
   | {
       tokenType: "static";
       token: string;
+      enabled?: boolean;
     };
 
 export function useRoomLookup(input: RoomLookupInput) {
-  const query = input.tokenType === "share"
-    ? app.rooms.where({ shareToken: input.token }).limit(1)
-    : app.rooms.where({ staticToken: input.token }).limit(1);
+  const isEnabled = input.enabled ?? true;
+  const query = isEnabled === true
+    ? input.tokenType === "share"
+      ? app.rooms.where({ shareToken: input.token }).limit(1)
+      : app.rooms.where({ staticToken: input.token }).limit(1)
+    : undefined;
   // Local reads keep cached rooms instant, while edge reads make empty results
   // authoritative enough to show not-found without flashing from local cache misses
   const localRooms = useAll(query);
@@ -23,7 +28,7 @@ export function useRoomLookup(input: RoomLookupInput) {
 
   return {
     room,
-    isLoading: room === null && edgeRooms === undefined,
-    isResolvedEmpty: edgeRooms !== undefined && room === null,
+    isLoading: isEnabled === true && room === null && edgeRooms === undefined,
+    isResolvedEmpty: isEnabled === true && edgeRooms !== undefined && room === null,
   };
 }

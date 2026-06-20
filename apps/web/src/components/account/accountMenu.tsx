@@ -1,3 +1,4 @@
+import { AvatarBadge } from "@rcode/ui/avatar";
 import Button from "@rcode/ui/button";
 import {
   DropdownMenu,
@@ -17,9 +18,10 @@ import { ProfileAvatar } from "./profileAvatar";
 interface AccountMenuProps {
   avatarFileId?: string | null;
   displayName: string;
+  shouldShowSetupPrompt?: boolean;
 }
 
-export function AccountMenu({ avatarFileId, displayName }: AccountMenuProps) {
+export function AccountMenu({ avatarFileId, displayName, shouldShowSetupPrompt = false }: AccountMenuProps) {
   const navigate = useNavigate();
   const { isLoggingOut, logout } = useLogout();
   const { setTheme, theme } = useTheme();
@@ -28,15 +30,23 @@ export function AccountMenu({ avatarFileId, displayName }: AccountMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="rounded-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/30">
-        <ProfileAvatar avatarFileId={avatarFileId} className="rounded-xs" displayName={displayName} imageClassName="rounded-xs" size="default" />
+        <ProfileAvatar
+          avatarFileId={avatarFileId}
+          badge={shouldShowSetupPrompt === true ? <AvatarBadge className="-right-0.5 -top-0.5 size-2 rounded-full border border-background bg-destructive p-0" /> : null}
+          className="rounded-xs"
+          displayName={displayName}
+          imageClassName="rounded-xs"
+          size="default"
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52 rounded-xs text-xs font-sans font-normal">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="truncate text-foreground">{displayName}</DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="default" onClick={() => void navigate({ to: "/account"})}>
+        <DropdownMenuItem variant="default" onClick={() => void navigate({ to: "/account" })}>
           <span>Settings</span>
+          {shouldShowSetupPrompt === true ? <span className="ml-auto size-2 rounded-full bg-destructive" /> : null}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <div className="flex items-center justify-between gap-1 py-1">

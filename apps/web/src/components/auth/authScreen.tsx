@@ -136,7 +136,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
     }
 
     if (profile !== null) {
-      await db.update(app.profiles, profile.id, { displayName: trimmedDisplayName }).wait({ tier: "edge" });
+      await db.update(app.profiles, profile.id, { displayName: trimmedDisplayName, origin: "user-created", setupPromptDismissed: true }).wait({ tier: "edge" });
       return;
     }
 
@@ -144,6 +144,8 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
       .insert(app.profiles, {
         session_user_id: sessionUserId,
         displayName: trimmedDisplayName,
+        origin: "user-created",
+        setupPromptDismissed: true,
       })
       .wait({ tier: "edge" });
   };
@@ -164,7 +166,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
 
       const proofToken =
         intent === "sign-up"
-          ? await db.getLocalFirstIdentityProof({
+          ? db.getLocalFirstIdentityProof({
               ttlSeconds: 60,
               audience: "betterauth-signup",
             })
@@ -221,7 +223,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
     try {
       const proofToken =
         intent === "sign-up"
-          ? await db.getLocalFirstIdentityProof({
+          ? db.getLocalFirstIdentityProof({
               ttlSeconds: 60,
               audience: "betterauth-signup",
             })
@@ -336,7 +338,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
           Don't have an account?{" "}
           <Link
             to="/sign-up"
-            className={buttonVariants({ variant: "ghost", size: "none", className: "h-auto rounded-none px-0 font-sans text-base font-normal underline underline-offset-2 hover:bg-transparent hover:text-foreground" })}
+            className={buttonVariants({ variant: "ghost", size: "none", className: "h-auto rounded-none px-0 font-sans text-base font-medium underline underline-offset-2 hover:bg-transparent hover:text-foreground" })}
             data-auth-tab-trigger="true"
           >
             Sign up
@@ -347,7 +349,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
           Already have an account?{" "}
           <Link
             to="/sign-in"
-            className={buttonVariants({ variant: "ghost", size: "none", className: "h-auto rounded-none px-0 font-sans text-base font-normal underline underline-offset-2 hover:bg-transparent hover:text-foreground" })}
+            className={buttonVariants({ variant: "ghost", size: "none", className: "h-auto rounded-none px-0 font-sans text-base font-mediuem underline underline-offset-2 hover:bg-transparent hover:text-foreground" })}
             data-auth-tab-trigger="true"
           >
             Sign in

@@ -16,7 +16,6 @@ import { useCallback, useState } from "react";
 import { CommandMenu } from "../command-menu/commandMenu";
 import { EditorLayout } from "../layout/editorLayout";
 import { AccountMenu } from "../account/accountMenu";
-import { useCurrentProfile } from "../../hooks/useCurrentProfile";
 import { useNavigationHotkeys } from "../../hooks/useNavigationHotkeys";
 import { EditorLanguageCombobox } from "./editorLanguagePicker";
 import { EditorTextArea } from "./editorTextArea";
@@ -45,9 +44,8 @@ export function EditorScreen(props: EditorScreenProps) {
 }
 
 function EditorContent() {
-  const { editorLanguage, isArchived, isCreator, isLoading, isYjsReady, roomExists, roomPresence, title, unarchiveRoom, updateEditorLanguage, updateTitle } = useRoom();
+  const { currentProfile, editorLanguage, isArchived, isCreator, isLoading, isYjsReady, roomExists, roomPresence, title, unarchiveRoom, updateEditorLanguage, updateTitle } = useRoom();
   const navigate = useNavigate();
-  const currentProfile = useCurrentProfile({ autoCreate: false });
   const [languagePickerOpen, setLanguagePickerOpen] = useState(false);
   const [titleEditRequest, setTitleEditRequest] = useState(0);
   const [switchRoomsRequest, setSwitchRoomsRequest] = useState(0);
@@ -203,6 +201,7 @@ function EditorContent() {
               <AccountMenu
                 avatarFileId={currentProfile.avatarFileId}
                 displayName={currentProfile.displayName}
+                shouldShowSetupPrompt={currentProfile.shouldShowSetupPrompt}
               />
             )}
           </div>

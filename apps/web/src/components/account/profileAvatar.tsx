@@ -6,6 +6,7 @@ import { getAvatarColor, getInitials } from "./accountUtils";
 
 interface ProfileAvatarProps {
   avatarFileId?: string | null;
+  badge?: React.ReactNode;
   className?: string;
   displayName: string;
   imageClassName?: string;
@@ -56,7 +57,7 @@ function loadAvatarObjectUrl(db: ReturnType<typeof useDb>, avatarFileId: string,
   return loadPromise;
 }
 
-export function ProfileAvatar({ avatarFileId, className, displayName, imageClassName, imageUrl, loadTier = "local", size = "sm", title }: ProfileAvatarProps) {
+export function ProfileAvatar({ avatarFileId, badge, className, displayName, imageClassName, imageUrl, loadTier = "local", size = "sm", title }: ProfileAvatarProps) {
   const db = useDb();
   const [objectUrl, setObjectUrl] = useState<string | null>(() => {
     if (avatarFileId === undefined || avatarFileId === null) {
@@ -103,6 +104,7 @@ export function ProfileAvatar({ avatarFileId, className, displayName, imageClass
       <AvatarFallback className={imageClassName} style={{ backgroundColor: getAvatarColor(displayName), color: "black" }}>
         {getInitials(displayName)}
       </AvatarFallback>
+      {badge}
     </Avatar>
   );
 }

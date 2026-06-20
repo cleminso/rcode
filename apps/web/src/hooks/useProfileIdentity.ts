@@ -9,9 +9,11 @@ interface UseProfileIdentityOptions {
 
 export function useProfileIdentity(sessionUserId: string | null, options?: UseProfileIdentityOptions) {
   const query = sessionUserId !== null ? app.profiles.where({ session_user_id: sessionUserId }).limit(1) : undefined;
-  const localProfileRows = useAll(query);
-  const edgeProfileRows = useAll(query, { tier: "edge" });
   const shouldConfirmMissing = options?.confirmMissing === true;
+  const shouldReadLocal = shouldConfirmMissing === true || options?.tier !== "edge";
+  const shouldReadEdge = shouldConfirmMissing === true || options?.tier === "edge";
+  const localProfileRows = useAll(shouldReadLocal === true ? query : undefined);
+  const edgeProfileRows = useAll(shouldReadEdge === true ? query : undefined, { tier: "edge" });
   const singleTierProfileRows = options?.tier === "edge" ? edgeProfileRows : localProfileRows;
   const profileRows = shouldConfirmMissing === true ? localProfileRows ?? edgeProfileRows : singleTierProfileRows;
   const profile = selectProfileRow(profileRows, sessionUserId);
@@ -26,5 +28,6 @@ export function useProfileIdentity(sessionUserId: string | null, options?: UsePr
     isResolvedEmpty: shouldConfirmMissing === true && edgeProfileRows !== undefined && profile === null,
     profile,
     sessionUserId,
+    shouldShowSetupPrompt: profile?.origin === "auto-created" && profile.setupPromptDismissed === false,
   };
 }

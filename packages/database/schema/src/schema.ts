@@ -19,6 +19,8 @@ const schema = {
     session_user_id: s.string(),
     displayName: s.string(),
     avatarFileId: s.ref("files").optional(),
+    origin: s.string().default("user-created"),
+    setupPromptDismissed: s.boolean().default(true),
   }),
   file_parts: s.table({
     data: s.bytes(),

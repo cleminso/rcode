@@ -87,6 +87,14 @@ export function AccountView() {
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    if (profileIdentity.shouldShowSetupPrompt === false || profile === null) {
+      return;
+    }
+
+    void db.update(app.profiles, profile.id, { setupPromptDismissed: true }).wait({ tier: "edge" });
+  }, [db, profile, profileIdentity.shouldShowSetupPrompt]);
+
+  useEffect(() => {
     setDisplayNameInput(displayName);
   }, [displayName]);
 

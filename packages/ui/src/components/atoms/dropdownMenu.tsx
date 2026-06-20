@@ -60,7 +60,7 @@ DropdownMenuLabel.displayName = "DropdownMenuLabel"
 export type DropdownMenuItemProps = React.ComponentProps<typeof ShadDropdownMenuItem>
 
 const DropdownMenuItem = ({ className, ...props }: DropdownMenuItemProps) => (
-  <ShadDropdownMenuItem className={cn("rounded-xs focus:text-foreground focus:bg-muted", className)} {...props} />
+  <ShadDropdownMenuItem className={cn("rounded-xs focus:bg-muted focus:text-foreground not-data-[variant=destructive]:focus:**:text-foreground", className)} {...props} />
 )
 
 DropdownMenuItem.displayName = "DropdownMenuItem"
