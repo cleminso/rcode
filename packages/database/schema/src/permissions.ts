@@ -30,6 +30,17 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
       ]),
     ]);
 
+  // Archived rooms keep their content readable only by the creator. Active rooms
+  // remain readable by anyone holding a share or static token.
+  const roomReadAccess = (roomId: RowRefValue) =>
+    anyOf([
+      policy.rooms.exists.where({ id: roomId, archivedAt: null }),
+      policy.rooms.exists.where({
+        id: roomId,
+        creator_session_user_id: session.user_id,
+      }),
+    ]);
+
   // Better Auth owns account infrastructure. Browser clients should not query or mutate
   // credentials, sessions, linked accounts, verification codes, or JWT signing keys.
   policy.better_auth_user.allowRead.never();
@@ -100,7 +111,7 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
   // edit title/language without getting access to tokens or ownership fields.
   // `allowedTo.update("room")` preserves Jazz relationship-based room writes;
   // participant rows preserve share-token collaborator writes.
-  policy.roomMetadata.allowRead.always();
+  policy.roomMetadata.allowRead.where((metadata) => roomReadAccess(metadata.room_id));
   policy.roomMetadata.allowInsert.where((metadata) =>
     allOf([
       { session_user_id: session.user_id },
@@ -135,7 +146,7 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
   // Yjs update rows are append-only so document reconstruction stays auditable
   // and consistent across clients. Write access mirrors metadata: creator,
   // relationship-based room editor, or durable room participant.
-  policy.roomYjsUpdates.allowRead.always();
+  policy.roomYjsUpdates.allowRead.where((update) => roomReadAccess(update.room_id));
   policy.roomYjsUpdates.allowInsert.where((update) =>
     allOf([
       { session_user_id: session.user_id },
@@ -149,7 +160,7 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
   // Snapshots are checkpoint rows. Corrections should be inserted as another
   // snapshot instead of mutating an existing checkpoint. Insert permissions
   // mirror update rows so any authorized editor can write a checkpoint.
-  policy.roomYjsSnapshots.allowRead.always();
+  policy.roomYjsSnapshots.allowRead.where((snapshot) => roomReadAccess(snapshot.room_id));
   policy.roomYjsSnapshots.allowInsert.where((snapshot) =>
     allOf([
       { session_user_id: session.user_id },

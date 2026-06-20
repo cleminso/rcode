@@ -137,19 +137,21 @@ export function RoomProvider(props: RoomProviderProps) {
     toasts.rooms.providerError(error);
   }, []);
 
+  const canAccessContent = room !== null && (isArchived === false || isCreator === true);
   const currentProfile = useCurrentProfile({
-    autoCreate: isLoading === false && room !== null && isArchived === false,
+    autoCreate: isLoading === false && canAccessContent === true,
   });
   const { isYjsReady, ydoc } = useJazzYjsDocument({
     // Expose roomId only with room metadata and participant state loaded;
     // otherwise the editor can bootstrap without its write permission path.
-    roomId: isLoading === false && isArchived === false ? (room?.id ?? null) : null,
+    // Creators can still load archived rooms in read-only mode.
+    roomId: isLoading === false && canAccessContent === true ? room.id : null,
     ensureParticipant,
     onError: notifyYjsProviderError,
   });
   const awareness = useRoomAwareness({
     displayName: currentProfile.displayName,
-    isReady: isYjsReady === true && currentProfile.profile !== null,
+    isReady: isYjsReady === true && currentProfile.profile !== null && isArchived === false,
     roomId: room?.id ?? null,
     ydoc,
   });
@@ -206,7 +208,7 @@ export function RoomProvider(props: RoomProviderProps) {
   }, [isYjsReady, roomPresence, session?.user_id]);
 
   const updateMetadata = async (metadataPatch: { title?: string; editorLanguage?: string }) => {
-    if (isLoading === true || room === null || isArchived === true) {
+    if (isLoading === true || room === null || isArchived === true || canEditSession === false) {
       return;
     }
 

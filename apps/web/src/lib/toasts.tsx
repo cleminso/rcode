@@ -33,6 +33,9 @@ export const toasts = {
     archived: () => toast("Room archived", {
       description: "The room is now available from the Archived section.",
     }),
+    unarchived: () => toast("Room restored", {
+      description: "The room is active again.",
+    }),
     linkCopied: (title: string, url: string) => toast(title, { description: url }),
     providerError: (error: ProviderErrorToast) => toast.error(error.title, {
       description: error.description,

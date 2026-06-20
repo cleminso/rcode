@@ -5,11 +5,12 @@ import { OtpInput } from "@rcode/ui/otpInput";
 import { Textarea } from "@rcode/ui/textarea";
 import { Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { RecoveryPhrase } from "jazz-tools/passphrase";
-import { useAll, useDb, useLocalFirstAuth, useSession } from "jazz-tools/react";
+import { useDb, useLocalFirstAuth, useSession } from "jazz-tools/react";
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useLogout } from "../../hooks/useLogout";
 import { useNavigationHotkeys } from "../../hooks/useNavigationHotkeys";
+import { useProfileIdentity } from "../../hooks/useProfileIdentity";
 import { authClient } from "../../lib/auth-client";
-import { selectProfileRow } from "../../lib/profile";
 import { toasts } from "../../lib/toasts";
 import { avatarMaxBytes, isAllowedAvatarFile, isValidEmail } from "./accountUtils";
 import { ProfileAvatar } from "./profileAvatar";
@@ -61,15 +62,12 @@ export function AccountView() {
   useNavigationHotkeys({ dashboard: true });
   const session = useSession();
   const localFirstAuth = useLocalFirstAuth();
+  const { isLoggingOut, logout } = useLogout();
   const { data: authSession } = authClient.useSession();
   const sessionUserId = session?.user_id ?? null;
-  const profileRows = useAll(
-    sessionUserId !== null ? app.profiles.where({ session_user_id: sessionUserId }).limit(1) : undefined,
-    { tier: "edge" },
-  );
-  const profile = selectProfileRow(profileRows, sessionUserId);
-  const avatarFileId = profile?.avatarFileId ?? null;
-  const isLoadingProfile = sessionUserId !== null && profileRows === undefined;
+  const profileIdentity = useProfileIdentity(sessionUserId, { confirmMissing: true });
+  const profile = profileIdentity.profile;
+  const avatarFileId = profileIdentity.avatarFileId;
   const displayName = profile?.displayName ?? authSession?.user.name ?? "";
   const savedEmail = authSession?.user.email ?? "";
   const recoveryPhrase = useMemo(() => {
@@ -108,16 +106,20 @@ export function AccountView() {
     };
   }, [avatarPreviewUrl]);
 
-  if (session === null && isLoadingProfile === false) {
+  if (session === null && profileIdentity.isLoading === false) {
     return <Navigate replace to="/sign-up" />;
   }
 
-  if (isLoadingProfile === true) {
-    return <main className="min-h-screen bg-background p-6 text-sm text-muted-foreground">Loading account...</main>;
+  if (profileIdentity.isLoading === true) {
+    return <main className="h-dvh overflow-hidden bg-background" />;
   }
 
-  if (profile === null || profile.displayName.trim() === "") {
+  if (profileIdentity.isResolvedEmpty === true || profile?.displayName.trim() === "") {
     return <Navigate replace to="/sign-up" />;
+  }
+
+  if (profile === null) {
+    return <main className="h-dvh overflow-hidden bg-background" />;
   }
 
   const emailClient = authClient.emailOtp as unknown as EmailOtpClient;
@@ -127,6 +129,10 @@ export function AccountView() {
   const emailHasChanged = trimmedEmail !== "" && trimmedEmail !== savedTrimmedEmail;
   const canSubmitEmail = emailHasChanged === true && isValidEmail(trimmedEmail) === true && isEmailSubmitting === false;
   const hasCustomAvatar = avatarFileId !== null;
+  const hasAuthSession = authSession?.user.email !== undefined;
+  const logoutDescription = hasAuthSession === true
+    ? "Logout closes the active Jazz client and clears your email session. Your local recovery passphrase remains available for account recovery."
+    : "Save your passphrase first so you can recover this account. \n Logout closes the active Jazz client and clears this browser's local identity secret.";
 
   const commitDisplayName = async (value: string) => {
     const nextDisplayName = value.trim();
@@ -263,7 +269,7 @@ export function AccountView() {
 
     try {
       if (savedEmail.trim() === "") {
-        const proofToken = await db.getLocalFirstIdentityProof({ ttlSeconds: 60, audience: "betterauth-signup" });
+        const proofToken = db.getLocalFirstIdentityProof({ ttlSeconds: 60, audience: "betterauth-signup" });
         const result = await emailSignIn({ email: pendingEmail, otp: nextOtp, name: profile.displayName, proofToken });
 
         if (result.error !== null && result.error !== undefined) {
@@ -320,7 +326,7 @@ export function AccountView() {
   };
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="h-dvh overflow-hidden bg-background text-foreground">
       <div className="w-full px-4 min-[1440px]:mx-auto min-[1440px]:max-w-384">
         <header className="flex items-center justify-between py-3">
           <div className="flex items-center gap-2">
@@ -341,7 +347,7 @@ export function AccountView() {
         </header>
       </div>
       <div className="w-full px-4 min-[1440px]:mx-auto min-[1440px]:max-w-384">
-        <section className="flex max-w-183 flex-col gap-6 py-24">
+        <section className="flex max-w-183 flex-col gap-5 py-16">
           <AccountSection label="THEME" right={<ThemeTabs className="flex items-center gap-4" />} />
           <AccountSection
             label="AVATAR"
@@ -465,6 +471,24 @@ export function AccountView() {
             >
               {passphraseIsRevealed === true ? "I SAVED IT - HIDE" : "SHOW & COPY PASSPHRASE"}
             </Button>
+          </AccountSection>
+
+          <AccountSection
+            label="AUTHENTICATION"
+            right={
+              <div className="flex items-center gap-6">
+                <button
+                  className="font-mono text-xs uppercase text-destructive outline-none hover:text-destructive/70 focus-visible:ring-2 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-50"
+                  disabled={isLoggingOut === true}
+                  type="button"
+                  onClick={() => void logout()}
+                >
+                  / {isLoggingOut === true ? "LOGGING OUT" : "LOGOUT"}
+                </button>
+              </div>
+            }
+          >
+            <p className="text-sm text-foreground">{logoutDescription}</p>
           </AccountSection>
         </section>
       </div>

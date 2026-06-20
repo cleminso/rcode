@@ -2,10 +2,10 @@ import { app } from "@rcode/schema";
 import { buttonVariants } from "@rcode/ui/button";
 import { Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { RecoveryPhrase } from "jazz-tools/passphrase";
-import { useAll, useDb, useLocalFirstAuth, useSession } from "jazz-tools/react";
+import { useDb, useLocalFirstAuth, useSession } from "jazz-tools/react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { useProfileIdentity } from "../../hooks/useProfileIdentity";
 import { authClient } from "../../lib/auth-client";
-import { selectProfileRow } from "../../lib/profile";
 import { toasts } from "../../lib/toasts";
 import { type AuthMethod, AuthShell } from "./authShell";
 import { EmailSignInForm } from "./emailSignInForm";
@@ -64,12 +64,8 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
   const localFirstAuth = useLocalFirstAuth();
   const { data: authSession } = authClient.useSession();
   const sessionUserId = session?.user_id ?? null;
-  const profileRows = useAll(
-    sessionUserId !== null ? app.profiles.where({ session_user_id: sessionUserId }).limit(1) : undefined,
-    { tier: "edge" },
-  );
-  const profile = selectProfileRow(profileRows, sessionUserId);
-  const profileIsLoading = sessionUserId !== null && profileRows === undefined;
+  const profileIdentity = useProfileIdentity(sessionUserId, { confirmMissing: true });
+  const profile = profileIdentity.profile;
   const [method, setMethod] = useState<AuthMethod>("email");
   const [otpStep, setOtpStep] = useState<OtpStep>("input");
   const [signInEmail, setSignInEmail] = useState(initialEmail);
@@ -102,21 +98,23 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
   }, [otpStep, resendSecondsLeft]);
 
   useEffect(() => {
-    if (isCheckingPassphraseProfile === false || profileRows === undefined) {
+    if (isCheckingPassphraseProfile === false || profileIdentity.isLoading === true) {
       return;
     }
 
-    if (profileRows.some((profileRow) => isCompletedDisplayName(profileRow.displayName)) === true) {
+    if (isCompletedDisplayName(profile?.displayName) === true) {
       setIsCheckingPassphraseProfile(false);
       void navigate({ to: "/dashboard" });
       return;
     }
 
-    setIsCheckingPassphraseProfile(false);
-    toasts.auth.missingPassphraseProfile();
-  }, [isCheckingPassphraseProfile, navigate, profileRows]);
+    if (profileIdentity.isResolvedEmpty === true) {
+      setIsCheckingPassphraseProfile(false);
+      toasts.auth.missingPassphraseProfile();
+    }
+  }, [isCheckingPassphraseProfile, navigate, profile, profileIdentity.isLoading, profileIdentity.isResolvedEmpty]);
 
-  if (hasCompletedProfile === true && profileIsLoading === false && isCheckingPassphraseProfile === false) {
+  if (hasCompletedProfile === true && profileIdentity.isLoading === false && isCheckingPassphraseProfile === false) {
     return <Navigate replace to="/dashboard" />;
   }
 

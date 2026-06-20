@@ -7,9 +7,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@rcode/ui/ui/dropdown-menu";
+} from "@rcode/ui/dropdownMenu";
 import { useNavigate } from "@tanstack/react-router";
 import { useTheme } from "next-themes";
+import { useLogout } from "../../hooks/useLogout";
 import { accountThemes, type AccountTheme } from "./accountUtils";
 import { ProfileAvatar } from "./profileAvatar";
 
@@ -20,6 +21,7 @@ interface AccountMenuProps {
 
 export function AccountMenu({ avatarFileId, displayName }: AccountMenuProps) {
   const navigate = useNavigate();
+  const { isLoggingOut, logout } = useLogout();
   const { setTheme, theme } = useTheme();
   const selectedTheme = accountThemes.includes(theme as AccountTheme) === true ? (theme as AccountTheme) : "system";
 
@@ -33,7 +35,7 @@ export function AccountMenu({ avatarFileId, displayName }: AccountMenuProps) {
           <DropdownMenuLabel className="truncate text-foreground">{displayName}</DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => void navigate({ to: "/account"})}>
+        <DropdownMenuItem variant="default" onClick={() => void navigate({ to: "/account"})}>
           <span>Settings</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -51,6 +53,12 @@ export function AccountMenu({ avatarFileId, displayName }: AccountMenuProps) {
             </Button>
           ))}
         </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuItem variant="destructive" disabled={isLoggingOut === true} onClick={() => void logout()}>
+            <span>{isLoggingOut === true ? "Logging out..." : "Logout"}</span>
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );

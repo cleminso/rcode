@@ -1,5 +1,14 @@
 import { languages } from "@rcode/icons/languages";
-import { buttonVariants } from "@rcode/ui/button";
+import Button, { buttonVariants } from "@rcode/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@rcode/ui/dropdownMenu";
 import { Separator } from "@rcode/ui/ui/separator"
 import { useHotkeys } from "@tanstack/react-hotkeys";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -36,23 +45,26 @@ export function EditorScreen(props: EditorScreenProps) {
 }
 
 function EditorContent() {
-  const { editorLanguage, isArchived, isLoading, isYjsReady, roomExists, roomPresence, title, updateEditorLanguage, updateTitle } = useRoom();
+  const { editorLanguage, isArchived, isCreator, isLoading, isYjsReady, roomExists, roomPresence, title, unarchiveRoom, updateEditorLanguage, updateTitle } = useRoom();
   const navigate = useNavigate();
   const currentProfile = useCurrentProfile({ autoCreate: false });
   const [languagePickerOpen, setLanguagePickerOpen] = useState(false);
   const [titleEditRequest, setTitleEditRequest] = useState(0);
   const [switchRoomsRequest, setSwitchRoomsRequest] = useState(0);
+  const [isUnarchiving, setIsUnarchiving] = useState(false);
   const [cursorPosition, setCursorPosition] = useState<{ line: number; column: number } | null>(null);
 
   const handleCursorPositionChange = useCallback((line: number, column: number) => {
     setCursorPosition({ line, column });
   }, []);
 
+  const canAccessContent = roomExists === true && (isArchived === false || isCreator === true);
+
   useNavigationHotkeys({
-    dashboard: isLoading === false && (roomExists === false || isArchived === true),
+    dashboard: isLoading === false && canAccessContent === false,
   });
 
-  const isReady = isLoading === false && isYjsReady === true && isArchived === false && roomExists === true;
+  const isReady = isLoading === false && isYjsReady === true && canAccessContent === true;
 
   useHotkeys([
     {
@@ -84,7 +96,17 @@ function EditorContent() {
   const currentLanguage = languages.find((language) => language.value === editorLanguage);
   const currentLanguageLogo = currentLanguage?.logo;
 
-  if (isLoading === false && (roomExists === false || isArchived === true)) {
+  const handleUnarchiveRoom = async () => {
+    setIsUnarchiving(true);
+
+    try {
+      await unarchiveRoom();
+    } finally {
+      setIsUnarchiving(false);
+    }
+  };
+
+  if (isLoading === false && canAccessContent === false) {
     return (
       <EditorLayout
         toolbar={
@@ -97,16 +119,15 @@ function EditorContent() {
         }
         footer={
           <div className="flex w-full items-center justify-between">
-            <span className="text-xs  text-muted-foreground">[T] THEME</span>
           </div>
         }
       >
         <div className="flex h-full items-center justify-center px-6 text-center">
           <div className="max-w-sm rounded-xs border border-border bg-card p-6">
-            <h1 className="text-[16px] font-semibold ">
+            <h1 className="text-[16px] font-sans font-semibold ">
               {isArchived === true ? "This room has been archived" : "Room unavailable"}
             </h1>
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-2 text-xs font-sans font-normal text-muted-foreground">
               {isArchived === true
                 ? "The room owner archived this room. It is not accessible from shared links."
                 : "This room does not exist or is no longer available."}
@@ -152,7 +173,29 @@ function EditorContent() {
           )}
 
           <div className="flex min-w-0 items-center justify-end gap-3">
-            <EditorUsersList maxUsers={4} presence={roomPresence} />
+            {isArchived === true && isCreator === true ? (
+              <DropdownMenu>
+                <div className="flex items-center gap-2">
+                  <DropdownMenuTrigger render={<Button variant="ghost" size="default" />}>Unarchive</DropdownMenuTrigger>
+                </div>
+                <DropdownMenuContent align="end" className="w-72 rounded-xs text-xs font-sans font-normal">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="text-foreground">Unarchive room</DropdownMenuLabel>
+                    <div className="px-2 pb-1 text-xs/relaxed text-muted-foreground">
+                      Restore this room and make shared links accessible again. You will stay in the room after it is restored.
+                    </div>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem disabled={isUnarchiving} className="rounded-xs !hover:bg-transparent !focus:bg-transparent" onClick={() => void handleUnarchiveRoom()}>
+                      <span>{isUnarchiving === true ? "Restoring" : "Unarchive room"}</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <EditorUsersList maxUsers={4} presence={roomPresence} />
+            )}
             <Separator orientation="vertical"></Separator>
             {currentProfile.isLoading === true || currentProfile.displayName === null ? (
               <div className="size-6 animate-pulse rounded-xs bg-muted" />
@@ -167,6 +210,9 @@ function EditorContent() {
       }
       footer={
         <div className="flex w-full items-center justify-between">
+          {isArchived === true && isCreator === true ? (
+            <span className="text-xs text-muted-foreground">Shared links are disabled while this room is archived.</span>
+          ) : null}
           {cursorPosition !== null ? (
             <span className="ml-auto font-mono text-xs text-muted-foreground">
               Ln {cursorPosition.line}, Col {cursorPosition.column}

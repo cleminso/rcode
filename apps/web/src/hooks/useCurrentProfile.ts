@@ -1,8 +1,8 @@
 import { app } from "@rcode/schema";
-import { useAll, useDb, useSession } from "jazz-tools/react";
+import { useDb, useSession } from "jazz-tools/react";
 import { useEffect, useRef } from "react";
 import { generateUniqueName } from "../lib/awareness";
-import { selectProfileRow } from "../lib/profile";
+import { useProfileIdentity } from "./useProfileIdentity";
 
 interface UseCurrentProfileArgs {
   autoCreate: boolean;
@@ -14,17 +14,14 @@ export function useCurrentProfile(args: UseCurrentProfileArgs) {
   const generatedDisplayNameRef = useRef<string | null>(null);
   const profileWriteRef = useRef<Promise<void> | null>(null);
   const sessionUserId = session?.user_id ?? null;
-  const profileRows = useAll(
-    sessionUserId !== null ? app.profiles.where({ session_user_id: sessionUserId }).limit(1) : undefined,
-    { tier: "edge" },
-  );
-  const profile = selectProfileRow(profileRows, sessionUserId);
+  const profileIdentity = useProfileIdentity(sessionUserId, { tier: "edge" });
+  const profile = profileIdentity.profile;
   const generatedDisplayName = generatedDisplayNameRef.current ?? generateUniqueName();
 
   generatedDisplayNameRef.current = generatedDisplayName;
 
   useEffect(() => {
-    if (args.autoCreate === false || sessionUserId === null || profileRows === undefined || profile !== null) {
+    if (args.autoCreate === false || sessionUserId === null || profileIdentity.isLoading === true || profile !== null) {
       return;
     }
 
@@ -43,12 +40,12 @@ export function useCurrentProfile(args: UseCurrentProfileArgs) {
           profileWriteRef.current = null;
         });
     }
-  }, [args.autoCreate, db, generatedDisplayName, profile, profileRows, sessionUserId]);
+  }, [args.autoCreate, db, generatedDisplayName, profile, profileIdentity.isLoading, sessionUserId]);
 
   return {
-    displayName: profile?.displayName ?? null,
-    avatarFileId: profile?.avatarFileId ?? null,
-    isLoading: sessionUserId !== null && (profileRows === undefined || (args.autoCreate === true && profile === null)),
+    displayName: profileIdentity.displayName,
+    avatarFileId: profileIdentity.avatarFileId,
+    isLoading: sessionUserId !== null && (profileIdentity.isLoading === true || (args.autoCreate === true && profile === null)),
     profile,
     sessionUserId,
   };
