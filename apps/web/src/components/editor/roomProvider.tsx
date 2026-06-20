@@ -7,6 +7,7 @@ import { useRoomAwareness } from "../../hooks/useRoomAwareness";
 import { type YjsProviderError, useJazzYjsDocument } from "../../hooks/useJazzYjsDocument";
 import { type RoomPresence, type RoomPresenceUser, useRoomPresence } from "../../hooks/useRoomPresence";
 import { useCurrentProfile } from "../../hooks/useCurrentProfile";
+import { useRoomLookup } from "../../hooks/useRoomLookup";
 import { toasts } from "../../lib/toasts";
 
 interface RoomContextValue {
@@ -46,8 +47,8 @@ export function RoomProvider(props: RoomProviderProps) {
   const participantAccessUpdateKeyRef = useRef<string | null>(null);
   const knownPresenceUsersRef = useRef<Map<string, string>>(new Map());
   const didHydratePresenceToastsRef = useRef(false);
-  const rooms = useAll(app.rooms.where({ shareToken: props.shareToken }).limit(1), { tier: "edge" });
-  const room = rooms?.[0] ?? null;
+  const roomLookup = useRoomLookup({ tokenType: "share", token: props.shareToken });
+  const room = roomLookup.room;
   const metadataRows = useAll(room !== null ? app.roomMetadata.where({ room_id: room.id }).limit(1) : undefined);
   const metadata = metadataRows?.[0] ?? null;
   const canEditSession =
@@ -64,7 +65,10 @@ export function RoomProvider(props: RoomProviderProps) {
   const participant = participantRows?.[0] ?? null;
   const isParticipantLoading = room !== null && canEditSession === true && participantRows === undefined;
   const isLoading =
-    isSessionLoading === true || rooms === undefined || (room !== null && metadataRows === undefined) || isParticipantLoading === true;
+    isSessionLoading === true ||
+    roomLookup.isLoading === true ||
+    (room !== null && metadataRows === undefined) ||
+    isParticipantLoading === true;
 
   const ensureParticipant = useCallback(async () => {
     if (canEditSession === false || room === null || session === null || isArchived === true) {
@@ -260,7 +264,7 @@ export function RoomProvider(props: RoomProviderProps) {
         canEdit: canEditSession === true && isArchived === false,
         isArchived,
         isCreator,
-        roomExists: room !== null,
+        roomExists: roomLookup.isResolvedEmpty === false && room !== null,
         title: metadata?.title ?? "",
         editorLanguage: metadata?.editorLanguage ?? "plaintext",
         isLoading,

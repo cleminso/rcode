@@ -38,7 +38,7 @@ export const RoomListItem = memo(function RoomListItem(props: RoomListItemProps)
       to="/rooms/$shareToken"
       params={{ shareToken: props.room.shareToken }}
       aria-current={props.isSelected === true ? "true" : undefined}
-      className="grid w-full min-w-0 shrink-0 grid-cols-[minmax(0,1fr)_120px_116px_max-content] items-center justify-items-start gap-3 overflow-hidden rounded-none px-0 text-xs font-medium whitespace-nowrap text-foreground transition-colors outline-none select-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/30 aria-current:bg-muted"
+      className="grid w-full min-w-0 shrink-0 grid-cols-[minmax(0,1fr)_112px_104px_62px] items-center justify-items-start gap-3 overflow-hidden rounded-none px-0 text-xs font-medium whitespace-nowrap text-foreground transition-colors outline-none select-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/30 aria-current:bg-muted"
       style={{ height: roomListItemHeight }}
     >
       <span className="flex w-full min-w-0 max-w-full items-center gap-3 overflow-hidden">

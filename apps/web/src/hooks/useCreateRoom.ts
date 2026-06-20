@@ -46,23 +46,30 @@ export function useCreateRoom() {
         archivedBySessionUserId: null,
       });
       const room = roomWrite.value;
-
-      await roomWrite.wait({ tier: "edge" });
-
       const participantWrite = db.insert(app.roomParticipants, {
         room_id: room.id,
         session_user_id: session.user_id,
         lastAccessedAt: new Date(),
       });
 
-      await participantWrite.wait({ tier: "edge" });
+      await Promise.all([roomWrite.wait({ tier: "local" }), participantWrite.wait({ tier: "local" })]);
 
-      await db.insert(app.roomMetadata, {
-        room_id: room.id,
-        session_user_id: session.user_id,
-        title: "",
-        editorLanguage: "plaintext",
-      }).wait({ tier: "edge" });
+      // Metadata permissions depend on the room access path being accepted by
+      // the edge, so create it after sync without blocking route navigation
+      void Promise.all([roomWrite.wait({ tier: "edge" }), participantWrite.wait({ tier: "edge" })])
+        .then(() =>
+          db
+            .insert(app.roomMetadata, {
+              room_id: room.id,
+              session_user_id: session.user_id,
+              title: "",
+              editorLanguage: "plaintext",
+            })
+            .wait({ tier: "edge" }),
+        )
+        .catch((caughtError: unknown) => {
+          console.error("Failed to sync created room.", caughtError);
+        });
 
       await navigate({
         to: "/rooms/$shareToken",

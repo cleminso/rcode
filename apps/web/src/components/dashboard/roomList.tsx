@@ -172,7 +172,7 @@ export function RoomList() {
       </div>
 
       <section className="flex min-h-0 flex-1 flex-col">
-        <div className="mb-1.5 grid shrink-0 grid-cols-[minmax(0,1fr)_120px_116px_max-content] items-center gap-3 border-b border-border pb-1.5 text-xs text-muted-foreground">
+        <div className="mb-1.5 grid shrink-0 grid-cols-[minmax(0,1fr)_112px_104px_62px] items-center gap-3 border-b border-border pb-1.5 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <span>/</span>
             <span>NAME</span>

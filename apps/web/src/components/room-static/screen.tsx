@@ -2,6 +2,7 @@ import { app } from "@rcode/schema";
 import { useAll } from "jazz-tools/react";
 import { useMemo } from "react";
 import { useProfileIdentity } from "../../hooks/useProfileIdentity";
+import { useRoomLookup } from "../../hooks/useRoomLookup";
 import * as Y from "yjs";
 import { toYjsUpdate } from "../../lib/yjsUpdate";
 import { StaticRoomContent } from "./content";
@@ -71,8 +72,8 @@ function extractStaticRoomCode(snapshots: readonly StaticRoomYjsSnapshot[], upda
 }
 
 export function StaticRoomScreen(props: StaticRoomScreenProps) {
-  const rooms = useAll(app.rooms.where({ staticToken: props.staticToken }).limit(1));
-  const room = rooms?.[0] ?? null;
+  const roomLookup = useRoomLookup({ tokenType: "static", token: props.staticToken });
+  const room = roomLookup.room;
   const isArchived = room?.archivedAt !== undefined && room.archivedAt !== null;
   const activeRoomId = room !== null && isArchived === false ? room.id : null;
   const metadataRows = useAll(activeRoomId !== null ? app.roomMetadata.where({ room_id: activeRoomId }).limit(1) : undefined);
@@ -93,11 +94,11 @@ export function StaticRoomScreen(props: StaticRoomScreenProps) {
     }
   }, [snapshotRows, updateRows]);
 
-  if (rooms === undefined) {
+  if (roomLookup.isLoading === true) {
     return <LoadingState />;
   }
 
-  if (room === null) {
+  if (roomLookup.isResolvedEmpty === true) {
     return <EmptyState title="Room not found" description="The static room link does not match an accessible room." />;
   }
 
