@@ -4,7 +4,11 @@ import { HotkeysProvider } from "@tanstack/react-hotkeys";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
-const router = createRouter({ routeTree }); // consumes the generated route tree
+// consumes the generated route tree
+const router = createRouter({
+  routeTree,
+  defaultPreload: "intent",
+});
 
 // Registers router type globally for TypeScript.
 // This enables typed hooks like useRouter() across the app.
