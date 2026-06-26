@@ -10,7 +10,7 @@ import {
 } from "@rcode/ui/command";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { useRooms } from "../../hooks/useRooms";
+import { useRooms, type RoomSummary } from "../../hooks/useRooms";
 import { toasts } from "../../lib/toasts";
 import { LanguageCommandItems } from "../editor/languageCommandItems";
 import { useRoom } from "../editor/roomProvider";
@@ -35,6 +35,13 @@ export function CommandMenu(props: CommandMenuProps) {
   const selectedLanguage = getLanguage(room.editorLanguage);
   const roomsList = useRooms();
   const switchableRooms = roomsList.rooms.filter((listedRoom) => listedRoom.isArchived === false);
+
+  const getRoomCommandValue = (listedRoom: RoomSummary) => {
+    const title = listedRoom.title.trim().length > 0 ? listedRoom.title : "Untitled room";
+    return `${title} ${listedRoom.shareToken}`;
+  };
+
+  const roomsDefaultValue = page === "rooms" && switchableRooms.length > 0 ? getRoomCommandValue(switchableRooms[0]) : undefined;
 
   const liveUrl = `${window.location.origin}/rooms/${room.shareToken}`;
   const staticUrl = room.staticToken !== null ? `${window.location.origin}/s/${room.staticToken}` : null;
@@ -111,7 +118,7 @@ export function CommandMenu(props: CommandMenuProps) {
       description="Search room commands."
       className="top-14 sm:max-w-126"
     >
-      <Command key={page} loop>
+      <Command key={page} loop defaultValue={roomsDefaultValue}>
         <CommandInput
           autoFocus
           placeholder={page === "language" ? "Select a language..." : page === "rooms" ? "Switch rooms..." : "Execute a command..."}
@@ -162,7 +169,7 @@ export function CommandMenu(props: CommandMenuProps) {
                   <CommandItem
                     key={listedRoom.id}
                     className="min-w-0"
-                    value={`${title} ${listedRoom.shareToken}`}
+                    value={getRoomCommandValue(listedRoom)}
                     keywords={["room", "switch", title]}
                     onSelect={() => switchRoom(listedRoom.shareToken)}
                   >

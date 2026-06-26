@@ -180,7 +180,10 @@ function EditorContent() {
                   <DropdownMenuGroup>
                     <DropdownMenuLabel className="text-foreground">Unarchive room</DropdownMenuLabel>
                     <div className="px-2 pb-1 text-xs/relaxed text-muted-foreground">
-                      Restore this room and make shared links accessible again. You will stay in the room after it is restored.
+                      <div className="space-y-2 px-2 pb-1 text-xs/relaxed text-muted-foreground">
+                        <p>Shared links are disabled while this room is archived. Unarchive this room to restore collaboration access.</p>
+                        <p>You will stay in the room after it is restored.</p>
+                      </div>
                     </div>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
@@ -209,9 +212,6 @@ function EditorContent() {
       }
       footer={
         <div className="flex w-full items-center justify-between">
-          {isArchived === true && isCreator === true ? (
-            <span className="text-xs text-muted-foreground">Shared links are disabled while this room is archived.</span>
-          ) : null}
           {cursorPosition !== null ? (
             <span className="ml-auto font-mono text-xs text-muted-foreground">
               Ln {cursorPosition.line}, Col {cursorPosition.column}
