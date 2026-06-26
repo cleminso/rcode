@@ -4,24 +4,12 @@
 // The JWT subject becomes Jazz's external `session.user_id`, so it must stay stable.
 // Keep this out of the browser bundle: it uses process.env and jazz-tools/backend.
 import { app as schemaApp } from "@rcode/schema";
-import permissions from "@rcode/schema/permissions";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { emailOTP, jwt } from "better-auth/plugins";
-import { createJazzContext } from "jazz-tools/backend";
 import { jazzAdapter } from "jazz-tools/better-auth-adapter";
 import { env } from "./env";
-
-const jazzContext = createJazzContext({
-  appId: env.jazzAppId,
-  app: schemaApp,
-  permissions,
-  driver: { type: "memory" },
-  serverUrl: env.jazzServerUrl,
-  env: process.env.NODE_ENV === "production" ? "prod" : "dev",
-  userBranch: "main",
-  backendSecret: env.backendSecret,
-});
+import { jazzContext } from "./jazzContext";
 
 function getStringBodyField(body: unknown, fieldName: string) {
   if (typeof body !== "object" || body === null || !(fieldName in body)) {

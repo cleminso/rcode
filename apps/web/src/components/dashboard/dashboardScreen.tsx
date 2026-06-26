@@ -5,14 +5,7 @@ import { useNavigationHotkeys } from "../../hooks/useNavigationHotkeys";
 import { useProfileIdentity } from "../../hooks/useProfileIdentity";
 import { RoomList } from "./roomList";
 import { useCreateRoom } from "../../hooks/useCreateRoom";
-
-function LogoButton() {
-  return (
-    <Link to="/" className={buttonVariants({ variant: "ghost", size: "icon-lg" })}>
-      <div className="h-4 w-4 rounded-xs bg-primary" />
-    </Link>
-  );
-}
+import { LogoButton } from "../layout/logoButton";
 
 export function DashboardScreen() {
   const session = useSession();

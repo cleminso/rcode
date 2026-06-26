@@ -10,18 +10,23 @@
     "auth:generate": "pnpm dlx @better-auth/cli@latest generate --config ./src/auth.ts --output ../../packages/database/schema/src/better-auth/schema.ts"
   },
   "dependencies": {
+    "@fontsource-variable/geist": "catalog:",
+    "@fontsource/commit-mono": "5.2.5",
     "@hono/node-server": "catalog:",
     "@rcode/schema": "workspace:*",
     "better-auth": "catalog:",
     "hono": "catalog:",
     "jazz-napi": "catalog:",
     "jazz-tools": "catalog:",
+    "react": "catalog:",
+    "takumi-js": "^1.8.7",
     "ws": "^8.21.0",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.31"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/react": "catalog:",
     "@types/ws": "^8.18.1",
     "portless": "catalog:",
     "tsx": "catalog:",

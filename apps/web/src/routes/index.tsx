@@ -1,6 +1,7 @@
 import Button, { buttonVariants } from "@rcode/ui/button";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSession } from "jazz-tools/react";
+import { LogoButton } from "../components/layout/logoButton";
 import { useNavigationHotkeys } from "../hooks/useNavigationHotkeys";
 import { useProfileIdentity } from "../hooks/useProfileIdentity";
 import { authClient } from "../lib/auth-client";
@@ -8,14 +9,6 @@ import { authClient } from "../lib/auth-client";
 export const Route = createFileRoute("/")({
   component: IndexRoute,
 });
-
-function LogoButton() {
-  return (
-    <Link to="/" className={buttonVariants({ variant: "ghost", size: "icon" })}>
-      <div className="h-4 w-4 rounded-xs bg-primary" />
-    </Link>
-  );
-}
 
 function IndexRoute() {
   const navigate = useNavigate();

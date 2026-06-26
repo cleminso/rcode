@@ -12,6 +12,7 @@ import { useNavigationHotkeys } from "../../hooks/useNavigationHotkeys";
 import { useProfileIdentity } from "../../hooks/useProfileIdentity";
 import { authClient } from "../../lib/auth-client";
 import { toasts } from "../../lib/toasts";
+import { LogoButton } from "../layout/logoButton";
 import { avatarMaxBytes, isAllowedAvatarFile, isValidEmail } from "./accountUtils";
 import { ProfileAvatar } from "./profileAvatar";
 import { ThemeTabs } from "./themeTabs";
@@ -45,14 +46,6 @@ function AccountSection({ children, label, right }: { children?: React.ReactNode
       </div>
       {children}
     </section>
-  );
-}
-
-function LogoButton() {
-  return (
-    <Link to="/" className={buttonVariants({ variant: "ghost", size: "icon-lg" })}>
-      <div className="h-4 w-4 rounded-xs bg-primary" />
-    </Link>
   );
 }
 

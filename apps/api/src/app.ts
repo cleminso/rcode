@@ -4,6 +4,7 @@ import { env } from "./env";
 import { subscribePresenceSummary, type PresenceSummary } from "./awarenessServer";
 import { authRoutes } from "./routes/auth";
 import { healthRoutes } from "./routes/health";
+import { ogRoutes } from "./routes/og";
 
 const MAX_PRESENCE_ROOMS = 100;
 
@@ -80,6 +81,7 @@ export const app = new Hono()
   )
   .route("/", healthRoutes)
   .route("/", authRoutes)
+  .route("/", ogRoutes)
   .get("/api/presence/stream", (c) => {
     let roomIds: string[];
 

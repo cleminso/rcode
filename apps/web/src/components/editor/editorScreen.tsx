@@ -15,6 +15,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { CommandMenu } from "../command-menu/commandMenu";
 import { EditorLayout } from "../layout/editorLayout";
+import { LogoButton } from "../layout/logoButton";
 import { AccountMenu } from "../account/accountMenu";
 import { useNavigationHotkeys } from "../../hooks/useNavigationHotkeys";
 import { EditorLanguageCombobox } from "./editorLanguagePicker";
@@ -25,14 +26,6 @@ import { RoomProvider, useRoom } from "./roomProvider";
 
 interface EditorScreenProps {
   shareToken: string;
-}
-
-function LogoButton() {
-  return (
-    <Link to="/dashboard" className={buttonVariants({ variant: "ghost", size: "icon" })}>
-      <div className="h-4 w-4 rounded-xs bg-primary" />
-    </Link>
-  );
 }
 
 export function EditorScreen(props: EditorScreenProps) {
@@ -109,7 +102,7 @@ function EditorContent() {
       <EditorLayout
         toolbar={
           <div className="flex h-full w-full items-center gap-2">
-            <LogoButton />
+            <LogoButton to="/dashboard" />
             <Link to="/dashboard" className={buttonVariants({ variant: "ghost" })}>
               [D] DASHBOARD
             </Link>
@@ -144,7 +137,7 @@ function EditorContent() {
       toolbar={
         <div className="grid h-full w-full grid-cols-[1fr_auto_1fr] items-center gap-4">
           <div className="flex min-w-0 items-center gap-2">
-            <LogoButton />
+            <LogoButton to="/dashboard" />
             <Separator orientation="vertical"></Separator>
             {isReady === false ? (
               <div className="h-6.25 w-24 animate-pulse rounded-xs bg-muted" />

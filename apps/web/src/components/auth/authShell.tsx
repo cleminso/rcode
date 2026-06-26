@@ -1,8 +1,8 @@
-import { Link } from "@tanstack/react-router";
-import Button, { buttonVariants } from "@rcode/ui/button";
+import Button from "@rcode/ui/button";
 import { AuthPanel, AuthPanelBody, AuthPanelBreadcrumb } from "@rcode/ui/authPanel";
 import { AuthTabs, type AuthTabValue } from "@rcode/ui/authTabs";
 import { type ReactNode } from "react";
+import { LogoButton } from "../layout/logoButton";
 
 export type AuthMethod = AuthTabValue;
 
@@ -21,9 +21,7 @@ export function AuthShell({ activeBreadcrumb, children, description, footer, met
   return (
     <main className="flex min-h-screen flex-col bg-background text-foreground">
       <header className="flex h-9.5 items-center px-3">
-        <Link to="/" className={buttonVariants({ variant: "ghost", size: "icon" })} aria-label="Go home">
-          <div className="h-4 w-4 rounded-xs bg-primary" />
-        </Link>
+        <LogoButton />
       </header>
       <div className="flex justify-center px-6 pb-10 pt-28">
         <div className="w-full max-w-150">
