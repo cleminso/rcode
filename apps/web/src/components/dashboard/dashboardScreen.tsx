@@ -33,15 +33,15 @@ export function DashboardScreen() {
   return (
     <main className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
       <div className="w-full shrink-0 px-4 min-[1440px]:mx-auto min-[1440px]:max-w-384">
-        <header className="flex items-center justify-between py-3">
-          <div className="flex items-center gap-2">
+        <header className="flexrow-between-0 py-3">
+          <div className="flexrow-2">
             <LogoButton />
             <Button variant="primary">
               <span>[D]</span>
               <span>DASHBOARD</span>
             </Button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flexrow-2">
             <Button
               disabled={canCreate === false || isCreating === true}
               onClick={() => void createRoom()}
@@ -57,7 +57,7 @@ export function DashboardScreen() {
         </header>
       </div>
       <div className="min-h-0 w-full flex-1 px-4 min-[1440px]:mx-auto min-[1440px]:max-w-384">
-        <section className="flex h-full min-h-0 flex-col gap-4 py-6">
+        <section className="flex h-full min-h-0 flexcol-4 py-6">
           {error !== null ? <p className="rounded-xs bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
           <RoomList />
         </section>

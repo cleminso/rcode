@@ -28,7 +28,7 @@ export const EditorLanguageCombobox = memo(function EditorLanguageCombobox(props
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flexrow-2">
       <Button variant="ghost" onClick={() => {
         props.onOpenChange(true);
       }}>

@@ -111,7 +111,7 @@ export const RoomListItem = memo(function RoomListItem(props: RoomListItemProps)
       onFocus={handleActivate}
       onBlur={handleDeactivate}
     >
-      <span className="flex w-full min-w-0 max-w-full items-center gap-3 overflow-hidden">
+      <span className="flexrow-3 w-full min-w-0 max-w-full overflow-hidden">
         <span className="flex size-5 shrink-0 items-center justify-center rounded-xs" title={language?.name ?? "Plain text"}>
           {LanguageLogo !== undefined ? <LanguageLogo className="size-5 rounded-xs" /> : null}
         </span>
@@ -122,10 +122,10 @@ export const RoomListItem = memo(function RoomListItem(props: RoomListItemProps)
       <span className="justify-self-start text-right">
         <FormattedDate date={props.lastAccessedAt} variant="default" className="text-xs" />
       </span>
-      <span className="flex justify-self-start items-center gap-1">
+      <span className="justify-self-start flexrow-1">
         <RoomParticipantsCell creatorSessionUserId={props.room.creatorSessionUserId} participants={props.participants} />
       </span>
-      <span className="flex justify-self-start items-center gap-1">
+      <span className="justify-self-start flexrow-1">
         <ProfileIdentityAvatar sessionUserId={props.room.creatorSessionUserId} size="sm" />
       </span>
     </Link>

@@ -86,7 +86,7 @@ export function StaticRoomContent(props: StaticRoomContentProps) {
   return (
     <main className="grid min-h-screen grid-rows-[auto_1fr] bg-background text-foreground">
       <header className="flex h-9.5 items-center">
-        <div className="flex w-full items-center justify-between px-3">
+        <div className="flexrow-between-0 w-full px-3">
           <Link to="/" className={buttonVariants({ variant: "ghost", size: "icon" })}>
             <div className="h-4 w-4 rounded-xs bg-primary" />
           </Link>
@@ -94,9 +94,9 @@ export function StaticRoomContent(props: StaticRoomContentProps) {
         </div>
       </header>
       <div className="px-4 py-8 sm:px-8 sm:py-12">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-        <section className="flex flex-col gap-6">
-          <div className="flex min-w-0 items-center gap-3">
+        <div className="mx-auto flex w-full max-w-6xl flexcol-8">
+        <section className="flexcol-6">
+          <div className="flexrow-3 min-w-0">
             <span className="flex size-7 shrink-0 items-center justify-center text-muted-foreground" title={language.name}>
               {LanguageLogo !== undefined ? <LanguageLogo className="size-7" /> : null}
             </span>
@@ -105,7 +105,7 @@ export function StaticRoomContent(props: StaticRoomContentProps) {
 
           <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-8 gap-y-4 text-sm">
             <dt className="font-sans font-normal text-muted-foreground">Language</dt>
-            <dd className="flex min-w-0 items-center gap-2">
+            <dd className="flexrow-2 min-w-0">
               <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground">
                 {LanguageLogo !== undefined ? <LanguageLogo className="size-5" /> : null}
               </span>
@@ -113,7 +113,7 @@ export function StaticRoomContent(props: StaticRoomContentProps) {
             </dd>
 
             <dt className="font-sans font-normal text-muted-foreground">Creator</dt>
-            <dd className="flex min-w-0 items-center gap-2">
+            <dd className="flexrow-2 min-w-0">
               <ProfileAvatar avatarFileId={props.creator.avatarFileId} displayName={props.creator.displayName} imageClassName="size-5" loadTier="edge" size="sm" />
               <span className="truncate font-sans font-normal">{props.creator.displayName}</span>
             </dd>

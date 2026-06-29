@@ -31,8 +31,8 @@ export function AuthButton() {
   };
 
   return (
-    <div className="flex items-center gap-3">
-      <Link className="flex items-center gap-2 text-sm font-medium" to="/sign-in">
+    <div className="flexrow-3">
+      <Link className="flexrow-2 text-sm font-medium" to="/sign-in">
         <Avatar size="sm">
           <AvatarImage src={session?.user.image ?? undefined} alt={displayName} />
           <AvatarFallback>{getInitials(displayName)}</AvatarFallback>

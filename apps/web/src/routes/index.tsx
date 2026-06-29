@@ -39,10 +39,10 @@ function IndexRoute() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="w-full px-4 min-[1440px]:mx-auto min-[1440px]:max-w-384">
-        <header className="flex items-center justify-between py-3">
+        <header className="flexrow-between-0 py-3">
             <LogoButton />
           {isProfileComplete === true ? (
-            <div className="flex items-center gap-2">
+            <div className="flexrow-2">
               <Link to="/dashboard" className={buttonVariants({ variant: "default" })}>
                 <span>[D]</span>
                 <span>DASHBOARD</span>
@@ -59,7 +59,7 @@ function IndexRoute() {
               ) : null}
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flexrow-2">
               <Link to="/sign-in" className={buttonVariants({ variant: "default" })}>
                 <span>[I]</span>
                 <span>SIGN IN</span>
@@ -71,7 +71,7 @@ function IndexRoute() {
             </div>
           )}
         </header>
-        <section className="flex flex-col items-center justify-center py-24 text-center">
+        <section className="flexcol-center-0 py-24 text-center">
           <h1 className="text-4xl font-semibold ">rcode</h1>
           <p className="mt-4 text-lg text-muted-foreground">Real-time collaborative code rooms.</p>
         </section>

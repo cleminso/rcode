@@ -44,7 +44,7 @@ export function EmailSignUpForm({ autoFocusDisplayName, isSubmitting, values, on
   };
 
   return (
-    <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+    <form className="flexcol-6" onSubmit={handleSubmit}>
       <div className="grid gap-2 sm:grid-cols-2">
         <AuthField
           label="DISPLAY NAME"

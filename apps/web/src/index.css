@@ -128,6 +128,61 @@
   --sidebar-ring: oklch(0.991 0.003 106.448);
 }
 
+@utility flexrow {
+  display: flex;
+  flex-direction: row;
+}
+
+@utility flexcol {
+  display: flex;
+  flex-direction: column;
+}
+
+@utility flexrow-* {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: --spacing(--value(number));
+}
+
+@utility flexcol-* {
+  display: flex;
+  flex-direction: column;
+  gap: --spacing(--value(number));
+}
+
+@utility flexrow-center-* {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: --spacing(--value(number));
+}
+
+@utility flexrow-end-* {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: --spacing(--value(number));
+}
+
+@utility flexrow-between-* {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: --spacing(--value(number));
+}
+
+@utility flexcol-center-* {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: --spacing(--value(number));
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

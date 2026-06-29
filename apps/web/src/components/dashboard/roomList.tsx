@@ -139,13 +139,13 @@ export function RoomList() {
   useHotkeys(filterHotkeys, { preventDefault: true });
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flexcol-4">
       <div className="flex items-end justify-between gap-4 border-b border-border pb-1.5">
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <div className="flexrow-1 text-xs text-muted-foreground">
           <span>/</span>
           <span>CODE ROOMS</span>
         </div>
-        <div role="tablist" aria-label="Room filters" data-room-filter-tablist="true" className="flex items-center gap-4">
+        <div role="tablist" aria-label="Room filters" data-room-filter-tablist="true" className="flexrow-4">
           <FilterTab
             active={filter === "all"}
             id="room-filter-all"
@@ -173,19 +173,19 @@ export function RoomList() {
 
       <section className="flex min-h-0 flex-1 flex-col">
         <div className="mb-1.5 grid shrink-0 grid-cols-[minmax(0,1fr)_112px_104px_62px] items-center gap-3 border-b border-border pb-1.5 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
+          <div className="flexrow-1">
             <span>/</span>
             <span>NAME</span>
           </div>
-          <div className="flex justify-self-start items-center gap-1">
+          <div className="justify-self-start flexrow-1">
             <span>/</span>
             <span>LAST ACTIVITY</span>
           </div>
-          <div className="flex justify-self-start items-center gap-1">
+          <div className="justify-self-start flexrow-1">
             <span>/</span>
             <span>PARTICIPANTS</span>
           </div>
-          <div className="flex justify-self-start items-center gap-1">
+          <div className="justify-self-start flexrow-1">
             <span>/</span>
             <span>CREATOR</span>
           </div>

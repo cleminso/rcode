@@ -36,9 +36,9 @@ function isExistingEmailError(message: string) {
 
 function AccountSection({ children, label, right }: { children?: React.ReactNode; label: string; right?: React.ReactNode }) {
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flexcol-4">
       <div className="flex items-end justify-between gap-4 border-b border-border pb-1.5 font-mono text-xs uppercase">
-        <div className="flex items-center gap-1">
+        <div className="flexrow-1">
           <span>/</span>
           <span>{label}</span>
         </div>
@@ -329,8 +329,8 @@ export function AccountView() {
   return (
     <main className="h-dvh overflow-hidden bg-background text-foreground">
       <div className="w-full px-4 min-[1440px]:mx-auto min-[1440px]:max-w-384">
-        <header className="flex items-center justify-between py-3">
-          <div className="flex items-center gap-2">
+        <header className="flexrow-between-0 py-3">
+          <div className="flexrow-2">
             <LogoButton />
             {/*<Button variant="default" onClick={() => navigate({ to: "/dashboard" })}>
               <span>[D]</span>
@@ -348,12 +348,12 @@ export function AccountView() {
         </header>
       </div>
       <div className="w-full px-4 min-[1440px]:mx-auto min-[1440px]:max-w-384">
-        <section className="flex max-w-183 flex-col gap-5 py-16">
-          <AccountSection label="THEME" right={<ThemeTabs className="flex items-center gap-4" />} />
+        <section className="flex max-w-183 flexcol-5 py-16">
+          <AccountSection label="THEME" right={<ThemeTabs className="flexrow-4" />} />
           <AccountSection
             label="AVATAR"
             right={
-              <div className="flex items-center gap-4">
+              <div className="flexrow-4">
                 <button
                   className="font-mono text-xs uppercase outline-none hover:text-foreground/70 focus-visible:ring-2 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-50"
                   disabled={isAvatarUploading === true}
@@ -477,7 +477,7 @@ export function AccountView() {
           <AccountSection
             label="AUTHENTICATION"
             right={
-              <div className="flex items-center gap-6">
+              <div className="flexrow-6">
                 <button
                   className="font-mono text-xs uppercase text-destructive outline-none hover:text-destructive/70 focus-visible:ring-2 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-50"
                   disabled={isLoggingOut === true}

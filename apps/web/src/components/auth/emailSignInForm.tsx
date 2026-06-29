@@ -30,7 +30,7 @@ export function EmailSignInForm({ email, isSubmitting, onEmailChange, onSubmit }
   };
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+    <form className="flexcol-4" onSubmit={handleSubmit}>
       <AuthField
         label="EMAIL"
         type="email"

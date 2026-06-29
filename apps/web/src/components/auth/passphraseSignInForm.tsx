@@ -30,7 +30,7 @@ export function PassphraseSignInForm({ isSubmitting, restorePhrase, onRestorePhr
   };
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+    <form className="flexcol-4" onSubmit={handleSubmit}>
       <AuthTextareaField
         className="min-h-28 font-mono text-sm"
         label="RECOVERY PHRASE"

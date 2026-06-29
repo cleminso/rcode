@@ -101,7 +101,7 @@ function EditorContent() {
     return (
       <EditorLayout
         toolbar={
-          <div className="flex h-full w-full items-center gap-2">
+          <div className="flexrow-2 h-full w-full">
             <LogoButton to="/dashboard" />
             <Link to="/dashboard" className={buttonVariants({ variant: "ghost" })}>
               [D] DASHBOARD
@@ -109,11 +109,11 @@ function EditorContent() {
           </div>
         }
         footer={
-          <div className="flex w-full items-center justify-between">
+          <div className="flexrow-between-0 w-full">
           </div>
         }
       >
-        <div className="flex h-full items-center justify-center px-6 text-center">
+        <div className="flexrow-center-0 h-full px-6 text-center">
           <div className="max-w-sm rounded-xs border border-border bg-card p-6">
             <h1 className="text-[16px] font-sans font-semibold ">
               {isArchived === true ? "This room has been archived" : "Room unavailable"}
@@ -136,7 +136,7 @@ function EditorContent() {
     <EditorLayout
       toolbar={
         <div className="grid h-full w-full grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flexrow-2 min-w-0">
             <LogoButton to="/dashboard" />
             <Separator orientation="vertical"></Separator>
             {isReady === false ? (
@@ -163,10 +163,10 @@ function EditorContent() {
               />
           )}
 
-          <div className="flex min-w-0 items-center justify-end gap-3">
+          <div className="flexrow-end-3 min-w-0">
             {isArchived === true && isCreator === true ? (
               <DropdownMenu>
-                <div className="flex items-center gap-2">
+                <div className="flexrow-2">
                   <DropdownMenuTrigger render={<Button variant="ghost" size="default" />}>Unarchive</DropdownMenuTrigger>
                 </div>
                 <DropdownMenuContent align="end" className="w-72 rounded-xs text-xs font-sans font-normal">
@@ -214,7 +214,7 @@ function EditorContent() {
       }
     >
       {isReady === false ? (
-        <div className="flex h-full items-center justify-center" />
+        <div className="flexrow-center-0 h-full" />
       ) : (
         <div className="h-full">
           <CommandMenu

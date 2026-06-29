@@ -14,8 +14,8 @@ export function OtpVerificationForm({ email, isResending, otp, resendSecondsLeft
   const canResend = resendSecondsLeft === 0 && isResending === false;
 
   return (
-    <div className="mx-auto flex w-full max-w-150 rounded-xs flex-col gap-5 py-1">
-      <div className="flex flex-col gap-1 text-base font-sans text-muted-foreground">
+    <div className="mx-auto flex w-full max-w-150 rounded-xs flexcol-5 py-1">
+      <div className="flexcol-1 text-base font-sans text-muted-foreground">
         <p>Enter the code sent to</p>
         <p className="font-medium text-foreground text-base font-sans">{email}</p>
       </div>

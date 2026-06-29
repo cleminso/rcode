@@ -32,7 +32,7 @@ export function PassphraseSignUpForm(props: PassphraseSignUpFormProps) {
   };
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+    <form className="flexcol-4" onSubmit={handleSubmit}>
       <AuthField
         label="DISPLAY NAME"
         value={props.displayName}
@@ -44,7 +44,7 @@ export function PassphraseSignUpForm(props: PassphraseSignUpFormProps) {
         error={showDisplayNameError === true ? "// Display name is required" : null}
         required
       />
-      <div className="flex flex-col gap-1.5">
+      <div className="flexcol-1.5">
         <p className="font-mono text-xs font-medium uppercase ">RECOVERY PHRASE</p>
         <textarea
           className="min-h-28 resize-none border border-input bg-input/20 p-3 font-mono text-sm leading-5 text-muted-foreground outline-none transition-[filter] duration-200 read-only:cursor-default"

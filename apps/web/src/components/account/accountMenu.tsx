@@ -49,7 +49,7 @@ export function AccountMenu({ avatarFileId, displayName, shouldShowSetupPrompt =
           {shouldShowSetupPrompt === true ? <span className="ml-auto size-2 rounded-full bg-destructive" /> : null}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <div className="flex items-center justify-between gap-1 px-2 py-1">
+        <div className="flexrow-between-1 px-2 py-1">
           {accountThemes.map((themeName) => (
             <Button
               className="text-xs font-normal uppercase"

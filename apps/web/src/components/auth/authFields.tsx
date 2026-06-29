@@ -13,7 +13,7 @@ export function AuthField({ error = null, id, label, ...props }: AuthFieldProps)
 
   return (
     <Field data-invalid={error !== null}>
-      <div className="flex items-center justify-between gap-3">
+      <div className="flexrow-between-3">
         <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
         {error !== null ? <span className="font-mono text-xs uppercase text-destructive">REQUIRED</span> : null}
       </div>
@@ -32,7 +32,7 @@ export function AuthTextareaField({ error = null, id, label, ...props }: AuthTex
 
   return (
     <Field data-invalid={error !== null}>
-      <div className="flex items-center justify-between gap-3">
+      <div className="flexrow-between-3">
         <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
         {error !== null ? <span className="font-mono text-xs uppercase text-destructive">REQUIRED</span> : null}
       </div>
