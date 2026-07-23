@@ -20,7 +20,7 @@ export default defineConfig({
     }),
     viteReact(),
     tailwindcss(),
-    jazzPlugin({ schemaDir: "../../packages/database/schema/src", server: false }),
+    jazzPlugin({ schemaDir: "../../packages/database/schema/src", inspector: true, }),
   ],
   server: {
     port,
