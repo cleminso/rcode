@@ -9,7 +9,7 @@ import { LogoButton } from "../layout/logoButton";
 
 export function DashboardScreen() {
   const session = useSession();
-  const sessionUserId = session?.user_id ?? null;
+  const sessionUserId = session?.user.account ?? null;
   const profileIdentity = useProfileIdentity(sessionUserId);
   const { canCreate, createRoom, error, isCreating } = useCreateRoom();
 

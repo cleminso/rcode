@@ -1,8 +1,7 @@
 import { getLanguage } from "@rcode/icons/languages";
 import Button, { buttonVariants } from "@rcode/ui/button";
 import { Link } from "@tanstack/react-router";
-import { JazzProvider, useSession } from "jazz-tools/react";
-import { useAuthConfig } from "../../hooks/useAuthConfig";
+import { useSession } from "jazz-tools/react";
 import { useNavigationHotkeys } from "../../hooks/useNavigationHotkeys";
 import { useProfileIdentity } from "../../hooks/useProfileIdentity";
 import { ProfileAvatar } from "../account/profileAvatar";
@@ -21,29 +20,8 @@ interface StaticRoomContentProps {
 }
 
 function StaticRoomActionButton() {
-  const { config, isLoading, refreshJwt, sessionKey } = useAuthConfig();
-
-  if (isLoading === true) {
-    return (
-      <Button variant="primary" disabled>
-        <span>[U]</span>
-        <span>SIGN UP</span>
-      </Button>
-    );
-  }
-
-  const authKey = config.jwtToken === undefined ? `local-first:${sessionKey}` : `external:${sessionKey}`;
-
-  return (
-    <JazzProvider key={authKey} config={config} onJWTExpired={refreshJwt}>
-      <ResolvedStaticRoomActionButton />
-    </JazzProvider>
-  );
-}
-
-function ResolvedStaticRoomActionButton() {
   const session = useSession();
-  const profileIdentity = useProfileIdentity(session?.user_id ?? null);
+  const profileIdentity = useProfileIdentity(session?.user.account ?? null);
   const hasCompletedProfile = profileIdentity.displayName !== null && profileIdentity.displayName.trim() !== "";
   const target = hasCompletedProfile === true ? "/dashboard" : "/sign-up";
 
@@ -114,7 +92,7 @@ export function StaticRoomContent(props: StaticRoomContentProps) {
 
             <dt className="font-sans font-normal text-muted-foreground">Creator</dt>
             <dd className="flexrow-2 min-w-0">
-              <ProfileAvatar avatarFileId={props.creator.avatarFileId} displayName={props.creator.displayName} imageClassName="size-5" loadTier="edge" size="sm" />
+              <ProfileAvatar avatarFileId={props.creator.avatarFileId} displayName={props.creator.displayName} imageClassName="size-5" loadTier="remote" size="sm" />
               <span className="truncate font-sans font-normal">{props.creator.displayName}</span>
             </dd>
           </dl>

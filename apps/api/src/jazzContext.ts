@@ -1,19 +1,24 @@
 import { app as schemaApp } from "@rcode/schema";
 import permissions from "@rcode/schema/permissions";
-import { createJazzContext } from "jazz-tools/backend";
+import { createJazzSession } from "jazz-tools/backend";
 import { env } from "./env";
 
-export const jazzContext = createJazzContext({
+export const jazzSession = await createJazzSession({
   appId: env.jazzAppId,
   app: schemaApp,
   permissions,
   driver: { type: "memory" },
   serverUrl: env.jazzServerUrl,
   env: process.env.NODE_ENV === "production" ? "prod" : "dev",
-  userBranch: "main",
-  backendSecret: env.backendSecret,
+  initial: { backendSecret: env.backendSecret },
 });
 
 export function getBackendDb() {
-  return jazzContext.asBackend(schemaApp);
+  const db = jazzSession.getSnapshot().client?.db;
+
+  if (db === undefined) {
+    throw new Error("Jazz backend session is not ready.");
+  }
+
+  return db;
 }

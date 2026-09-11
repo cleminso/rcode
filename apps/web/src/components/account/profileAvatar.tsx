@@ -11,7 +11,7 @@ interface ProfileAvatarProps {
   displayName: string;
   imageClassName?: string;
   imageUrl?: string | null;
-  loadTier?: "local" | "edge";
+  loadTier?: "local-first" | "remote";
   size?: "default" | "sm" | "lg";
   title?: string;
 }
@@ -19,11 +19,11 @@ interface ProfileAvatarProps {
 const avatarObjectUrlCache = new Map<string, string>();
 const avatarBlobLoadCache = new Map<string, Promise<string>>();
 
-function getAvatarBlobLoadCacheKey(avatarFileId: string, loadTier: "local" | "edge") {
+function getAvatarBlobLoadCacheKey(avatarFileId: string, loadTier: "local-first" | "remote") {
   return `${loadTier}:${avatarFileId}`;
 }
 
-function loadAvatarObjectUrl(db: ReturnType<typeof useDb>, avatarFileId: string, loadTier: "local" | "edge") {
+function loadAvatarObjectUrl(db: ReturnType<typeof useDb>, avatarFileId: string, loadTier: "local-first" | "remote") {
   const cachedObjectUrl = avatarObjectUrlCache.get(avatarFileId);
 
   if (cachedObjectUrl !== undefined) {
@@ -38,8 +38,15 @@ function loadAvatarObjectUrl(db: ReturnType<typeof useDb>, avatarFileId: string,
   }
 
   const loadPromise = db
-    .loadFileAsBlob(app, avatarFileId, { tier: loadTier })
-    .then((blob) => {
+    .all(app.files.where({ id: avatarFileId }).limit(1), { tier: loadTier })
+    .then((rows) => {
+      const file = rows[0];
+
+      if (file === undefined) {
+        throw new Error("Avatar file not found.");
+      }
+
+      const blob = new Blob([new Uint8Array(file.data)], { type: file.mimeType });
       const objectUrl = URL.createObjectURL(blob);
 
       avatarObjectUrlCache.set(avatarFileId, objectUrl);
@@ -57,7 +64,7 @@ function loadAvatarObjectUrl(db: ReturnType<typeof useDb>, avatarFileId: string,
   return loadPromise;
 }
 
-export function ProfileAvatar({ avatarFileId, badge, className, displayName, imageClassName, imageUrl, loadTier = "local", size = "sm", title }: ProfileAvatarProps) {
+export function ProfileAvatar({ avatarFileId, badge, className, displayName, imageClassName, imageUrl, loadTier = "local-first", size = "sm", title }: ProfileAvatarProps) {
   const db = useDb();
   const [objectUrl, setObjectUrl] = useState<string | null>(() => {
     if (avatarFileId === undefined || avatarFileId === null) {

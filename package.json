@@ -22,7 +22,7 @@
   "packageManager": "pnpm@11.15.1",
   "dependencies": {
     "@better-auth/infra": "^0.3.7",
-    "jazz-tools": "2.0.0-alpha.53",
+    "jazz-tools": "2.0.0-alpha.54",
     "little-timestamp": "^1.0.0"
   }
 }

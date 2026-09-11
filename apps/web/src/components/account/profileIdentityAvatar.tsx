@@ -6,10 +6,10 @@ interface ProfileIdentityAvatarProps {
   fallbackDisplayName?: string | null;
   imageClassName?: string;
   imageUrl?: string | null;
-  loadTier?: "local" | "edge";
+  loadTier?: "local-first" | "remote";
   sessionUserId: string | null;
   size?: "default" | "sm" | "lg";
-  tier?: "local" | "edge";
+  tier?: "local-first" | "remote";
 }
 
 export function ProfileIdentityAvatar(props: ProfileIdentityAvatarProps) {

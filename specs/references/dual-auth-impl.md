@@ -13,6 +13,8 @@
 
 ## Problem Statement
 
+Implementation status: the web app uses local-first Jazz authentication only. Better Auth sections describe server infrastructure and an unsupported client design.
+
 rcode has two collaboration entry paths:
 
 - users can start editing immediately as Jazz `local-first` users

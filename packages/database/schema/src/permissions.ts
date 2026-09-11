@@ -10,22 +10,33 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
     session.where({ authMode: "external" }),
   ]);
 
+  const activeRoom = (roomId: RowRefValue) =>
+    policy.exists(policy.rooms.where({ id: roomId, archivedAt: null }));
+
   // A row tied to a room is writable only while the room is still active (not
   // archived) and the session holds editor access to it: a relationship-based
   // room grant, room creatorship, or a participant row. Shared by the metadata,
   // Yjs update, and snapshot rules.
-  const roomEditorAccess = (roomId: RowRefValue) =>
-    allOf([
-      policy.exists(policy.rooms.where({ id: roomId, archivedAt: null })),
-      anyOf([
-        allowedTo.update("room"),
+  const roomEditorAccess = (
+    roomId: RowRefValue,
+    ...requirements: unknown[]
+  ) =>
+    anyOf([
+      allOf([...requirements, activeRoom(roomId), allowedTo.update("room")]),
+      allOf([
+        ...requirements,
+        activeRoom(roomId),
         policy.rooms.exists.where({
           id: roomId,
-          creator_session_user_id: session.user_id,
+          creator_session_user_id: session.user.account,
         }),
+      ]),
+      allOf([
+        ...requirements,
+        activeRoom(roomId),
         policy.roomParticipants.exists.where({
           room_id: roomId,
-          session_user_id: session.user_id,
+          session_user_id: session.user.account,
         }),
       ]),
     ]);
@@ -37,7 +48,7 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
       policy.rooms.exists.where({ id: roomId, archivedAt: null }),
       policy.rooms.exists.where({
         id: roomId,
-        creator_session_user_id: session.user_id,
+        creator_session_user_id: session.user.account,
       }),
     ]);
 
@@ -73,11 +84,11 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
   // prevents a client from changing `session_user_id` during an update.
   policy.profiles.allowRead.always();
   policy.profiles.allowInsert.where(
-    allOf([{ session_user_id: session.user_id }, canEditSession]),
+    allOf([{ session_user_id: session.user.account }, canEditSession]),
   );
   policy.profiles.allowUpdate
-    .whereOld({ session_user_id: session.user_id })
-    .whereNew(allOf([{ session_user_id: session.user_id }, canEditSession]));
+    .whereOld({ session_user_id: session.user.account })
+    .whereNew(allOf([{ session_user_id: session.user.account }, canEditSession]));
   policy.profiles.allowDelete.never();
 
   // Avatar files are created before a profile points at them, so inserts are
@@ -87,24 +98,19 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
   policy.files.allowUpdate.never();
   policy.files.allowDelete.never();
 
-  policy.file_parts.allowRead.where(allowedTo.readReferencing(policy.files, "partIds"));
-  policy.file_parts.allowInsert.where(canEditSession);
-  policy.file_parts.allowUpdate.never();
-  policy.file_parts.allowDelete.never();
-
   // Rooms carry protected ownership and sharing fields, so creates/updates/deletes
   // are creator-scoped. Anonymous sessions can read rooms but cannot create them.
   policy.rooms.allowRead.always();
   policy.rooms.allowInsert.where(
-    allOf([{ creator_session_user_id: session.user_id }, canEditSession]),
+    allOf([{ creator_session_user_id: session.user.account }, canEditSession]),
   );
   policy.rooms.allowUpdate
-    .whereOld({ creator_session_user_id: session.user_id })
+    .whereOld({ creator_session_user_id: session.user.account })
     .whereNew(
-      allOf([{ creator_session_user_id: session.user_id }, canEditSession]),
+      allOf([{ creator_session_user_id: session.user.account }, canEditSession]),
     );
   policy.rooms.allowDelete.where({
-    creator_session_user_id: session.user_id,
+    creator_session_user_id: session.user.account,
   });
 
   // Room metadata is split from protected room fields because collaborators can
@@ -113,14 +119,14 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
   // participant rows preserve share-token collaborator writes.
   policy.roomMetadata.allowRead.where((metadata) => roomReadAccess(metadata.room_id));
   policy.roomMetadata.allowInsert.where((metadata) =>
-    allOf([
-      { session_user_id: session.user_id },
+    roomEditorAccess(
+      metadata.room_id,
+      { session_user_id: session.user.account },
       canEditSession,
-      roomEditorAccess(metadata.room_id),
-    ]),
+    ),
   );
   policy.roomMetadata.allowUpdate.where((metadata) =>
-    allOf([canEditSession, roomEditorAccess(metadata.room_id)]),
+    roomEditorAccess(metadata.room_id, canEditSession),
   );
   policy.roomMetadata.allowDelete.never();
 
@@ -128,31 +134,35 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
   // instead of erasing access history.
   policy.roomParticipants.allowRead.always();
   policy.roomParticipants.allowInsert.where(
-    allOf([{ session_user_id: session.user_id }, canEditSession]),
+    allOf([{ session_user_id: session.user.account }, canEditSession]),
   );
   policy.roomParticipants.allowUpdate
-    .whereOld({ session_user_id: session.user_id })
-    .whereNew(allOf([{ session_user_id: session.user_id }, canEditSession]));
+    .whereOld({ session_user_id: session.user.account })
+    .whereNew(allOf([{ session_user_id: session.user.account }, canEditSession]));
   policy.roomParticipants.allowDelete.never();
 
   // User settings are private. Only the matching session can read or mutate its own row.
-  policy.userSettings.allowRead.where({ session_user_id: session.user_id });
-  policy.userSettings.allowInsert.where({ session_user_id: session.user_id });
+  policy.userSettings.allowRead.where({ session_user_id: session.user.account });
+  policy.userSettings.allowInsert.where(
+    allOf([{ session_user_id: session.user.account }, canEditSession]),
+  );
   policy.userSettings.allowUpdate
-    .whereOld({ session_user_id: session.user_id })
-    .whereNew({ session_user_id: session.user_id });
-  policy.userSettings.allowDelete.where({ session_user_id: session.user_id });
+    .whereOld(allOf([{ session_user_id: session.user.account }, canEditSession]))
+    .whereNew(allOf([{ session_user_id: session.user.account }, canEditSession]));
+  policy.userSettings.allowDelete.where(
+    allOf([{ session_user_id: session.user.account }, canEditSession]),
+  );
 
   // Yjs update rows are append-only so document reconstruction stays auditable
   // and consistent across clients. Write access mirrors metadata: creator,
   // relationship-based room editor, or durable room participant.
   policy.roomYjsUpdates.allowRead.where((update) => roomReadAccess(update.room_id));
   policy.roomYjsUpdates.allowInsert.where((update) =>
-    allOf([
-      { session_user_id: session.user_id },
+    roomEditorAccess(
+      update.room_id,
+      { session_user_id: session.user.account },
       canEditSession,
-      roomEditorAccess(update.room_id),
-    ]),
+    ),
   );
   policy.roomYjsUpdates.allowUpdate.never();
   policy.roomYjsUpdates.allowDelete.never();
@@ -162,11 +172,11 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
   // mirror update rows so any authorized editor can write a checkpoint.
   policy.roomYjsSnapshots.allowRead.where((snapshot) => roomReadAccess(snapshot.room_id));
   policy.roomYjsSnapshots.allowInsert.where((snapshot) =>
-    allOf([
-      { session_user_id: session.user_id },
+    roomEditorAccess(
+      snapshot.room_id,
+      { session_user_id: session.user.account },
       canEditSession,
-      roomEditorAccess(snapshot.room_id),
-    ]),
+    ),
   );
   policy.roomYjsSnapshots.allowUpdate.never();
   policy.roomYjsSnapshots.allowDelete.never();

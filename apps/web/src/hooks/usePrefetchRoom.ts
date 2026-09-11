@@ -33,38 +33,38 @@ export function usePrefetchRoom() {
 
     // Subscribe to the two Yjs tables that bootstrap the room document. We only
     // need snapshots and updates; the room metadata is already loaded by the
-    // dashboard query. { tier: "local" } returns whatever is in the local
+    // dashboard query. { tier: "local-first" } returns whatever is in the local
     // replica immediately without waiting for an edge round-trip.
-    const unsubscribeSnapshots = db.subscribeAll(
+    const unsubscribeSnapshots = db.subscribe(
       app.roomYjsSnapshots.where({ room_id: roomId }),
-      (delta) => {
+      (rows) => {
         if (loggedTablesRef.current.get(roomId)?.has("snapshots") === false) {
           console.info("[room-prefetch] rows received", {
             roomId,
             table: "snapshots",
-            rowCount: delta.all.length,
+            rowCount: rows.length,
             durationMs: performance.now() - prefetchStartedAt,
           });
           loggedTablesRef.current.get(roomId)?.add("snapshots");
         }
       },
-      { tier: "local" },
+      { tier: "local-first" },
     );
 
-    const unsubscribeUpdates = db.subscribeAll(
+    const unsubscribeUpdates = db.subscribe(
       app.roomYjsUpdates.where({ room_id: roomId }),
-      (delta) => {
+      (rows) => {
         if (loggedTablesRef.current.get(roomId)?.has("updates") === false) {
           console.info("[room-prefetch] rows received", {
             roomId,
             table: "updates",
-            rowCount: delta.all.length,
+            rowCount: rows.length,
             durationMs: performance.now() - prefetchStartedAt,
           });
           loggedTablesRef.current.get(roomId)?.add("updates");
         }
       },
-      { tier: "local" },
+      { tier: "local-first" },
     );
 
     unsubscribesRef.current.set(roomId, () => {

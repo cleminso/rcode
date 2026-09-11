@@ -1,3 +1,16 @@
+# Room Prefetching
+
+## Table of Contents
+
+- [Introduction](#introduction)
+  - [Challenges](#challenges)
+- [Solutions](#solutions)
+- [Architecture](#architecture)
+- [Implementation notes](#implementation-notes)
+- [Verify prefetch works](#verify-prefetch-works)
+  - [Manual test](#manual-test)
+  - [Keep](#keep)
+
 ## Introduction
 
 > How to improve room loading performance for a fast, "instant" experience?
@@ -5,8 +18,8 @@
 Our stack:
 
 - Routing via TanStack Router; each `RoomListItem` is a `Link` to `/rooms/$shareToken`.
-- Data loading: the dashboard loads room rows and metadata through Jazz (`useAll`, `db.subscribeAll`).
-- Jazz API: `db.subscribeAll(query, callback, options?)` returns an unsubscribe function.
+- Data loading: the dashboard loads room rows and metadata through Jazz (`useAll`, `db.subscribe`).
+- Jazz API: `db.subscribe(query, callback, options?)` returns an unsubscribe function.
 
 When opening a room, the expensive part is loading the Yjs document data from `roomYjsSnapshots` and `roomYjsUpdates`. Once that data is in the local Jazz replica, applying it to a `Y.Doc` is fast.
 
@@ -38,7 +51,7 @@ RoomProvider / useJazzYjsDocument    # reads local rows, applies merged update, 
 ## Implementation notes
 
 - `usePrefetchRoom` is idempotent: calling `prefetch` for a room that is already subscribed is a no-op.
-- `{ tier: "local" }` returns whatever is already in the local replica immediately, without waiting for an edge round-trip.
+- `{ tier: "local-first" }` returns the newest local state immediately and syncs in the background.
 - Cancellation uses a 300 ms grace period. The cursor often leaves the row a few milliseconds before the click (especially with virtual-list recycling or fast mouse paths), so keeping the subscription alive briefly lets the data arrive before navigation unmounts the item.
 - On large screens the list can show 40+ rooms, but it is virtualized (`@tanstack/react-virtual`). Only visible rows + overscan mount `RoomListItem`, so the number of active prefetch subscriptions is bounded by the viewport, not the total room count.
 

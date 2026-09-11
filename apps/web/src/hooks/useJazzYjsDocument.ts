@@ -85,7 +85,7 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
   const canEditSession =
     session !== null &&
     (session.authMode === "local-first" || session.authMode === "external");
-  const sessionUserId = session?.user_id ?? null;
+  const sessionUserId = session?.user.account ?? null;
   const hasLocalEditsRef = useRef(false);
   const localEditVersionRef = useRef(0);
 
@@ -98,12 +98,14 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
 
-  const snapshotRows = useAll(
+  const snapshotResult = useAll(
     roomId !== null ? app.roomYjsSnapshots.where({ room_id: roomId }) : undefined,
   );
+  const snapshotRows = snapshotResult.data;
   const snapshotRowsRef = useRef(snapshotRows);
   snapshotRowsRef.current = snapshotRows;
-  const updateRows = useAll(roomId !== null ? app.roomYjsUpdates.where({ room_id: roomId }) : undefined);
+  const updateResult = useAll(roomId !== null ? app.roomYjsUpdates.where({ room_id: roomId }) : undefined);
+  const updateRows = updateResult.data;
 
   useEffect(() => {
     return () => {
@@ -370,6 +372,7 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
   }, [canEditSession, doc, isReady, providerInstanceId, roomId, sessionUserId]);
 
   return {
+    error: snapshotResult.error ?? updateResult.error,
     ydoc: doc,
     isYjsReady: isReady,
   };

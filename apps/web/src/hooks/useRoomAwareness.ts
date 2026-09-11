@@ -72,7 +72,7 @@ function getUsedColors(awareness: Awareness) {
 export function useRoomAwareness(args: UseRoomAwarenessArgs) {
   const { displayName: profileDisplayName, isReady, roomId, ydoc } = args;
   const session = useSession();
-  const sessionUserId = session?.user_id ?? null;
+  const sessionUserId = session?.user.account ?? null;
 
   const awareness = useMemo(() => new Awareness(ydoc), [ydoc]);
 

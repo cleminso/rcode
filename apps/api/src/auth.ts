@@ -1,7 +1,7 @@
 // Server-side Better Auth configuration.
 // Configures how the server sends email OTP codes, manages sessions, and issues JWTs for Jazz.
 // This file wires Better Auth to Jazz as its database adapter and enables the JWT plugin.
-// The JWT subject becomes Jazz's external `session.user_id`, so it must stay stable.
+// Jazz links the JWT issuer and subject to a stable Jazz account.
 // Keep this out of the browser bundle: it uses process.env and jazz-tools/backend.
 import { app as schemaApp } from "@rcode/schema";
 import { betterAuth } from "better-auth";
@@ -9,7 +9,7 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { emailOTP, jwt } from "better-auth/plugins";
 import { jazzAdapter } from "jazz-tools/better-auth-adapter";
 import { env } from "./env";
-import { jazzContext } from "./jazzContext";
+import { getBackendDb } from "./jazzContext";
 
 function getStringBodyField(body: unknown, fieldName: string) {
   if (typeof body !== "object" || body === null || !(fieldName in body)) {
@@ -59,7 +59,7 @@ export const auth = betterAuth({
   basePath: env.betterAuthBasePath,
   trustedOrigins: [...env.allowedOrigins, env.betterAuthUrl],
   database: jazzAdapter({
-    db: () => jazzContext.asBackend(schemaApp),
+    db: getBackendDb,
     schema: schemaApp.wasmSchema,
   }),
   hooks: {
@@ -94,44 +94,14 @@ export const auth = betterAuth({
         });
       }
 
-      const provedUserId = await verifySignupProof(proofToken);
+      await verifySignupProof(proofToken);
 
       if (ctx.path === "/email-otp/send-verification-otp") {
         return;
       }
 
-      return {
-        context: {
-          ...ctx,
-          body: {
-            ...ctx.body,
-            provedUserId,
-          },
-        },
-      };
+      return;
     }),
-  },
-  databaseHooks: {
-    user: {
-      create: {
-        before: async (user, ctx) => {
-          const provedUserId = ctx?.body?.provedUserId;
-
-          if (typeof provedUserId !== "string") {
-            throw new APIError("BAD_REQUEST", {
-              message: "Account creation requires a local-first identity proof.",
-            });
-          }
-
-          return {
-            data: {
-              ...user,
-              id: provedUserId,
-            },
-          };
-        },
-      },
-    },
   },
   plugins: [
     emailOTP({

@@ -172,10 +172,14 @@ async function getFileDataUrl(avatarFileId: string | undefined) {
   }
 
   const db = getBackendDb();
-  const blob = await db.loadFileAsBlob(schemaApp, avatarFileId, { tier: "edge" });
-  const buffer = Buffer.from(await blob.arrayBuffer());
+  const files = await db.all(schemaApp.files.where({ id: avatarFileId }).limit(1), { tier: "remote" });
+  const file = files[0];
 
-  return `data:${blob.type};base64,${buffer.toString("base64")}`;
+  if (file === undefined) {
+    return null;
+  }
+
+  return `data:${file.mimeType};base64,${Buffer.from(file.data).toString("base64")}`;
 }
 
 async function getRoomOgProps(kind: ShareKind, token: string): Promise<RoomOgImageProps | null> {

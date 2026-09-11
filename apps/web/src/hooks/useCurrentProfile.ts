@@ -13,7 +13,7 @@ export function useCurrentProfile(args: UseCurrentProfileArgs) {
   const session = useSession();
   const generatedDisplayNameRef = useRef<string | null>(null);
   const profileWriteRef = useRef<Promise<void> | null>(null);
-  const sessionUserId = session?.user_id ?? null;
+  const sessionUserId = session?.user.account ?? null;
   const profileIdentity = useProfileIdentity(sessionUserId, { confirmMissing: args.autoCreate });
   const profile = profileIdentity.profile;
 

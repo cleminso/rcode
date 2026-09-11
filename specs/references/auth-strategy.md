@@ -11,6 +11,8 @@
 
 ## Problem Statement
 
+Implementation status: the web app supports local-first identities and passphrase recovery. Better Auth sections describe an unsupported design.
+
 A web editor that quickly shares links needs low-friction entry. Is not acceptable that collaborator must create an account to view or start editing. But collaboration still needs identity for cursors, avatars and permissions.
 
 ## Solution

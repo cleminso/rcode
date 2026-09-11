@@ -1,7 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useDb, useLocalFirstAuth } from "jazz-tools/react";
 import { useState } from "react";
-import { authClient } from "../lib/auth-client";
+import { useRcodeJazzAuth } from "../lib/jazzAuth";
 import { toasts } from "../lib/toasts";
 
 function getErrorMessage(error: unknown) {
@@ -10,10 +9,8 @@ function getErrorMessage(error: unknown) {
 }
 
 export function useLogout() {
-  const db = useDb();
-  const localFirstAuth = useLocalFirstAuth();
+  const jazzAuth = useRcodeJazzAuth();
   const navigate = useNavigate();
-  const { data: authSession } = authClient.useSession();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const logout = async () => {
@@ -24,14 +21,7 @@ export function useLogout() {
     setIsLoggingOut(true);
 
     try {
-      await db.logout();
-
-      if (authSession?.user.email !== undefined) {
-        await authClient.signOut();
-      } else {
-        await localFirstAuth.signOut();
-      }
-
+      await jazzAuth.logout();
       await navigate({ to: "/" });
     } catch (caughtError) {
       toasts.account.error(getErrorMessage(caughtError));

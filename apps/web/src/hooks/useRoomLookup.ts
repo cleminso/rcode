@@ -22,13 +22,18 @@ export function useRoomLookup(input: RoomLookupInput) {
     : undefined;
   // Local reads keep cached rooms instant, while edge reads make empty results
   // authoritative enough to show not-found without flashing from local cache misses
-  const localRooms = useAll(query);
-  const edgeRooms = useAll(query, { tier: "edge" });
-  const room = localRooms?.[0] ?? edgeRooms?.[0] ?? null;
+  const localResult = useAll(query, { tier: "local-first" });
+  const remoteResult = useAll(query, { tier: "remote" });
+  const room = localResult.data?.[0] ?? remoteResult.data?.[0] ?? null;
+  const error = localResult.error ?? remoteResult.error;
+
+  if (error !== null) {
+    throw error;
+  }
 
   return {
     room,
-    isLoading: isEnabled === true && room === null && edgeRooms === undefined,
-    isResolvedEmpty: isEnabled === true && edgeRooms !== undefined && room === null,
+    isLoading: isEnabled === true && room === null && remoteResult.isLoading === true,
+    isResolvedEmpty: isEnabled === true && remoteResult.isLoading === false && room === null,
   };
 }

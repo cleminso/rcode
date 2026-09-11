@@ -4,7 +4,7 @@
 // rcode product identity lives in ../schema.ts as `profiles`.
 // A local-first Jazz user can have a profile before any Better Auth user row exists,
 // so app tables should not require refs to `better_auth_user` for room ownership.
-// Instead, app tables store Jazz `session.user_id` values in `session_user_id` columns.
+// Instead, app tables store Jazz account ids in `session_user_id` columns.
 import { schema as s } from "jazz-tools";
 
 export const schema = {
@@ -14,16 +14,16 @@ export const schema = {
     email: s.string(),
     emailVerified: s.boolean(),
     image: s.string().optional(),
-    createdAt: s.timestamp(),
-    updatedAt: s.timestamp(),
+    createdAt: s.allowExternalProvenanceName(s.timestamp()),
+    updatedAt: s.allowExternalProvenanceName(s.timestamp()),
   }),
 
   // Stores active user sessions.
   better_auth_session: s.table({
     expiresAt: s.timestamp(),
     token: s.string(),
-    createdAt: s.timestamp(),
-    updatedAt: s.timestamp(),
+    createdAt: s.allowExternalProvenanceName(s.timestamp()),
+    updatedAt: s.allowExternalProvenanceName(s.timestamp()),
     ipAddress: s.string().optional(),
     userAgent: s.string().optional(),
     userId: s.ref("better_auth_user"),
@@ -41,8 +41,8 @@ export const schema = {
     refreshTokenExpiresAt: s.timestamp().optional(),
     scope: s.string().optional(),
     password: s.string().optional(),
-    createdAt: s.timestamp(),
-    updatedAt: s.timestamp(),
+    createdAt: s.allowExternalProvenanceName(s.timestamp()),
+    updatedAt: s.allowExternalProvenanceName(s.timestamp()),
   }),
 
   // Stores verification codes for email verification.
@@ -50,15 +50,15 @@ export const schema = {
     identifier: s.string(),
     value: s.string(),
     expiresAt: s.timestamp(),
-    createdAt: s.timestamp(),
-    updatedAt: s.timestamp(),
+    createdAt: s.allowExternalProvenanceName(s.timestamp()),
+    updatedAt: s.allowExternalProvenanceName(s.timestamp()),
   }),
 
   // Stores JWT signing key pairs used by the JWT plugin to sign and verify tokens.
   better_auth_jwks: s.table({
     publicKey: s.string(),
     privateKey: s.string(),
-    createdAt: s.timestamp(),
+    createdAt: s.allowExternalProvenanceName(s.timestamp()),
     expiresAt: s.timestamp().optional(),
   }),
 };

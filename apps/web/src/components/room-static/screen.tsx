@@ -76,11 +76,14 @@ export function StaticRoomScreen(props: StaticRoomScreenProps) {
   const room = roomLookup.room;
   const isArchived = room?.archivedAt !== undefined && room.archivedAt !== null;
   const activeRoomId = room !== null && isArchived === false ? room.id : null;
-  const metadataRows = useAll(activeRoomId !== null ? app.roomMetadata.where({ room_id: activeRoomId }).limit(1) : undefined);
+  const metadataResult = useAll(activeRoomId !== null ? app.roomMetadata.where({ room_id: activeRoomId }).limit(1) : undefined);
+  const metadataRows = metadataResult.data;
   const metadata = metadataRows?.[0] ?? null;
-  const creator = useProfileIdentity(room !== null && isArchived === false ? room.creator_session_user_id : null, { tier: "edge" });
-  const snapshotRows = useAll(activeRoomId !== null ? app.roomYjsSnapshots.where({ room_id: activeRoomId }) : undefined);
-  const updateRows = useAll(activeRoomId !== null ? app.roomYjsUpdates.where({ room_id: activeRoomId }) : undefined);
+  const creator = useProfileIdentity(room !== null && isArchived === false ? room.creator_session_user_id : null, { tier: "remote" });
+  const snapshotResult = useAll(activeRoomId !== null ? app.roomYjsSnapshots.where({ room_id: activeRoomId }) : undefined);
+  const updateResult = useAll(activeRoomId !== null ? app.roomYjsUpdates.where({ room_id: activeRoomId }) : undefined);
+  const snapshotRows = snapshotResult.data;
+  const updateRows = updateResult.data;
   const codeResult = useMemo(() => {
     if (snapshotRows === undefined || updateRows === undefined) {
       return { status: "loading" } as const;
@@ -104,6 +107,10 @@ export function StaticRoomScreen(props: StaticRoomScreenProps) {
 
   if (isArchived === true) {
     return <EmptyState title="This room has been archived" description="The static room link is not accessible anymore." />;
+  }
+
+  if (metadataResult.error !== null || snapshotResult.error !== null || updateResult.error !== null) {
+    return <EmptyState title="Static room could not be loaded" description="The room data could not be loaded." />;
   }
 
   if (metadataRows === undefined || creator.isLoading === true || codeResult.status === "loading") {

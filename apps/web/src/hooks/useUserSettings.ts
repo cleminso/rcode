@@ -229,19 +229,19 @@ export interface UserSettings {
 export function useUserSettings() {
   const db = useDb();
   const session = useSession();
-  const sessionUserId = session?.user_id ?? null;
+  const sessionUserId = session?.user.account ?? null;
   const canEditSession =
     session !== null &&
     (session.authMode === "local-first" || session.authMode === "external");
 
-  const settingsRows = useAll(
+  const settingsResult = useAll(
     canEditSession === true && sessionUserId !== null
       ? app.userSettings.where({ session_user_id: sessionUserId }).limit(1)
       : undefined,
   );
 
-  const settingsRow = settingsRows?.[0] ?? null;
-  const isLoading = settingsRows === undefined;
+  const settingsRow = settingsResult.data?.[0] ?? null;
+  const isLoading = settingsResult.isLoading;
   const initializedSessionUserIdRef = useRef<string | null>(null);
 
   const editorSettings =
@@ -291,6 +291,10 @@ export function useUserSettings() {
         }
       });
   }, [canEditSession, db, isLoading, sessionUserId, settingsRow]);
+
+  if (settingsResult.error !== null) {
+    throw settingsResult.error;
+  }
 
   return {
     settings,

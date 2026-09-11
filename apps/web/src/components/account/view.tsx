@@ -5,12 +5,13 @@ import { OtpInput } from "@rcode/ui/otpInput";
 import { Textarea } from "@rcode/ui/textarea";
 import { Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { RecoveryPhrase } from "jazz-tools/passphrase";
-import { useDb, useLocalFirstAuth, useSession } from "jazz-tools/react";
+import { useDb, useSession } from "jazz-tools/react";
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useLogout } from "../../hooks/useLogout";
 import { useNavigationHotkeys } from "../../hooks/useNavigationHotkeys";
 import { useProfileIdentity } from "../../hooks/useProfileIdentity";
 import { authClient } from "../../lib/auth-client";
+import { emailAuthUnavailable, isEmailAuthEnabled, useRcodeJazzAuth } from "../../lib/jazzAuth";
 import { toasts } from "../../lib/toasts";
 import { LogoButton } from "../layout/logoButton";
 import { avatarMaxBytes, isAllowedAvatarFile, isValidEmail } from "./accountUtils";
@@ -23,7 +24,7 @@ type EmailOtpClient = {
   sendVerificationOtp: (input: Record<string, unknown>) => Promise<{ error?: { message?: string } | null }>;
 };
 
-type EmailSignInClient = (input: Record<string, unknown>) => Promise<{ data?: { user?: { id?: string } }; error?: { message?: string } | null }>;
+type EmailSignInClient = (input: Record<string, unknown>) => Promise<{ error?: { message?: string } | null }>;
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -54,19 +55,18 @@ export function AccountView() {
   const navigate = useNavigate();
   useNavigationHotkeys({ dashboard: true });
   const session = useSession();
-  const localFirstAuth = useLocalFirstAuth();
+  const jazzAuth = useRcodeJazzAuth();
   const { isLoggingOut, logout } = useLogout();
-  const { data: authSession } = authClient.useSession();
-  const sessionUserId = session?.user_id ?? null;
+  const sessionUserId = session?.user.account ?? null;
   const profileIdentity = useProfileIdentity(sessionUserId, { confirmMissing: true });
   const profile = profileIdentity.profile;
   const avatarFileId = profileIdentity.avatarFileId;
-  const displayName = profile?.displayName ?? authSession?.user.name ?? "";
-  const savedEmail = authSession?.user.email ?? "";
+  const displayName = profile?.displayName ?? "";
+  const savedEmail = "";
   const recoveryPhrase = useMemo(() => {
-    if (localFirstAuth.secret === null || localFirstAuth.secret === undefined) return null;
-    return RecoveryPhrase.fromSecret(localFirstAuth.secret);
-  }, [localFirstAuth.secret]);
+    const secret = jazzAuth.getRecoverySecret();
+    return secret === null ? null : RecoveryPhrase.fromSecret(secret);
+  }, [jazzAuth, sessionUserId]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [displayNameInput, setDisplayNameInput] = useState(displayName);
   const [emailInput, setEmailInput] = useState(savedEmail);
@@ -130,10 +130,7 @@ export function AccountView() {
   const emailHasChanged = trimmedEmail !== "" && trimmedEmail !== savedTrimmedEmail;
   const canSubmitEmail = emailHasChanged === true && isValidEmail(trimmedEmail) === true && isEmailSubmitting === false;
   const hasCustomAvatar = avatarFileId !== null;
-  const hasAuthSession = authSession?.user.email !== undefined;
-  const logoutDescription = hasAuthSession === true
-    ? "Logout closes the active Jazz client and clears your email session. Your local recovery passphrase remains available for account recovery."
-    : "Save your passphrase first so you can recover this account. \n Logout closes the active Jazz client and clears this browser's local identity secret.";
+  const logoutDescription = "Save your passphrase first so you can recover this account. \n Logout switches this browser to a new local identity.";
 
   const commitDisplayName = async (value: string) => {
     const nextDisplayName = value.trim();
@@ -187,8 +184,14 @@ export function AccountView() {
     setAvatarPreviewUrl(nextPreviewUrl);
 
     try {
-      const fileRow = await db.createFileFromBlob(app, file, { tier: "edge" });
-      await db.update(app.profiles, profile.id, { avatarFileId: fileRow.id }).wait({ tier: "edge" });
+      const fileWrite = await db.insertStreaming(app.files, {
+        name: file.name,
+        mimeType: file.type,
+        size: file.size,
+        data: file.stream(),
+      });
+      await fileWrite.wait({ tier: "edge" });
+      await db.update(app.profiles, profile.id, { avatarFileId: fileWrite.value.id }).wait({ tier: "edge" });
       toasts.account.avatarSaved();
     } catch (caughtError) {
       setAvatarPreviewUrl(null);
@@ -217,6 +220,11 @@ export function AccountView() {
   };
 
   const requestEmailOtp = async () => {
+    if (isEmailAuthEnabled === false) {
+      toasts.account.error(emailAuthUnavailable);
+      return;
+    }
+
     if (canSubmitEmail === false || sessionUserId === null) {
       return;
     }
@@ -261,6 +269,11 @@ export function AccountView() {
   };
 
   const verifyEmailOtp = async (nextOtp: string) => {
+    if (isEmailAuthEnabled === false) {
+      toasts.account.error(emailAuthUnavailable);
+      return;
+    }
+
     if (pendingEmail === null || nextOtp.length !== 6 || sessionUserId === null) {
       return;
     }
@@ -271,16 +284,13 @@ export function AccountView() {
     try {
       if (savedEmail.trim() === "") {
         const proofToken = db.getLocalFirstIdentityProof({ ttlSeconds: 60, audience: "betterauth-signup" });
-        const result = await emailSignIn({ email: pendingEmail, otp: nextOtp, name: profile.displayName, proofToken });
+        await jazzAuth.withProviderAccount("link", async () => {
+          const result = await emailSignIn({ email: pendingEmail, otp: nextOtp, name: profile.displayName, proofToken });
 
-        if (result.error !== null && result.error !== undefined) {
-          throw new Error(result.error.message ?? "Verification failed.");
-        }
-
-        if (result.data?.user?.id !== sessionUserId) {
-          await authClient.signOut();
-          throw new Error("This email is linked to another identity.");
-        }
+          if (result.error !== null && result.error !== undefined) {
+            throw new Error(result.error.message ?? "Verification failed.");
+          }
+        });
       } else {
         if (emailClient.changeEmail === undefined) {
           throw new Error("Email change is not available.");

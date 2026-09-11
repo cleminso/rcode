@@ -1,3 +1,16 @@
+# Architecture
+
+## Table of Contents
+
+- [Why the architecture is split](#why-the-architecture-is-split)
+- [Technology stack](#technology-stack)
+- [System architecture](#system-architecture)
+- [Concepts at Play](#concepts-at-play)
+  - [Dual Auth Strategy](#dual-auth-strategy)
+  - [Backend-as-Auth-Database](#backend-as-auth-database)
+  - [Session Lifecycle](#session-lifecycle)
+  - [Cookie + JWT Hybrid](#cookie--jwt-hybrid)
+
 ## Why the architecture is split
 
 The editor state is split because each state type has different requirements.
@@ -57,19 +70,19 @@ graph TD
 
 ### Dual Auth Strategy
 
-The app implements Jazz's recommended dual-auth pattern:
+The web app uses Jazz's local-first authentication mode:
 
 - **Local-first**: Users can start immediately without signing up. Their identity is a device secret.
-- **External JWT**: When users log in via Better Auth, the app switches to JWT mode while preserving the same identity (or upgrading from local-first).
+- **External JWT**: Better Auth infrastructure exists, but the web app does not support this mode.
 
 ### Backend-as-Auth-Database
 
 By using `jazzAdapter`, Jazz serves double duty: it's both the application database (rooms, presence) and the auth database (users, sessions). The `permissions.ts` file ensures auth tables remain server-only.
 
-### Provider Remounting on Auth Change
+### Session Lifecycle
 
-The `key={authKey}` on `JazzProvider` is intentional and required. Jazz clients are bound to a single principal. When a user logs in or out, the entire React subtree must remount to create a fresh Jazz client with the new identity.
+The app uses Jazz's application-level provider with local-first authentication. Jazz owns account restoration, recovery, logout, retries, and account-bound client replacement. Email authentication is unsupported.
 
 ### Cookie + JWT Hybrid
 
-Better Auth uses HTTP-only cookies for session security, but Jazz needs a bearer JWT for sync authentication. The `jwtClient` plugin bridges this: the browser sends the cookie to the server, and the server returns a short-lived JWT that the browser passes to Jazz.
+The Better Auth server uses HTTP-only cookies and can issue bearer JWTs through `jwtClient`. The web app does not connect these JWTs to its Jazz session.

@@ -1,24 +1,20 @@
-import Button, { buttonVariants } from "@rcode/ui/button";
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { buttonVariants } from "@rcode/ui/button";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useSession } from "jazz-tools/react";
 import { LogoButton } from "../components/layout/logoButton";
 import { useNavigationHotkeys } from "../hooks/useNavigationHotkeys";
 import { useProfileIdentity } from "../hooks/useProfileIdentity";
-import { authClient } from "../lib/auth-client";
 
 export const Route = createFileRoute("/")({
   component: IndexRoute,
 });
 
 function IndexRoute() {
-  const navigate = useNavigate();
   const session = useSession();
-  const sessionUserId = session?.user_id ?? null;
+  const sessionUserId = session?.user.account ?? null;
   const profileIdentity = useProfileIdentity(sessionUserId);
 
-  const { data: authSession } = authClient.useSession();
   const isProfileComplete = profileIdentity.displayName !== null ? profileIdentity.displayName.trim() !== "" : false;
-  const isSignedInWithEmail = authSession?.user.email !== undefined;
 
   useNavigationHotkeys({
     account: isProfileComplete === true,
@@ -26,11 +22,6 @@ function IndexRoute() {
     signIn: profileIdentity.isLoading === false && isProfileComplete === false,
     signUp: profileIdentity.isLoading === false && isProfileComplete === false,
   });
-
-  const handleSignOut = async () => {
-    await authClient.signOut();
-    await navigate({ to: "/" });
-  };
 
   if (profileIdentity.isLoading === true) {
     return <main className="min-h-screen bg-background p-6 text-sm text-muted-foreground">Loading profile...</main>;
@@ -51,12 +42,6 @@ function IndexRoute() {
                 <span>[A]</span>
                 <span>ACCOUNT</span>
               </Link>
-              {isSignedInWithEmail === true ? (
-                <Button variant="ghost" onClick={() => void handleSignOut()}>
-                  <span>[X]</span>
-                  <span>SIGN OUT</span>
-                </Button>
-              ) : null}
             </div>
           ) : (
             <div className="flexrow-2">

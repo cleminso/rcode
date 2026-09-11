@@ -15,9 +15,11 @@ export function useCreateRoom() {
   const navigate = useNavigate();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const sessionUserId = session?.user.account ?? null;
 
   const canCreate =
     session !== null &&
+    sessionUserId !== null &&
     (session.authMode === "local-first" || session.authMode === "external");
 
   const createRoom = async () => {
@@ -26,7 +28,7 @@ export function useCreateRoom() {
       return;
     }
 
-    if (session === null) {
+    if (session === null || sessionUserId === null) {
       setError("Creating a room requires an active Jazz identity.");
       return;
     }
@@ -41,14 +43,14 @@ export function useCreateRoom() {
       const roomWrite = db.insert(app.rooms, {
         shareToken,
         staticToken,
-        creator_session_user_id: session.user_id,
+        creator_session_user_id: sessionUserId,
         archivedAt: null,
         archivedBySessionUserId: null,
       });
       const room = roomWrite.value;
       const participantWrite = db.insert(app.roomParticipants, {
         room_id: room.id,
-        session_user_id: session.user_id,
+        session_user_id: sessionUserId,
         lastAccessedAt: new Date(),
       });
 
@@ -61,7 +63,7 @@ export function useCreateRoom() {
           db
             .insert(app.roomMetadata, {
               room_id: room.id,
-              session_user_id: session.user_id,
+              session_user_id: sessionUserId,
               title: "",
               editorLanguage: "plaintext",
             })

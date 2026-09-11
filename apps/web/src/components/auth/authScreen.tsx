@@ -2,10 +2,11 @@ import { app } from "@rcode/schema";
 import { buttonVariants } from "@rcode/ui/button";
 import { Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { RecoveryPhrase } from "jazz-tools/passphrase";
-import { useDb, useLocalFirstAuth, useSession } from "jazz-tools/react";
+import { useDb, useSession } from "jazz-tools/react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useProfileIdentity } from "../../hooks/useProfileIdentity";
 import { authClient } from "../../lib/auth-client";
+import { emailAuthUnavailable, isEmailAuthEnabled, useRcodeJazzAuth } from "../../lib/jazzAuth";
 import { toasts } from "../../lib/toasts";
 import { type AuthMethod, AuthShell } from "./authShell";
 import { EmailSignInForm } from "./emailSignInForm";
@@ -61,9 +62,8 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
   const navigate = useNavigate();
   const db = useDb();
   const session = useSession();
-  const localFirstAuth = useLocalFirstAuth();
-  const { data: authSession } = authClient.useSession();
-  const sessionUserId = session?.user_id ?? null;
+  const jazzAuth = useRcodeJazzAuth();
+  const sessionUserId = session?.user.account ?? null;
   const profileIdentity = useProfileIdentity(sessionUserId, { confirmMissing: true });
   const profile = profileIdentity.profile;
   const [method, setMethod] = useState<AuthMethod>("email");
@@ -76,11 +76,10 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
   const [resendSecondsLeft, setResendSecondsLeft] = useState(30);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  const [isCheckingPassphraseProfile, setIsCheckingPassphraseProfile] = useState(false);
   const recoveryPhrase = useMemo(() => {
-    if (localFirstAuth.secret === null || localFirstAuth.secret === undefined) return null;
-    return RecoveryPhrase.fromSecret(localFirstAuth.secret);
-  }, [localFirstAuth.secret]);
+    const secret = jazzAuth.getRecoverySecret();
+    return secret === null ? null : RecoveryPhrase.fromSecret(secret);
+  }, [jazzAuth, sessionUserId]);
   const hasCompletedProfile = isCompletedDisplayName(profile?.displayName);
   const title = intent === "sign-in" ? "SIGN IN" : "SIGN UP";
   const email = intent === "sign-in" ? signInEmail : signUpValues.email;
@@ -97,24 +96,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
     return () => window.clearInterval(timer);
   }, [otpStep, resendSecondsLeft]);
 
-  useEffect(() => {
-    if (isCheckingPassphraseProfile === false || profileIdentity.isLoading === true) {
-      return;
-    }
-
-    if (isCompletedDisplayName(profile?.displayName) === true) {
-      setIsCheckingPassphraseProfile(false);
-      void navigate({ to: "/dashboard" });
-      return;
-    }
-
-    if (profileIdentity.isResolvedEmpty === true) {
-      setIsCheckingPassphraseProfile(false);
-      toasts.auth.missingPassphraseProfile();
-    }
-  }, [isCheckingPassphraseProfile, navigate, profile, profileIdentity.isLoading, profileIdentity.isResolvedEmpty]);
-
-  if (hasCompletedProfile === true && profileIdentity.isLoading === false && isCheckingPassphraseProfile === false) {
+  if (hasCompletedProfile === true && profileIdentity.isLoading === false) {
     return <Navigate replace to="/dashboard" />;
   }
 
@@ -124,7 +106,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
     setSignUpValues((currentValues) => ({ ...currentValues, [field]: value }));
   };
 
-  const upsertProfile = async (nextDisplayName: string) => {
+  const upsertProfile = async (nextDisplayName: string, activeDb = db) => {
     if (sessionUserId === null) {
       throw new Error("A Jazz identity is required before creating a profile.");
     }
@@ -136,11 +118,11 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
     }
 
     if (profile !== null) {
-      await db.update(app.profiles, profile.id, { displayName: trimmedDisplayName, origin: "user-created", setupPromptDismissed: true }).wait({ tier: "edge" });
+      await activeDb.update(app.profiles, profile.id, { displayName: trimmedDisplayName, origin: "user-created", setupPromptDismissed: true }).wait({ tier: "edge" });
       return;
     }
 
-    await db
+    await activeDb
       .insert(app.profiles, {
         session_user_id: sessionUserId,
         displayName: trimmedDisplayName,
@@ -152,6 +134,11 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
 
   const requestOtp = async (isResend: boolean) => {
     clearFeedback();
+
+    if (isEmailAuthEnabled === false) {
+      toasts.auth.error(emailAuthUnavailable);
+      return;
+    }
 
     if (isResend === true) {
       setIsResending(true);
@@ -172,12 +159,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
             })
           : null;
 
-      if (intent === "sign-up" && (localFirstAuth.secret === null || proofToken === null)) {
-        if (authSession?.session !== undefined) {
-          await authClient.signOut();
-          throw new Error("Previous email session cleared. Try signing up again.");
-        }
-
+      if (intent === "sign-up" && proofToken === null) {
         throw new Error("Sign up requires an active Jazz local-first identity. Refresh and try again.");
       }
 
@@ -217,6 +199,11 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
   };
 
   const verifyOtpCode = async (nextOtp: string) => {
+    if (isEmailAuthEnabled === false) {
+      toasts.auth.error(emailAuthUnavailable);
+      return;
+    }
+
     clearFeedback();
     setIsSubmitting(true);
 
@@ -230,34 +217,24 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
           : null;
 
       if (intent === "sign-up" && (proofToken === null || proofToken === undefined)) {
-        if (authSession?.session !== undefined) {
-          await authClient.signOut();
-          throw new Error("Previous email session cleared. Try signing up again.");
-        }
-
         throw new Error("Sign up requires an active Jazz local-first identity.");
       }
 
-      const result = await authClient.signIn.emailOtp({
-        email,
-        otp: nextOtp,
-        name: intent === "sign-up" ? signUpValues.displayName : undefined,
-        proofToken: proofToken ?? undefined,
-      } as Parameters<typeof authClient.signIn.emailOtp>[0]);
+      const activeDb = await jazzAuth.withProviderAccount(intent === "sign-up" ? "link" : "login", async () => {
+        const result = await authClient.signIn.emailOtp({
+          email,
+          otp: nextOtp,
+          name: intent === "sign-up" ? signUpValues.displayName : undefined,
+          proofToken: proofToken ?? undefined,
+        } as Parameters<typeof authClient.signIn.emailOtp>[0]);
 
-      if (result.error !== null && result.error !== undefined) {
-        throw new Error(result.error.message ?? "Verification failed.");
-      }
+        if (result.error !== null && result.error !== undefined) {
+          throw new Error(result.error.message ?? "Verification failed.");
+        }
+      });
 
       if (intent === "sign-up") {
-        const signedInUserId = result.data?.user?.id;
-
-        if (sessionUserId !== null && signedInUserId !== sessionUserId) {
-          await authClient.signOut();
-          throw new Error("This email is already linked to another identity. Sign in instead.");
-        }
-
-        await upsertProfile(signUpValues.displayName);
+        await upsertProfile(signUpValues.displayName, activeDb);
       }
 
       await navigate({ to: "/dashboard" });
@@ -316,8 +293,8 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
 
     try {
       const restoredSecret = RecoveryPhrase.toSecret(restorePhrase);
-      await localFirstAuth.login(restoredSecret);
-      setIsCheckingPassphraseProfile(true);
+      await jazzAuth.restoreLocalFirst(restoredSecret);
+      await navigate({ to: "/dashboard" });
     } catch {
       toasts.auth.invalidRecoveryPhrase();
     } finally {
@@ -406,7 +383,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
       ) : null}
       {method === "passphrase" && intent === "sign-in" ? (
         <PassphraseSignInForm
-          isSubmitting={isSubmitting || isCheckingPassphraseProfile}
+          isSubmitting={isSubmitting}
           restorePhrase={restorePhrase}
           onRestorePhraseChange={setRestorePhrase}
           onSubmit={handleRestore}

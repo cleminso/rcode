@@ -42,6 +42,7 @@ interface RoomProviderProps {
 export function RoomProvider(props: RoomProviderProps) {
   const db = useDb();
   const session = useSession();
+  const sessionUserId = session?.user.account ?? null;
   // Share-token collaborators gain write access through this durable row, and
   // the ref dedupes concurrent metadata/Yjs writes for the same in-flight insert.
   const participantWriteRef = useRef<Promise<void> | null>(null);
@@ -52,21 +53,23 @@ export function RoomProvider(props: RoomProviderProps) {
   const isSessionLoading = session === null;
   const roomLookup = useRoomLookup({ tokenType: "share", token: props.shareToken, enabled: isSessionLoading === false });
   const room = roomLookup.room;
-  const metadataRows = useAll(room !== null ? app.roomMetadata.where({ room_id: room.id }).limit(1) : undefined);
+  const metadataResult = useAll(room !== null ? app.roomMetadata.where({ room_id: room.id }).limit(1) : undefined);
+  const metadataRows = metadataResult.data;
   const metadata = metadataRows?.[0] ?? null;
   const canEditSession =
     session !== null &&
     (session.authMode === "local-first" || session.authMode === "external");
   const isArchived = room?.archivedAt !== undefined && room.archivedAt !== null;
-  const isCreator = session !== null && room?.creator_session_user_id === session.user_id;
-  const participantAccessKey = room !== null && canEditSession === true && isArchived === false && isCreator === false && session !== null
-    ? `${room.id}:${session.user_id}`
+  const isCreator = sessionUserId !== null && room?.creator_session_user_id === sessionUserId;
+  const participantAccessKey = room !== null && canEditSession === true && isArchived === false && isCreator === false && sessionUserId !== null
+    ? `${room.id}:${sessionUserId}`
     : null;
-  const participantRows = useAll(
-    participantAccessKey !== null && room !== null && session !== null
-      ? app.roomParticipants.where({ room_id: room.id, session_user_id: session.user_id }).limit(1)
+  const participantResult = useAll(
+    participantAccessKey !== null && room !== null && sessionUserId !== null
+      ? app.roomParticipants.where({ room_id: room.id, session_user_id: sessionUserId }).limit(1)
       : undefined,
   );
+  const participantRows = participantResult.data;
   const participant = participantRows?.[0] ?? null;
   const participantAccessReady = participantAccessKey === null || participant !== null || readyParticipantAccessKey === participantAccessKey;
   const isParticipantLoading = participantAccessKey !== null && (participantRows === undefined || participantAccessReady === false);
@@ -77,7 +80,7 @@ export function RoomProvider(props: RoomProviderProps) {
     isParticipantLoading === true;
 
   const ensureParticipant = useCallback(async () => {
-    if (canEditSession === false || room === null || session === null || isArchived === true) {
+    if (canEditSession === false || room === null || sessionUserId === null || isArchived === true) {
       return false;
     }
 
@@ -93,7 +96,7 @@ export function RoomProvider(props: RoomProviderProps) {
       participantWriteRef.current = db
         .insert(app.roomParticipants, {
           room_id: room.id,
-          session_user_id: session.user_id,
+          session_user_id: sessionUserId,
           lastAccessedAt: new Date(),
         })
         .wait({ tier: "edge" })
@@ -107,7 +110,7 @@ export function RoomProvider(props: RoomProviderProps) {
 
     await participantWriteRef.current;
     return true;
-  }, [canEditSession, db, isArchived, isCreator, participant, participantAccessKey, participantRows, readyParticipantAccessKey, room, session]);
+  }, [canEditSession, db, isArchived, isCreator, participant, participantAccessKey, participantRows, readyParticipantAccessKey, room, sessionUserId]);
 
   useEffect(() => {
     if (isSessionLoading === true || roomLookup.isLoading === true || (room !== null && metadataRows === undefined) || participantRows === undefined || participantAccessKey === null || participantAccessReady === true) {
@@ -120,11 +123,11 @@ export function RoomProvider(props: RoomProviderProps) {
   }, [ensureParticipant, isSessionLoading, metadataRows, participantAccessKey, participantAccessReady, participantRows, room, roomLookup.isLoading]);
 
   useEffect(() => {
-    if (canEditSession === false || participant === null || session === null || isArchived === true) {
+    if (canEditSession === false || participant === null || sessionUserId === null || isArchived === true) {
       return;
     }
 
-    const updateKey = `${participant.id}:${session.user_id}`;
+    const updateKey = `${participant.id}:${sessionUserId}`;
 
     if (participantAccessUpdateKeyRef.current === updateKey) {
       return;
@@ -141,7 +144,7 @@ export function RoomProvider(props: RoomProviderProps) {
         participantAccessUpdateKeyRef.current = null;
         console.error("Failed to update room access.", caughtError);
       });
-  }, [canEditSession, db, isArchived, participant, session]);
+  }, [canEditSession, db, isArchived, participant, sessionUserId]);
 
   const notifyYjsProviderError = useCallback((error: YjsProviderError) => {
     toasts.rooms.providerError(error);
@@ -151,7 +154,7 @@ export function RoomProvider(props: RoomProviderProps) {
   const currentProfile = useCurrentProfile({
     autoCreate: isLoading === false && canAccessContent === true,
   });
-  const { isYjsReady, ydoc } = useJazzYjsDocument({
+  const { error: yjsError, isYjsReady, ydoc } = useJazzYjsDocument({
     // Expose roomId only with room metadata and participant state loaded;
     // otherwise the editor can bootstrap without its write permission path.
     // Creators can still load archived rooms in read-only mode.
@@ -175,7 +178,7 @@ export function RoomProvider(props: RoomProviderProps) {
         isLocal: true,
         sessionUserId: currentProfile.sessionUserId,
       };
-  const roomPresence = useRoomPresence(presenceRoomId, session?.user_id ?? null, localPresenceUser);
+  const roomPresence = useRoomPresence(presenceRoomId, sessionUserId, localPresenceUser);
 
   // Reset toast tracking state when switching rooms so the previous room's
   // known users don't trigger spurious "left" toasts.
@@ -209,13 +212,13 @@ export function RoomProvider(props: RoomProviderProps) {
     }
 
     for (const [sessionUserId, displayName] of previousUsers) {
-      if (nextUsers.has(sessionUserId) === false && sessionUserId !== session?.user_id) {
+      if (nextUsers.has(sessionUserId) === false && sessionUserId !== session?.user.account) {
         toasts.rooms.userLeft(displayName);
       }
     }
 
     knownPresenceUsersRef.current = nextUsers;
-  }, [isYjsReady, roomPresence, session?.user_id]);
+  }, [isYjsReady, roomPresence, session?.user.account]);
 
   const updateMetadata = async (metadataPatch: { title?: string; editorLanguage?: string }) => {
     if (isLoading === true || room === null || isArchived === true || canEditSession === false) {
@@ -240,14 +243,14 @@ export function RoomProvider(props: RoomProviderProps) {
   };
 
   const archiveRoom = async () => {
-    if (room === null || isCreator === false || session === null) {
+    if (room === null || isCreator === false || sessionUserId === null) {
       return;
     }
 
     await db
       .update(app.rooms, room.id, {
         archivedAt: new Date(),
-        archivedBySessionUserId: session.user_id,
+        archivedBySessionUserId: sessionUserId,
       })
       .wait({ tier: "edge" });
   };
@@ -264,6 +267,12 @@ export function RoomProvider(props: RoomProviderProps) {
       })
       .wait({ tier: "edge" });
   };
+
+  const queryError = metadataResult.error ?? participantResult.error ?? yjsError;
+
+  if (queryError !== null) {
+    throw queryError;
+  }
 
   return (
     <RoomContext.Provider
