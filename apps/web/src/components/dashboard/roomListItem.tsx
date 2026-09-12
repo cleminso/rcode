@@ -2,8 +2,9 @@ import { languages } from "@rcode/icons/languages";
 import { FormattedDate } from "@rcode/ui/formattedDate";
 import { Link } from "@tanstack/react-router";
 import { memo, useEffect, useRef } from "react";
+import type { ProfileIdentitySummary } from "../../hooks/useProfileIdentities";
 import { usePrefetchRoom } from "../../hooks/usePrefetchRoom";
-import { ProfileIdentityAvatar } from "../account/profileIdentityAvatar";
+import { ProfileAvatar } from "../account/profileAvatar";
 import { RoomParticipantsCell, type RoomParticipant } from "./roomParticipantsCell";
 
 export interface DashboardRoomListItemRoom {
@@ -19,8 +20,10 @@ export interface DashboardRoomListItemRoom {
 interface RoomListItemProps {
   room: DashboardRoomListItemRoom;
   isSelected: boolean;
+  isProfilesLoading: boolean;
   lastAccessedAt: Date | null;
   participants: RoomParticipant[];
+  profilesBySessionUserId: ReadonlyMap<string, ProfileIdentitySummary>;
 }
 
 export const roomListItemHeight = 36;
@@ -33,6 +36,7 @@ export const RoomListItem = memo(function RoomListItem(props: RoomListItemProps)
   const language = languageByValue.get(props.room.editorLanguage);
   const LanguageLogo = language?.logo;
   const title = props.room.title.trim().length > 0 ? props.room.title : "Untitled room";
+  const creatorProfile = props.profilesBySessionUserId.get(props.room.creatorSessionUserId);
   const { prefetch, cancelPrefetch } = usePrefetchRoom();
 
   // Counts how many focusing inputs are currently active (hover + focus).
@@ -123,10 +127,25 @@ export const RoomListItem = memo(function RoomListItem(props: RoomListItemProps)
         <FormattedDate date={props.lastAccessedAt} variant="default" className="text-xs" />
       </span>
       <span className="justify-self-start flexrow-1">
-        <RoomParticipantsCell creatorSessionUserId={props.room.creatorSessionUserId} participants={props.participants} />
+        <RoomParticipantsCell
+          creatorSessionUserId={props.room.creatorSessionUserId}
+          isProfilesLoading={props.isProfilesLoading}
+          participants={props.participants}
+          profilesBySessionUserId={props.profilesBySessionUserId}
+        />
       </span>
       <span className="justify-self-start flexrow-1">
-        <ProfileIdentityAvatar sessionUserId={props.room.creatorSessionUserId} size="sm" />
+        {creatorProfile === undefined && props.isProfilesLoading === true ? (
+          <span className="block size-5 animate-pulse rounded-xs bg-muted" />
+        ) : creatorProfile === undefined ? (
+          <span className="text-xs text-muted-foreground">-</span>
+        ) : (
+          <ProfileAvatar
+            avatarFileId={creatorProfile.avatarFileId}
+            displayName={creatorProfile.displayName}
+            size="sm"
+          />
+        )}
       </span>
     </Link>
   );

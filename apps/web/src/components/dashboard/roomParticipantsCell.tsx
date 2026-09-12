@@ -1,6 +1,7 @@
 import { AvatarGroup, AvatarGroupCount } from "@rcode/ui/avatar";
 import { useMemo } from "react";
-import { ProfileIdentityAvatar } from "../account/profileIdentityAvatar";
+import type { ProfileIdentitySummary } from "../../hooks/useProfileIdentities";
+import { ProfileAvatar } from "../account/profileAvatar";
 
 export interface RoomParticipant {
   avatarFileId?: string | null;
@@ -12,7 +13,9 @@ export interface RoomParticipant {
 
 interface RoomParticipantsCellProps {
   creatorSessionUserId: string | null;
+  isProfilesLoading: boolean;
   participants: RoomParticipant[];
+  profilesBySessionUserId: ReadonlyMap<string, ProfileIdentitySummary>;
 }
 
 const maxVisibleItems = 4;
@@ -61,15 +64,23 @@ export function RoomParticipantsCell(props: RoomParticipantsCellProps) {
 
   return (
     <AvatarGroup className="justify-end" title={participants.map((participant) => participant.displayName).join(", ")}>
-      {visibleParticipants.map((participant) => (
-        <ProfileIdentityAvatar
-          key={participant.sessionUserId}
-          fallbackDisplayName={participant.displayName}
-          imageUrl={participant.imageUrl ?? participant.picture}
-          sessionUserId={participant.sessionUserId}
-          size="sm"
-        />
-      ))}
+      {visibleParticipants.map((participant) => {
+        const profile = props.profilesBySessionUserId.get(participant.sessionUserId);
+
+        if (profile === undefined && props.isProfilesLoading === true) {
+          return <span key={participant.sessionUserId} className="block size-5 animate-pulse rounded-xs bg-muted" />;
+        }
+
+        return (
+          <ProfileAvatar
+            key={participant.sessionUserId}
+            avatarFileId={profile?.avatarFileId}
+            displayName={profile?.displayName ?? participant.displayName}
+            imageUrl={participant.imageUrl ?? participant.picture}
+            size="sm"
+          />
+        );
+      })}
       {hiddenParticipantCount > 0 ? <AvatarGroupCount>+{hiddenParticipantCount}</AvatarGroupCount> : null}
     </AvatarGroup>
   );

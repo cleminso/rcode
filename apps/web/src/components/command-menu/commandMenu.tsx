@@ -11,6 +11,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useRooms, type RoomSummary } from "../../hooks/useRooms";
+import { getErrorMessage } from "../../lib/errors";
 import { toasts } from "../../lib/toasts";
 import { LanguageCommandItems } from "../editor/languageCommandItems";
 import { useRoom } from "../editor/roomProvider";
@@ -33,7 +34,7 @@ export function CommandMenu(props: CommandMenuProps) {
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState<CommandMenuPage>("root");
   const selectedLanguage = getLanguage(room.editorLanguage);
-  const roomsList = useRooms();
+  const roomsList = useRooms({ enabled: open === true && page === "rooms" });
   const switchableRooms = roomsList.rooms.filter((listedRoom) => listedRoom.isArchived === false);
 
   const getRoomCommandValue = (listedRoom: RoomSummary) => {
@@ -59,19 +60,27 @@ export function CommandMenu(props: CommandMenuProps) {
   };
 
   const selectLanguage = (language: Language) => {
-    void room.updateEditorLanguage(language.value);
     closeMenu();
+    void room.updateEditorLanguage(language.value).catch((error: unknown) => {
+      toasts.rooms.error(getErrorMessage(error, "Editor language could not be updated."));
+    });
   };
 
   const switchRoom = (shareToken: string) => {
     closeMenu();
-    void navigate({ to: "/rooms/$shareToken", params: { shareToken } });
+    void navigate({ to: "/rooms/$shareToken", params: { shareToken } }).catch((error: unknown) => {
+      toasts.rooms.error(getErrorMessage(error, "Room could not be opened."));
+    });
   };
 
   const archiveRoom = async () => {
-    await room.archiveRoom();
-    toasts.rooms.archived();
-    await navigate({ to: "/dashboard" });
+    try {
+      await room.archiveRoom();
+      toasts.rooms.archived();
+      await navigate({ to: "/dashboard" });
+    } catch (error) {
+      toasts.rooms.error(getErrorMessage(error, "Room could not be archived."));
+    }
   };
 
   useEffect(() => {

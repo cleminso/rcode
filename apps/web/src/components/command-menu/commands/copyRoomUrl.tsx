@@ -1,5 +1,6 @@
 import { CommandItem } from "@rcode/ui/command";
 import { useMemo } from "react";
+import { getErrorMessage } from "../../../lib/errors";
 import { toasts } from "../../../lib/toasts";
 
 const COPY_ROOM_URL_KEYWORDS = ["copy", "link"];
@@ -15,11 +16,13 @@ export function CopyRoomUrlCommand(props: CopyRoomUrlCommandProps) {
   const keywords = useMemo(() => [props.url, ...COPY_ROOM_URL_KEYWORDS], [props.url]);
 
   const handleSelect = async () => {
-    await navigator.clipboard.writeText(props.url);
-
-    toasts.rooms.linkCopied(props.toastTitle, props.url);
-
-    props.onComplete();
+    try {
+      await navigator.clipboard.writeText(props.url);
+      toasts.rooms.linkCopied(props.toastTitle, props.url);
+      props.onComplete();
+    } catch (error) {
+      toasts.rooms.error(getErrorMessage(error, "Room link could not be copied."));
+    }
   };
 
   return (

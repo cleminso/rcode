@@ -1,9 +1,7 @@
-import { languages } from "@rcode/icons/languages";
 import { cn } from "@rcode/ui/lib/utils";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { type BundledLanguage, createHighlighter } from "shiki";
-import { vitesseLight, zedokai } from "../editor/themes";
+import { getCodeHighlighter } from "../../lib/codeHighlighter";
 import { CopyCodeButton } from "./copyCodeButton";
 
 interface CodeBlockProps extends React.ComponentProps<"div"> {
@@ -17,12 +15,6 @@ interface ScrollEdges {
   bottom: boolean;
   left: boolean;
 }
-
-const highlighterPromise = createHighlighter({
-  themes: [vitesseLight, zedokai],
-  // TODO: Load only the active room language once Shiki language loading behavior is verified.
-  langs: languages.map((language) => language.value),
-});
 
 const initialScrollEdges: ScrollEdges = {
   top: true,
@@ -43,7 +35,12 @@ export function CodeBlock({ code, lang, className, ...props }: CodeBlockProps) {
   const { theme, systemTheme } = useTheme();
   const resolvedTheme = getResolvedTheme(theme, systemTheme);
   const shikiTheme = resolvedTheme === "dark" ? "zedokai" : "vitesse-light";
-  const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
+  const [highlightedCode, setHighlightedCode] = useState<{
+    code: string;
+    html: string;
+    lang: string;
+    theme: string;
+  } | null>(null);
   const [scrollEdges, setScrollEdges] = useState<ScrollEdges>(initialScrollEdges);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const lineNumbers = useMemo(() => {
@@ -55,16 +52,24 @@ export function CodeBlock({ code, lang, className, ...props }: CodeBlockProps) {
   useEffect(() => {
     let isActive = true;
 
-    void highlighterPromise.then((highlighter) => {
-      const html = highlighter.codeToHtml(code, {
-        lang: lang as BundledLanguage,
-        theme: shikiTheme,
-      });
+    void getCodeHighlighter(lang)
+      .then(({ highlighter, language }) => {
+        const html = highlighter.codeToHtml(code, {
+          lang: language,
+          theme: shikiTheme,
+        });
 
-      if (isActive === true) {
-        setHighlightedHtml(html);
-      }
-    });
+        if (isActive === true) {
+          setHighlightedCode({ code, html, lang, theme: shikiTheme });
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to highlight static room code.", error);
+
+        if (isActive === true) {
+          setHighlightedCode({ code, html: "", lang, theme: shikiTheme });
+        }
+      });
 
     return () => {
       isActive = false;
@@ -106,7 +111,7 @@ export function CodeBlock({ code, lang, className, ...props }: CodeBlockProps) {
       scroller.removeEventListener("scroll", updateScrollEdges);
       window.removeEventListener("resize", updateScrollEdges);
     };
-  }, [highlightedHtml]);
+  }, [highlightedCode]);
 
   useEffect(() => {
     const scroller = scrollerRef.current;
@@ -119,6 +124,21 @@ export function CodeBlock({ code, lang, className, ...props }: CodeBlockProps) {
     scroller.scrollTop = 0;
     setScrollEdges(initialScrollEdges);
   }, [code, lang]);
+
+  const highlightedHtml =
+    highlightedCode !== null &&
+    highlightedCode.code === code &&
+    highlightedCode.lang === lang &&
+    highlightedCode.theme === shikiTheme &&
+    highlightedCode.html !== ""
+      ? highlightedCode.html
+      : null;
+  const didHighlightFail =
+    highlightedCode !== null &&
+    highlightedCode.code === code &&
+    highlightedCode.lang === lang &&
+    highlightedCode.theme === shikiTheme &&
+    highlightedCode.html === "";
 
   return (
     <div
@@ -174,6 +194,8 @@ export function CodeBlock({ code, lang, className, ...props }: CodeBlockProps) {
                 className="[&_.line]:min-h-6 [&_code]:grid! [&_code]:min-w-max [&_pre]:m-0! [&_pre]:bg-transparent! [&_pre]:p-0! [&_pre]:font-mono! [&_pre]:leading-6!"
                 dangerouslySetInnerHTML={{ __html: highlightedHtml }}
               />
+            ) : didHighlightFail === true ? (
+              <pre className="m-0 font-mono leading-6 text-foreground">{code}</pre>
             ) : (
               <pre className="m-0 font-mono leading-6 text-muted-foreground">Loading code.</pre>
             )}

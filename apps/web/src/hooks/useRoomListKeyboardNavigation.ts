@@ -16,12 +16,13 @@ interface UseRoomListKeyboardNavigationOptions {
 const roomShortcutKeys = ["1", "2", "3", "4", "5", "6", "7", "8", "9"] as const;
 
 export function useRoomListKeyboardNavigation(options: UseRoomListKeyboardNavigationOptions) {
+  const { isEnabled, rooms, scrollParentRef, scrollToIndex } = options;
   const navigate = useNavigate();
   const [selectedRoomIndex, setSelectedRoomIndex] = useState(-1);
 
   useEffect(() => {
     setSelectedRoomIndex((currentIndex) => {
-      if (options.rooms.length === 0) {
+      if (rooms.length === 0) {
         return -1;
       }
 
@@ -29,37 +30,39 @@ export function useRoomListKeyboardNavigation(options: UseRoomListKeyboardNaviga
         return 0;
       }
 
-      return Math.min(currentIndex, options.rooms.length - 1);
+      return Math.min(currentIndex, rooms.length - 1);
     });
-  }, [options.rooms.length]);
+  }, [rooms.length]);
 
   const openRoom = useCallback((index: number) => {
-    const room = options.rooms[index];
+    const room = rooms[index];
 
     if (room === undefined) {
       return;
     }
 
-    void navigate({ to: "/rooms/$shareToken", params: { shareToken: room.shareToken } });
-  }, [navigate, options.rooms]);
+    void navigate({ to: "/rooms/$shareToken", params: { shareToken: room.shareToken } }).catch((error: unknown) => {
+      console.error("Failed to open room.", error);
+    });
+  }, [navigate, rooms]);
 
   const moveSelection = useCallback((direction: 1 | -1) => {
-    if (options.rooms.length === 0) {
+    if (rooms.length === 0) {
       return;
     }
 
-    options.scrollParentRef.current?.focus({ preventScroll: true });
+    scrollParentRef.current?.focus({ preventScroll: true });
     setSelectedRoomIndex((currentIndex) => {
-      const nextIndex = Math.min(Math.max(currentIndex + direction, 0), options.rooms.length - 1);
-      options.scrollToIndex(nextIndex);
+      const nextIndex = Math.min(Math.max(currentIndex + direction, 0), rooms.length - 1);
+      scrollToIndex(nextIndex);
 
       return nextIndex;
     });
-  }, [options]);
+  }, [rooms.length, scrollParentRef, scrollToIndex]);
 
   const hotkeys = useMemo<UseHotkeyDefinition[]>(() => [
     ...roomShortcutKeys.flatMap((hotkey, index) => {
-      if (options.rooms[index] === undefined) {
+      if (rooms[index] === undefined) {
         return [];
       }
 
@@ -84,10 +87,10 @@ export function useRoomListKeyboardNavigation(options: UseRoomListKeyboardNaviga
       callback: () => openRoom(selectedRoomIndex),
       options: { meta: { name: "Open selected room" } },
     },
-  ], [moveSelection, openRoom, options.rooms, selectedRoomIndex]);
+  ], [moveSelection, openRoom, rooms, selectedRoomIndex]);
 
   useHotkeys(hotkeys, {
-    enabled: options.isEnabled,
+    enabled: isEnabled,
     preventDefault: true,
   });
 

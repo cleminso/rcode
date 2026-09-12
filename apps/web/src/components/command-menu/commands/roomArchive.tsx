@@ -14,7 +14,15 @@ export function ArchiveRoomCommand(props: ArchiveRoomCommandProps) {
   };
 
   return (
-    <CommandItem value="Archive room" keywords={ARCHIVE_ROOM_KEYWORDS} onSelect={() => void handleSelect()}>
+    <CommandItem
+      value="Archive room"
+      keywords={ARCHIVE_ROOM_KEYWORDS}
+      onSelect={() => {
+        void handleSelect().catch((error: unknown) => {
+          console.error("Failed to archive room.", error);
+        });
+      }}
+    >
       <span>Archive room</span>
     </CommandItem>
   );

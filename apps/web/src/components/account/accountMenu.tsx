@@ -44,7 +44,14 @@ export function AccountMenu({ avatarFileId, displayName, shouldShowSetupPrompt =
           <DropdownMenuLabel className="truncate text-foreground">{displayName}</DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="default" onClick={() => void navigate({ to: "/account" })}>
+        <DropdownMenuItem
+          variant="default"
+          onClick={() => {
+            void navigate({ to: "/account" }).catch((error: unknown) => {
+              console.error("Failed to open account.", error);
+            });
+          }}
+        >
           <span>Settings</span>
           {shouldShowSetupPrompt === true ? <span className="ml-auto size-2 rounded-full bg-destructive" /> : null}
         </DropdownMenuItem>

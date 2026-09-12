@@ -16,18 +16,33 @@ interface ProfileAvatarProps {
   title?: string;
 }
 
-const avatarObjectUrlCache = new Map<string, string>();
-const avatarBlobLoadCache = new Map<string, Promise<string>>();
+const avatarBlobCache = new Map<string, Blob>();
+const avatarBlobLoadCache = new Map<string, Promise<Blob>>();
+const maxCachedAvatarBlobs = 100;
 
 function getAvatarBlobLoadCacheKey(avatarFileId: string, loadTier: "local-first" | "remote") {
   return `${loadTier}:${avatarFileId}`;
 }
 
-function loadAvatarObjectUrl(db: ReturnType<typeof useDb>, avatarFileId: string, loadTier: "local-first" | "remote") {
-  const cachedObjectUrl = avatarObjectUrlCache.get(avatarFileId);
+function cacheAvatarBlob(avatarFileId: string, blob: Blob) {
+  avatarBlobCache.delete(avatarFileId);
+  avatarBlobCache.set(avatarFileId, blob);
 
-  if (cachedObjectUrl !== undefined) {
-    return Promise.resolve(cachedObjectUrl);
+  if (avatarBlobCache.size > maxCachedAvatarBlobs) {
+    const oldestAvatarFileId = avatarBlobCache.keys().next().value;
+
+    if (oldestAvatarFileId !== undefined) {
+      avatarBlobCache.delete(oldestAvatarFileId);
+    }
+  }
+}
+
+function loadAvatarBlob(db: ReturnType<typeof useDb>, avatarFileId: string, loadTier: "local-first" | "remote") {
+  const cachedBlob = avatarBlobCache.get(avatarFileId);
+
+  if (cachedBlob !== undefined) {
+    cacheAvatarBlob(avatarFileId, cachedBlob);
+    return Promise.resolve(cachedBlob);
   }
 
   const cacheKey = getAvatarBlobLoadCacheKey(avatarFileId, loadTier);
@@ -47,16 +62,11 @@ function loadAvatarObjectUrl(db: ReturnType<typeof useDb>, avatarFileId: string,
       }
 
       const blob = new Blob([new Uint8Array(file.data)], { type: file.mimeType });
-      const objectUrl = URL.createObjectURL(blob);
-
-      avatarObjectUrlCache.set(avatarFileId, objectUrl);
-      avatarBlobLoadCache.delete(cacheKey);
-
-      return objectUrl;
+      cacheAvatarBlob(avatarFileId, blob);
+      return blob;
     })
-    .catch((caughtError: unknown) => {
+    .finally(() => {
       avatarBlobLoadCache.delete(cacheKey);
-      throw caughtError;
     });
 
   avatarBlobLoadCache.set(cacheKey, loadPromise);
@@ -66,44 +76,48 @@ function loadAvatarObjectUrl(db: ReturnType<typeof useDb>, avatarFileId: string,
 
 export function ProfileAvatar({ avatarFileId, badge, className, displayName, imageClassName, imageUrl, loadTier = "local-first", size = "sm", title }: ProfileAvatarProps) {
   const db = useDb();
-  const [objectUrl, setObjectUrl] = useState<string | null>(() => {
-    if (avatarFileId === undefined || avatarFileId === null) {
-      return null;
-    }
-
-    return avatarObjectUrlCache.get(avatarFileId) ?? null;
-  });
+  const [objectUrlState, setObjectUrlState] = useState<{ avatarFileId: string; url: string } | null>(null);
 
   useEffect(() => {
+    if (imageUrl !== undefined && imageUrl !== null) {
+      setObjectUrlState(null);
+      return;
+    }
+
     if (avatarFileId === undefined || avatarFileId === null) {
-      setObjectUrl(null);
+      setObjectUrlState(null);
       return;
     }
 
     let isCurrent = true;
-    const cachedObjectUrl = avatarObjectUrlCache.get(avatarFileId);
+    let createdObjectUrl: string | null = null;
 
-    if (cachedObjectUrl !== undefined) {
-      setObjectUrl(cachedObjectUrl);
-      return;
-    }
-
-    void loadAvatarObjectUrl(db, avatarFileId, loadTier)
+    void loadAvatarBlob(db, avatarFileId, loadTier)
       .then((blob) => {
         if (isCurrent === true) {
-          setObjectUrl(blob);
+          createdObjectUrl = URL.createObjectURL(blob);
+          setObjectUrlState({ avatarFileId, url: createdObjectUrl });
         }
       })
       .catch(() => {
         if (isCurrent === true) {
-          setObjectUrl(null);
+          setObjectUrlState(null);
         }
       });
 
     return () => {
       isCurrent = false;
+
+      if (createdObjectUrl !== null) {
+        URL.revokeObjectURL(createdObjectUrl);
+      }
     };
-  }, [avatarFileId, db, loadTier]);
+  }, [avatarFileId, db, imageUrl, loadTier]);
+
+  const objectUrl =
+    objectUrlState !== null && objectUrlState.avatarFileId === avatarFileId
+      ? objectUrlState.url
+      : null;
 
   return (
     <Avatar className={className} size={size} title={title}>

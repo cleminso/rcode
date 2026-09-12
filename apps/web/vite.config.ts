@@ -40,28 +40,6 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
-    sourcemap: true,
     target: "es2022",
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes("monaco-editor")) {
-            return "monaco";
-          }
-          if (id.includes("yjs") || id.includes("y-protocols") || id.includes("y-monaco")) {
-            return "yjs";
-          }
-          if (id.includes("better-auth")) {
-            return "better-auth";
-          }
-          if (id.includes("node_modules/react/") || id.includes("node_modules/react-dom/")) {
-            return "react";
-          }
-          if (id.includes("@tanstack/react-router")) {
-            return "router";
-          }
-        },
-      },
-    },
   },
 });

@@ -12,7 +12,9 @@ import {
 import { Separator } from "@rcode/ui/ui/separator"
 import { useHotkeys } from "@tanstack/react-hotkeys";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { getErrorMessage } from "../../lib/errors";
+import { toasts } from "../../lib/toasts";
 import { CommandMenu } from "../command-menu/commandMenu";
 import { EditorLayout } from "../layout/editorLayout";
 import { LogoButton } from "../layout/logoButton";
@@ -30,23 +32,25 @@ interface EditorScreenProps {
 
 export function EditorScreen(props: EditorScreenProps) {
   return (
-    <RoomProvider shareToken={props.shareToken}>
+    <RoomProvider key={props.shareToken} shareToken={props.shareToken}>
       <EditorContent />
     </RoomProvider>
   );
 }
 
 function EditorContent() {
-  const { currentProfile, editorLanguage, isArchived, isCreator, isLoading, isYjsReady, roomExists, roomPresence, title, unarchiveRoom, updateEditorLanguage, updateTitle } = useRoom();
+  const { awareness, canEdit, currentProfile, editorLanguage, isArchived, isCreator, isLoading, isYjsReady, roomExists, roomPresence, title, unarchiveRoom, updateEditorLanguage, updateTitle, ydoc } = useRoom();
   const navigate = useNavigate();
+  const cursorPositionRef = useRef<HTMLSpanElement>(null);
   const [languagePickerOpen, setLanguagePickerOpen] = useState(false);
   const [titleEditRequest, setTitleEditRequest] = useState(0);
   const [switchRoomsRequest, setSwitchRoomsRequest] = useState(0);
   const [isUnarchiving, setIsUnarchiving] = useState(false);
-  const [cursorPosition, setCursorPosition] = useState<{ line: number; column: number } | null>(null);
 
   const handleCursorPositionChange = useCallback((line: number, column: number) => {
-    setCursorPosition({ line, column });
+    if (cursorPositionRef.current !== null) {
+      cursorPositionRef.current.textContent = `Ln ${line}, Col ${column}`;
+    }
   }, []);
 
   const canAccessContent = roomExists === true && (isArchived === false || isCreator === true);
@@ -75,7 +79,9 @@ function EditorContent() {
           }
         }
 
-        void navigate({ to: "/dashboard" });
+        void navigate({ to: "/dashboard" }).catch((error: unknown) => {
+          toasts.rooms.error(getErrorMessage(error, "Dashboard could not be opened."));
+        });
       },
       options: {
         enabled: isReady,
@@ -92,10 +98,25 @@ function EditorContent() {
 
     try {
       await unarchiveRoom();
+      toasts.rooms.unarchived();
+    } catch (error) {
+      toasts.rooms.error(getErrorMessage(error, "Room could not be restored."));
     } finally {
       setIsUnarchiving(false);
     }
   };
+
+  const handleEditorLanguageChange = useCallback((nextEditorLanguage: string) => {
+    void updateEditorLanguage(nextEditorLanguage).catch((error: unknown) => {
+      toasts.rooms.error(getErrorMessage(error, "Editor language could not be updated."));
+    });
+  }, [updateEditorLanguage]);
+
+  const handleTitleCommit = useCallback((nextTitle: string) => {
+    void updateTitle(nextTitle).catch((error: unknown) => {
+      toasts.rooms.error(getErrorMessage(error, "Room title could not be updated."));
+    });
+  }, [updateTitle]);
 
   if (isLoading === false && canAccessContent === false) {
     return (
@@ -146,7 +167,7 @@ function EditorContent() {
                 open={languagePickerOpen}
                 value={editorLanguage}
                 onOpenChange={setLanguagePickerOpen}
-                onValueChange={(nextEditorLanguage) => void updateEditorLanguage(nextEditorLanguage)}
+                onValueChange={handleEditorLanguageChange}
               />
             )}
           </div>
@@ -159,7 +180,7 @@ function EditorContent() {
                 logo={currentLanguageLogo}
                 value={title}
                 onSwitchRooms={() => setSwitchRoomsRequest((currentRequest) => currentRequest + 1)}
-                onValueCommit={(nextTitle) => void updateTitle(nextTitle)}
+                onValueCommit={handleTitleCommit}
               />
           )}
 
@@ -205,11 +226,7 @@ function EditorContent() {
       }
       footer={
         <div className="flex w-full items-center justify-between">
-          {cursorPosition !== null ? (
-            <span className="ml-auto font-mono text-xs text-muted-foreground">
-              Ln {cursorPosition.line}, Col {cursorPosition.column}
-            </span>
-          ) : null}
+          <span ref={cursorPositionRef} className="ml-auto font-mono text-xs text-muted-foreground" />
         </div>
       }
     >
@@ -221,7 +238,14 @@ function EditorContent() {
             switchRoomsRequest={switchRoomsRequest}
             onEditTitle={() => setTitleEditRequest((currentRequest) => currentRequest + 1)}
           />
-          <EditorTextArea onCursorPositionChange={handleCursorPositionChange} />
+          <EditorTextArea
+            awareness={awareness}
+            canEdit={canEdit}
+            editorLanguage={editorLanguage}
+            isYjsReady={isYjsReady}
+            ydoc={ydoc}
+            onCursorPositionChange={handleCursorPositionChange}
+          />
         </div>
       )}
     </EditorLayout>

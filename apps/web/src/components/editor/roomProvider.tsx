@@ -1,5 +1,5 @@
 import { app } from "@rcode/schema";
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAll, useDb, useSession } from "jazz-tools/react";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
@@ -171,13 +171,17 @@ export function RoomProvider(props: RoomProviderProps) {
   // Only subscribe to presence once the Yjs document is ready and the room is
   // not archived. Before that, there's no editor session to show presence for.
   const presenceRoomId = isYjsReady === true && isArchived === false ? (room?.id ?? null) : null;
-  const localPresenceUser: RoomPresenceUser | undefined = currentProfile.sessionUserId === null || currentProfile.displayName === null
-    ? undefined
-    : {
-        displayName: currentProfile.displayName,
-        isLocal: true,
-        sessionUserId: currentProfile.sessionUserId,
-      };
+  const localPresenceUser = useMemo<RoomPresenceUser | undefined>(
+    () =>
+      currentProfile.sessionUserId === null || currentProfile.displayName === null
+        ? undefined
+        : {
+            displayName: currentProfile.displayName,
+            isLocal: true,
+            sessionUserId: currentProfile.sessionUserId,
+          },
+    [currentProfile.displayName, currentProfile.sessionUserId],
+  );
   const roomPresence = useRoomPresence(presenceRoomId, sessionUserId, localPresenceUser);
 
   // Reset toast tracking state when switching rooms so the previous room's
@@ -220,7 +224,7 @@ export function RoomProvider(props: RoomProviderProps) {
     knownPresenceUsersRef.current = nextUsers;
   }, [isYjsReady, roomPresence, session?.user.account]);
 
-  const updateMetadata = async (metadataPatch: { title?: string; editorLanguage?: string }) => {
+  const updateMetadata = useCallback(async (metadataPatch: { title?: string; editorLanguage?: string }) => {
     if (isLoading === true || room === null || isArchived === true || canEditSession === false) {
       return;
     }
@@ -232,17 +236,17 @@ export function RoomProvider(props: RoomProviderProps) {
     }
 
     await db.update(app.roomMetadata, metadata.id, metadataPatch).wait({ tier: "edge" });
-  };
+  }, [canEditSession, db, ensureParticipant, isArchived, isLoading, metadata, room]);
 
-  const updateTitle = async (title: string) => {
+  const updateTitle = useCallback(async (title: string) => {
     await updateMetadata({ title });
-  };
+  }, [updateMetadata]);
 
-  const updateEditorLanguage = async (editorLanguage: string) => {
+  const updateEditorLanguage = useCallback(async (editorLanguage: string) => {
     await updateMetadata({ editorLanguage });
-  };
+  }, [updateMetadata]);
 
-  const archiveRoom = async () => {
+  const archiveRoom = useCallback(async () => {
     if (room === null || isCreator === false || sessionUserId === null) {
       return;
     }
@@ -253,9 +257,9 @@ export function RoomProvider(props: RoomProviderProps) {
         archivedBySessionUserId: sessionUserId,
       })
       .wait({ tier: "edge" });
-  };
+  }, [db, isCreator, room, sessionUserId]);
 
-  const unarchiveRoom = async () => {
+  const unarchiveRoom = useCallback(async () => {
     if (room === null || isCreator === false) {
       return;
     }
@@ -266,38 +270,57 @@ export function RoomProvider(props: RoomProviderProps) {
         archivedBySessionUserId: null,
       })
       .wait({ tier: "edge" });
-  };
+  }, [db, isCreator, room]);
 
   const queryError = metadataResult.error ?? participantResult.error ?? yjsError;
+
+  const contextValue = useMemo<RoomContextValue>(() => ({
+    awareness,
+    currentProfile,
+    shareToken: props.shareToken,
+    staticToken: room?.staticToken ?? null,
+    roomId: room?.id ?? null,
+    roomPresence,
+    canEdit: canEditSession === true && isArchived === false,
+    isArchived,
+    isCreator,
+    roomExists: roomLookup.isResolvedEmpty === false && room !== null,
+    title: metadata?.title ?? "",
+    editorLanguage: metadata?.editorLanguage ?? "plaintext",
+    isLoading,
+    isYjsReady,
+    ydoc,
+    archiveRoom,
+    unarchiveRoom,
+    updateTitle,
+    updateEditorLanguage,
+  }), [
+    archiveRoom,
+    awareness,
+    canEditSession,
+    currentProfile,
+    isArchived,
+    isCreator,
+    isLoading,
+    isYjsReady,
+    metadata?.editorLanguage,
+    metadata?.title,
+    props.shareToken,
+    room,
+    roomLookup.isResolvedEmpty,
+    roomPresence,
+    unarchiveRoom,
+    updateEditorLanguage,
+    updateTitle,
+    ydoc,
+  ]);
 
   if (queryError !== null) {
     throw queryError;
   }
 
   return (
-    <RoomContext.Provider
-      value={{
-        awareness,
-        currentProfile,
-        shareToken: props.shareToken,
-        staticToken: room?.staticToken ?? null,
-        roomId: room?.id ?? null,
-        roomPresence,
-        canEdit: canEditSession === true && isArchived === false,
-        isArchived,
-        isCreator,
-        roomExists: roomLookup.isResolvedEmpty === false && room !== null,
-        title: metadata?.title ?? "",
-        editorLanguage: metadata?.editorLanguage ?? "plaintext",
-        isLoading,
-        isYjsReady,
-        ydoc,
-        archiveRoom,
-        unarchiveRoom,
-        updateTitle,
-        updateEditorLanguage,
-      }}
-    >
+    <RoomContext.Provider value={contextValue}>
       {props.children}
     </RoomContext.Provider>
   );

@@ -33,6 +33,7 @@ export const toasts = {
     archived: () => toast("Room archived", {
       description: "The room is now available from the Archived section.",
     }),
+    error: (message: string) => toast.error(message),
     unarchived: () => toast("Room restored", {
       description: "The room is active again.",
     }),

@@ -19,7 +19,9 @@ export function useNavigationHotkeys(options: UseNavigationHotkeysOptions) {
     {
       hotkey: "D",
       callback: () => {
-        void navigate({ to: "/dashboard" });
+        void navigate({ to: "/dashboard" }).catch((error: unknown) => {
+          console.error("Failed to open dashboard.", error);
+        });
       },
       options: {
         enabled: options.dashboard === true,
@@ -29,7 +31,9 @@ export function useNavigationHotkeys(options: UseNavigationHotkeysOptions) {
     {
       hotkey: "I",
       callback: () => {
-        void navigate({ to: "/sign-in" });
+        void navigate({ to: "/sign-in" }).catch((error: unknown) => {
+          console.error("Failed to open sign in.", error);
+        });
       },
       options: {
         enabled: options.signIn === true,
@@ -39,7 +43,9 @@ export function useNavigationHotkeys(options: UseNavigationHotkeysOptions) {
     {
       hotkey: "U",
       callback: () => {
-        void navigate({ to: "/sign-up" });
+        void navigate({ to: "/sign-up" }).catch((error: unknown) => {
+          console.error("Failed to open sign up.", error);
+        });
       },
       options: {
         enabled: options.signUp === true,
@@ -49,7 +55,9 @@ export function useNavigationHotkeys(options: UseNavigationHotkeysOptions) {
     {
       hotkey: "A",
       callback: () => {
-        void navigate({ to: "/account" });
+        void navigate({ to: "/account" }).catch((error: unknown) => {
+          console.error("Failed to open account.", error);
+        });
       },
       options: {
         enabled: options.account === true,

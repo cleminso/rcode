@@ -1,12 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useRcodeJazzAuth } from "../lib/jazzAuth";
+import { getErrorMessage } from "../lib/errors";
 import { toasts } from "../lib/toasts";
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-  return "Could not log out.";
-}
 
 export function useLogout() {
   const jazzAuth = useRcodeJazzAuth();
@@ -24,7 +20,7 @@ export function useLogout() {
       await jazzAuth.logout();
       await navigate({ to: "/" });
     } catch (caughtError) {
-      toasts.account.error(getErrorMessage(caughtError));
+      toasts.account.error(getErrorMessage(caughtError, "Could not log out."));
       setIsLoggingOut(false);
     }
   };

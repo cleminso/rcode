@@ -5,7 +5,8 @@ import { RecoveryPhrase } from "jazz-tools/passphrase";
 import { useDb, useSession } from "jazz-tools/react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useProfileIdentity } from "../../hooks/useProfileIdentity";
-import { authClient } from "../../lib/auth-client";
+import { getAuthClient } from "../../lib/auth-client";
+import { getErrorMessage } from "../../lib/errors";
 import { emailAuthUnavailable, isEmailAuthEnabled, useRcodeJazzAuth } from "../../lib/jazzAuth";
 import { toasts } from "../../lib/toasts";
 import { type AuthMethod, AuthShell } from "./authShell";
@@ -26,11 +27,6 @@ interface AuthScreenProps {
 interface EmailSignUpValues {
   displayName: string;
   email: string;
-}
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-  return "Something went wrong.";
 }
 
 function isCompletedDisplayName(displayName: string | undefined) {
@@ -100,8 +96,6 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
     return <Navigate replace to="/dashboard" />;
   }
 
-  const clearFeedback = () => undefined;
-
   const updateSignUpField = (field: keyof EmailSignUpValues, value: string) => {
     setSignUpValues((currentValues) => ({ ...currentValues, [field]: value }));
   };
@@ -133,8 +127,6 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
   };
 
   const requestOtp = async (isResend: boolean) => {
-    clearFeedback();
-
     if (isEmailAuthEnabled === false) {
       toasts.auth.error(emailAuthUnavailable);
       return;
@@ -163,6 +155,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
         throw new Error("Sign up requires an active Jazz local-first identity. Refresh and try again.");
       }
 
+      const authClient = await getAuthClient();
       const result = await authClient.emailOtp.sendVerificationOtp({
         email,
         type: "sign-in",
@@ -204,7 +197,6 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
       return;
     }
 
-    clearFeedback();
     setIsSubmitting(true);
 
     try {
@@ -220,6 +212,7 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
         throw new Error("Sign up requires an active Jazz local-first identity.");
       }
 
+      const authClient = await getAuthClient();
       const activeDb = await jazzAuth.withProviderAccount(intent === "sign-up" ? "link" : "login", async () => {
         const result = await authClient.signIn.emailOtp({
           email,
@@ -260,14 +253,17 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
       return;
     }
 
-    await navigator.clipboard.writeText(recoveryPhrase);
-    setCopiedRecoveryPhrase(true);
-    toasts.auth.recoveryPhraseCopied();
+    try {
+      await navigator.clipboard.writeText(recoveryPhrase);
+      setCopiedRecoveryPhrase(true);
+      toasts.auth.recoveryPhraseCopied();
+    } catch (error) {
+      toasts.auth.error(getErrorMessage(error, "Recovery phrase could not be copied."));
+    }
   };
 
   const handlePassphraseSignUp = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    clearFeedback();
 
     if (copiedRecoveryPhrase === false) {
       await copyRecoveryPhrase();
@@ -288,7 +284,6 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
 
   const handleRestore = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    clearFeedback();
     setIsSubmitting(true);
 
     try {
@@ -305,7 +300,6 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
   const returnToInput = () => {
     setOtpStep("input");
     setOtp("");
-    clearFeedback();
   };
 
   const footer =
@@ -346,7 +340,6 @@ export function AuthScreen({ initialEmail = "", intent }: AuthScreenProps) {
       onMethodChange={(nextMethod) => {
         setMethod(nextMethod);
         setOtpStep("input");
-        clearFeedback();
       }}
     >
       {method === "email" && otpStep === "input" && intent === "sign-in" ? (

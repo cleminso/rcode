@@ -42,20 +42,12 @@ function LoadingState() {
   );
 }
 
-function extractStaticRoomCode(snapshots: readonly StaticRoomYjsSnapshot[], updates: readonly StaticRoomYjsUpdate[]) {
+function extractStaticRoomCode(snapshot: StaticRoomYjsSnapshot | null, updates: readonly StaticRoomYjsUpdate[]) {
   const doc = new Y.Doc();
 
   try {
-    const latestSnapshot = snapshots.reduce<(typeof snapshots)[number] | null>((latest, snapshot) => {
-      if (latest === null) {
-        return snapshot;
-      }
-
-      return snapshot.createdAt > latest.createdAt ? snapshot : latest;
-    }, null);
-
-    if (latestSnapshot !== null) {
-      Y.applyUpdate(doc, toYjsUpdate(latestSnapshot.state));
+    if (snapshot !== null) {
+      Y.applyUpdate(doc, toYjsUpdate(snapshot.state));
     }
 
     // TODO: Apply only updates after the latest snapshot if snapshot timestamps are guaranteed to cover prior updates.
@@ -80,7 +72,11 @@ export function StaticRoomScreen(props: StaticRoomScreenProps) {
   const metadataRows = metadataResult.data;
   const metadata = metadataRows?.[0] ?? null;
   const creator = useProfileIdentity(room !== null && isArchived === false ? room.creator_session_user_id : null, { tier: "remote" });
-  const snapshotResult = useAll(activeRoomId !== null ? app.roomYjsSnapshots.where({ room_id: activeRoomId }) : undefined);
+  const snapshotResult = useAll(
+    activeRoomId !== null
+      ? app.roomYjsSnapshots.where({ room_id: activeRoomId }).orderBy("createdAt", "desc").limit(1)
+      : undefined,
+  );
   const updateResult = useAll(activeRoomId !== null ? app.roomYjsUpdates.where({ room_id: activeRoomId }) : undefined);
   const snapshotRows = snapshotResult.data;
   const updateRows = updateResult.data;
@@ -90,7 +86,7 @@ export function StaticRoomScreen(props: StaticRoomScreenProps) {
     }
 
     try {
-      return { status: "ready", code: extractStaticRoomCode(snapshotRows, updateRows) } as const;
+      return { status: "ready", code: extractStaticRoomCode(snapshotRows[0] ?? null, updateRows) } as const;
     } catch (error) {
       console.error("Failed to extract static room code.", error);
       return { status: "error" } as const;

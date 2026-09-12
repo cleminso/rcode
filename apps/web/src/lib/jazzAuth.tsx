@@ -10,7 +10,14 @@ function SignedOutJazz() {
 
   return (
     <div className="min-h-screen bg-background p-6 text-sm text-muted-foreground">
-      <button type="button" onClick={() => void sessionActions.createLocalFirst()}>
+      <button
+        type="button"
+        onClick={() => {
+          void sessionActions.createLocalFirst().catch((error: unknown) => {
+            console.error("Failed to create a local identity.", error);
+          });
+        }}
+      >
         Continue locally
       </button>
     </div>
@@ -28,7 +35,16 @@ export function RcodeJazzProvider({ children }: { children: ReactNode }) {
       error={(state) => (
         <div role="alert" className="min-h-screen bg-background p-6 text-sm text-destructive">
           <p>{state.error?.message ?? "Could not load Jazz."}</p>
-          <button type="button" onClick={() => void state.retry()}>Retry</button>
+          <button
+            type="button"
+            onClick={() => {
+              void state.retry().catch((retryError: unknown) => {
+                console.error("Failed to retry Jazz initialization.", retryError);
+              });
+            }}
+          >
+            Retry
+          </button>
         </div>
       )}
     >

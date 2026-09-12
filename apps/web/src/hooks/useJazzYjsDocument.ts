@@ -99,7 +99,9 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
   onErrorRef.current = onError;
 
   const snapshotResult = useAll(
-    roomId !== null ? app.roomYjsSnapshots.where({ room_id: roomId }) : undefined,
+    roomId !== null
+      ? app.roomYjsSnapshots.where({ room_id: roomId }).orderBy("createdAt", "desc").limit(1)
+      : undefined,
   );
   const snapshotRows = snapshotResult.data;
   const snapshotRowsRef = useRef(snapshotRows);
@@ -120,13 +122,7 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
     }
 
     if (runtime.didBootstrap === false) {
-      const latestSnapshot = snapshotRows.reduce<(typeof snapshotRows)[number] | null>((latest, snapshot) => {
-        if (latest === null) {
-          return snapshot;
-        }
-
-        return snapshot.createdAt > latest.createdAt ? snapshot : latest;
-      }, null);
+      const latestSnapshot = snapshotRows[0] ?? null;
 
       if (latestSnapshot !== null) {
         try {
@@ -234,16 +230,7 @@ export function useJazzYjsDocument(args: UseJazzYjsDocumentArgs) {
         }
 
         if (currentSnapshotRows !== undefined) {
-          const latestSnapshot = currentSnapshotRows.reduce<(typeof currentSnapshotRows)[number] | null>(
-            (latest, snapshot) => {
-              if (latest === null) {
-                return snapshot;
-              }
-
-              return snapshot.createdAt > latest.createdAt ? snapshot : latest;
-            },
-            null,
-          );
+          const latestSnapshot = currentSnapshotRows[0] ?? null;
 
           if (latestSnapshot !== null) {
             const latestSnapshotAge = Date.now() - latestSnapshot.createdAt.getTime();

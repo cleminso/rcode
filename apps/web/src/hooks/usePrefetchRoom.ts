@@ -36,7 +36,7 @@ export function usePrefetchRoom() {
     // dashboard query. { tier: "local-first" } returns whatever is in the local
     // replica immediately without waiting for an edge round-trip.
     const unsubscribeSnapshots = db.subscribe(
-      app.roomYjsSnapshots.where({ room_id: roomId }),
+      app.roomYjsSnapshots.where({ room_id: roomId }).orderBy("createdAt", "desc").limit(1),
       (rows) => {
         if (loggedTablesRef.current.get(roomId)?.has("snapshots") === false) {
           console.info("[room-prefetch] rows received", {

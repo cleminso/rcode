@@ -20,11 +20,18 @@ function compareRoomAccess(a: RoomSummary, b: RoomSummary) {
   return right - left;
 }
 
-export function useRooms() {
+interface UseRoomsOptions {
+  enabled?: boolean;
+}
+
+export function useRooms(options?: UseRoomsOptions) {
   const session = useSession();
+  const isEnabled = options?.enabled !== false;
   const sessionUserId = session?.user.account ?? null;
   const participantResult = useAll(
-    sessionUserId !== null ? app.roomParticipants.where({ session_user_id: sessionUserId }) : undefined,
+    isEnabled === true && sessionUserId !== null
+      ? app.roomParticipants.where({ session_user_id: sessionUserId })
+      : undefined,
   );
   const participantRows = participantResult.data;
   const participantRoomIds = useMemo(() => {
@@ -35,13 +42,17 @@ export function useRooms() {
     return [...new Set(participantRows.map((participant) => participant.room_id))];
   }, [participantRows]);
   const participantRoomsResult = useAll(
-    participantRoomIds.length > 0 ? app.rooms.where({ id: { in: participantRoomIds } }) : undefined,
+    isEnabled === true && participantRoomIds.length > 0
+      ? app.rooms.where({ id: { in: participantRoomIds } })
+      : undefined,
   );
   const participantRoomRows = participantRoomsResult.data;
   // Keep dashboard subscriptions bounded to rooms reachable by the current
   // user instead of subscribing to every readable room and filtering locally
   const creatorRoomsResult = useAll(
-    sessionUserId !== null ? app.rooms.where({ creator_session_user_id: sessionUserId }) : undefined,
+    isEnabled === true && sessionUserId !== null
+      ? app.rooms.where({ creator_session_user_id: sessionUserId })
+      : undefined,
   );
   const creatorRoomRows = creatorRoomsResult.data;
 
@@ -68,7 +79,9 @@ export function useRooms() {
   }, [creatorRoomRows, participantRoomIds.length, participantRoomRows, participantRows, session]);
   const roomIds = useMemo(() => roomRows?.map((room) => room.id) ?? [], [roomRows]);
   const metadataResult = useAll(
-    roomRows !== undefined && roomIds.length > 0 ? app.roomMetadata.where({ room_id: { in: roomIds } }) : undefined,
+    isEnabled === true && roomRows !== undefined && roomIds.length > 0
+      ? app.roomMetadata.where({ room_id: { in: roomIds } })
+      : undefined,
   );
   const metadataRows = metadataResult.data;
 
@@ -120,6 +133,7 @@ export function useRooms() {
 
   return {
     isLoading:
+      isEnabled === true &&
       session !== null &&
       (participantResult.isLoading === true ||
         creatorRoomsResult.isLoading === true ||

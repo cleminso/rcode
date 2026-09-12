@@ -1,18 +1,15 @@
 import { app } from "@rcode/schema";
 import { useNavigate } from "@tanstack/react-router";
 import { useDb, useSession } from "jazz-tools/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { newRoomToken } from "../lib/generate";
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-  return "Could not create room.";
-}
+import { getErrorMessage } from "../lib/errors";
 
 export function useCreateRoom() {
   const db = useDb();
   const session = useSession();
   const navigate = useNavigate();
+  const isCreatingRef = useRef(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sessionUserId = session?.user.account ?? null;
@@ -23,6 +20,10 @@ export function useCreateRoom() {
     (session.authMode === "local-first" || session.authMode === "external");
 
   const createRoom = async () => {
+    if (isCreatingRef.current === true) {
+      return;
+    }
+
     if (canCreate === false) {
       setError("Creating a room requires an editable Jazz identity.");
       return;
@@ -33,6 +34,7 @@ export function useCreateRoom() {
       return;
     }
 
+    isCreatingRef.current = true;
     setIsCreating(true);
     setError(null);
 
@@ -80,9 +82,10 @@ export function useCreateRoom() {
 
       return room;
     } catch (caughtError) {
-      setError(getErrorMessage(caughtError));
+      setError(getErrorMessage(caughtError, "Could not create room."));
       return;
     } finally {
+      isCreatingRef.current = false;
       setIsCreating(false);
     }
   };

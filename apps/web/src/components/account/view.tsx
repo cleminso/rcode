@@ -10,7 +10,8 @@ import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useLogout } from "../../hooks/useLogout";
 import { useNavigationHotkeys } from "../../hooks/useNavigationHotkeys";
 import { useProfileIdentity } from "../../hooks/useProfileIdentity";
-import { authClient } from "../../lib/auth-client";
+import { getAuthClient } from "../../lib/auth-client";
+import { getErrorMessage } from "../../lib/errors";
 import { emailAuthUnavailable, isEmailAuthEnabled, useRcodeJazzAuth } from "../../lib/jazzAuth";
 import { toasts } from "../../lib/toasts";
 import { LogoButton } from "../layout/logoButton";
@@ -25,11 +26,6 @@ type EmailOtpClient = {
 };
 
 type EmailSignInClient = (input: Record<string, unknown>) => Promise<{ error?: { message?: string } | null }>;
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-  return "Something went wrong.";
-}
 
 function isExistingEmailError(message: string) {
   return message.toLowerCase().includes("user already exists") || message.toLowerCase().includes("already exists for this email");
@@ -47,6 +43,32 @@ function AccountSection({ children, label, right }: { children?: React.ReactNode
       </div>
       {children}
     </section>
+  );
+}
+
+function DisplayNameField(props: { onCommit: (value: string) => Promise<string>; value: string }) {
+  const [inputValue, setInputValue] = useState(props.value);
+
+  const commitValue = async (value: string) => {
+    try {
+      setInputValue(await props.onCommit(value));
+    } catch {
+      setInputValue(props.value);
+    }
+  };
+
+  return (
+    <Input
+      className="h-8 font-mono text-xs"
+      value={inputValue}
+      onBlur={(event) => void commitValue(event.currentTarget.value)}
+      onChange={(event) => setInputValue(event.currentTarget.value)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.currentTarget.blur();
+        }
+      }}
+    />
   );
 }
 
@@ -68,7 +90,6 @@ export function AccountView() {
     return secret === null ? null : RecoveryPhrase.fromSecret(secret);
   }, [jazzAuth, sessionUserId]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [displayNameInput, setDisplayNameInput] = useState(displayName);
   const [emailInput, setEmailInput] = useState(savedEmail);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [otp, setOtp] = useState("");
@@ -84,12 +105,13 @@ export function AccountView() {
       return;
     }
 
-    void db.update(app.profiles, profile.id, { setupPromptDismissed: true }).wait({ tier: "edge" });
+    void db
+      .update(app.profiles, profile.id, { setupPromptDismissed: true })
+      .wait({ tier: "edge" })
+      .catch((error: unknown) => {
+        console.error("Failed to dismiss the profile setup prompt.", error);
+      });
   }, [db, profile, profileIdentity.shouldShowSetupPrompt]);
-
-  useEffect(() => {
-    setDisplayNameInput(displayName);
-  }, [displayName]);
 
   useEffect(() => {
     if (pendingEmail !== null) {
@@ -123,8 +145,6 @@ export function AccountView() {
     return <main className="h-dvh overflow-hidden bg-background" />;
   }
 
-  const emailClient = authClient.emailOtp as unknown as EmailOtpClient;
-  const emailSignIn = authClient.signIn.emailOtp as unknown as EmailSignInClient;
   const trimmedEmail = emailInput.trim().toLowerCase();
   const savedTrimmedEmail = savedEmail.trim().toLowerCase();
   const emailHasChanged = trimmedEmail !== "" && trimmedEmail !== savedTrimmedEmail;
@@ -136,17 +156,15 @@ export function AccountView() {
     const nextDisplayName = value.trim();
 
     if (nextDisplayName === "") {
-      setDisplayNameInput(profile.displayName);
-      return;
+      return profile.displayName;
     }
 
     if (nextDisplayName === profile.displayName) {
-      setDisplayNameInput(profile.displayName);
-      return;
+      return profile.displayName;
     }
 
     if (profile === null) {
-      return;
+      return displayName;
     }
 
     try {
@@ -154,9 +172,10 @@ export function AccountView() {
         .update(app.profiles, profile.id, { displayName: nextDisplayName })
         .wait({ tier: "edge" });
       toasts.account.displayNameSaved();
+      return nextDisplayName;
     } catch (caughtError) {
-      setDisplayNameInput(profile.displayName);
       toasts.account.error(getErrorMessage(caughtError));
+      return profile.displayName;
     }
   };
 
@@ -192,6 +211,7 @@ export function AccountView() {
       });
       await fileWrite.wait({ tier: "edge" });
       await db.update(app.profiles, profile.id, { avatarFileId: fileWrite.value.id }).wait({ tier: "edge" });
+      setAvatarPreviewUrl(null);
       toasts.account.avatarSaved();
     } catch (caughtError) {
       setAvatarPreviewUrl(null);
@@ -233,6 +253,9 @@ export function AccountView() {
     setOtpIsInvalid(false);
 
     try {
+      const authClient = await getAuthClient();
+      const emailClient = authClient.emailOtp as unknown as EmailOtpClient;
+
       if (savedEmail.trim() === "") {
         const proofToken = await db.getLocalFirstIdentityProof({ ttlSeconds: 60, audience: "betterauth-signup" });
         const result = await emailClient.sendVerificationOtp({ email: trimmedEmail, type: "sign-in", proofToken });
@@ -282,6 +305,10 @@ export function AccountView() {
     setOtpIsInvalid(false);
 
     try {
+      const authClient = await getAuthClient();
+      const emailClient = authClient.emailOtp as unknown as EmailOtpClient;
+      const emailSignIn = authClient.signIn.emailOtp as unknown as EmailSignInClient;
+
       if (savedEmail.trim() === "") {
         const proofToken = db.getLocalFirstIdentityProof({ ttlSeconds: 60, audience: "betterauth-signup" });
         await jazzAuth.withProviderAccount("link", async () => {
@@ -331,9 +358,13 @@ export function AccountView() {
       return;
     }
 
-    await navigator.clipboard.writeText(recoveryPhrase);
-    setPassphraseIsRevealed(true);
-    toasts.account.passphraseCopied();
+    try {
+      await navigator.clipboard.writeText(recoveryPhrase);
+      setPassphraseIsRevealed(true);
+      toasts.account.passphraseCopied();
+    } catch (error) {
+      toasts.account.error(getErrorMessage(error, "Passphrase could not be copied."));
+    }
   };
 
   return (
@@ -406,16 +437,10 @@ export function AccountView() {
           </AccountSection>
 
           <AccountSection label="DISPLAY NAME">
-            <Input
-              className="h-8 font-mono text-xs"
-              value={displayNameInput}
-              onBlur={(event) => void commitDisplayName(event.currentTarget.value)}
-              onChange={(event) => setDisplayNameInput(event.currentTarget.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.currentTarget.blur();
-                }
-              }}
+            <DisplayNameField
+              key={`${profile.id}:${displayName}`}
+              value={displayName}
+              onCommit={commitDisplayName}
             />
           </AccountSection>
 

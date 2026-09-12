@@ -1,5 +1,5 @@
 import { app } from "@rcode/schema";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAll, useDb, useSession } from "jazz-tools/react";
 
 export interface EditorSettings extends Record<string, unknown> {
@@ -244,24 +244,30 @@ export function useUserSettings() {
   const isLoading = settingsResult.isLoading;
   const initializedSessionUserIdRef = useRef<string | null>(null);
 
-  const editorSettings =
-    settingsRow !== null &&
-    settingsRow.editor !== null &&
-    typeof settingsRow.editor === "object" &&
-    !Array.isArray(settingsRow.editor)
-      ? (settingsRow.editor as Record<string, unknown>)
-      : {};
+  const editorSettings = useMemo(
+    () =>
+      settingsRow !== null &&
+      settingsRow.editor !== null &&
+      typeof settingsRow.editor === "object" &&
+      Array.isArray(settingsRow.editor) === false
+        ? (settingsRow.editor as EditorSettings)
+        : {},
+    [settingsRow],
+  );
 
-  const settings: UserSettings = {
-    editor: {
-      ...DEFAULT_EDITOR_SETTINGS,
-      ...(editorSettings as EditorSettings),
-      guides: {
-        ...DEFAULT_EDITOR_SETTINGS.guides,
-        ...(editorSettings as EditorSettings).guides,
+  const settings = useMemo<UserSettings>(
+    () => ({
+      editor: {
+        ...DEFAULT_EDITOR_SETTINGS,
+        ...editorSettings,
+        guides: {
+          ...DEFAULT_EDITOR_SETTINGS.guides,
+          ...editorSettings.guides,
+        },
       },
-    },
-  };
+    }),
+    [editorSettings],
+  );
 
   useEffect(() => {
     if (initializedSessionUserIdRef.current === sessionUserId) {
@@ -292,6 +298,21 @@ export function useUserSettings() {
       });
   }, [canEditSession, db, isLoading, sessionUserId, settingsRow]);
 
+  const updateSettings = useCallback((next: Partial<EditorSettings>) => {
+    if (settingsRow === null || sessionUserId === null) {
+      return;
+    }
+
+    const merged = { ...editorSettings, ...next };
+
+    void db
+      .update(app.userSettings, settingsRow.id, { editor: merged as any })
+      .wait({ tier: "edge" })
+      .catch((error: unknown) => {
+        console.error("Failed to update user settings.", error);
+      });
+  }, [db, editorSettings, sessionUserId, settingsRow]);
+
   if (settingsResult.error !== null) {
     throw settingsResult.error;
   }
@@ -299,16 +320,6 @@ export function useUserSettings() {
   return {
     settings,
     isLoading,
-    updateSettings: (next: Partial<EditorSettings>) => {
-      if (settingsRow === null || sessionUserId === null) {
-        return;
-      }
-
-      const merged = { ...editorSettings, ...next };
-
-      void db
-        .update(app.userSettings, settingsRow.id, { editor: merged as any })
-        .wait({ tier: "edge" });
-    },
+    updateSettings,
   };
 }

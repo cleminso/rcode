@@ -1,8 +1,9 @@
 import Button from "@rcode/ui/button";
 import { useHotkeys, type UseHotkeyDefinition } from "@tanstack/react-hotkeys";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useDashboardPresence } from "../../hooks/useDashboardPresence";
+import { useProfileIdentities } from "../../hooks/useProfileIdentities";
 import { useRooms } from "../../hooks/useRooms";
 import { RoomListItem, roomListItemHeight } from "./roomListItem";
 import type { RoomParticipant } from "./roomParticipantsCell";
@@ -46,24 +47,33 @@ export function RoomList() {
   const scrollParentRef = useRef<HTMLDivElement>(null);
   const { isLoading, rooms } = useRooms();
 
-  const activeCandidateRooms = rooms.filter((room) => room.isArchived === false);
-  const roomIds = activeCandidateRooms.map((room) => room.id).toSorted();
+  const activeCandidateRooms = useMemo(
+    () => rooms.filter((room) => room.isArchived === false),
+    [rooms],
+  );
+  const roomIds = useMemo(
+    () => activeCandidateRooms.map((room) => room.id).toSorted(),
+    [activeCandidateRooms],
+  );
   const { activeRoomIds, usersByRoomId } = useDashboardPresence(roomIds);
-  const displayedRooms = rooms.filter((room) => {
-    if (filter === "archived") {
-      return room.isArchived === true;
-    }
+  const displayedRooms = useMemo(
+    () => rooms.filter((room) => {
+      if (filter === "archived") {
+        return room.isArchived === true;
+      }
 
-    if (room.isArchived === true) {
-      return false;
-    }
+      if (room.isArchived === true) {
+        return false;
+      }
 
-    if (filter === "active") {
-      return activeRoomIds.has(room.id);
-    }
+      if (filter === "active") {
+        return activeRoomIds.has(room.id);
+      }
 
-    return true;
-  });
+      return true;
+    }),
+    [activeRoomIds, filter, rooms],
+  );
 
   const rowVirtualizer = useVirtualizer({
     count: displayedRooms.length,
@@ -73,25 +83,49 @@ export function RoomList() {
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();
+  const visibleSessionUserIds = useMemo(() => {
+    const sessionUserIds = new Set<string>();
+
+    for (const virtualItem of virtualItems) {
+      const room = displayedRooms[virtualItem.index];
+
+      if (room === undefined) {
+        continue;
+      }
+
+      sessionUserIds.add(room.creatorSessionUserId);
+
+      for (const participant of usersByRoomId.get(room.id) ?? emptyParticipants) {
+        sessionUserIds.add(participant.sessionUserId);
+      }
+    }
+
+    return Array.from(sessionUserIds).toSorted();
+  }, [displayedRooms, usersByRoomId, virtualItems]);
+  const { isLoading: isProfilesLoading, profilesBySessionUserId } = useProfileIdentities(visibleSessionUserIds);
+  const scrollToIndex = useCallback(
+    (index: number) => rowVirtualizer.scrollToIndex(index, { align: "auto" }),
+    [rowVirtualizer],
+  );
   const { selectedRoomIndex } = useRoomListKeyboardNavigation({
     isEnabled: isLoading === false,
     rooms: displayedRooms,
     scrollParentRef,
-    scrollToIndex: (index) => rowVirtualizer.scrollToIndex(index, { align: "auto" }),
+    scrollToIndex,
   });
 
-  const focusFilterTab = (nextFilter: RoomListFilter) => {
+  const focusFilterTab = useCallback((nextFilter: RoomListFilter) => {
     window.requestAnimationFrame(() => {
       document.getElementById(`room-filter-${nextFilter}`)?.focus();
     });
-  };
+  }, []);
 
-  const selectFilter = (nextFilter: RoomListFilter) => {
+  const selectFilter = useCallback((nextFilter: RoomListFilter) => {
     setFilter(nextFilter);
     focusFilterTab(nextFilter);
-  };
+  }, [focusFilterTab]);
 
-  const getNextFilter = (direction: 1 | -1) => {
+  const getNextFilter = useCallback((direction: 1 | -1) => {
     const filters: RoomListFilter[] = ["all", "active", "archived"];
     const currentIndex = filters.indexOf(filter);
 
@@ -111,7 +145,7 @@ export function RoomList() {
     }
 
     return filter;
-  };
+  }, [activeRoomIds.size, filter]);
 
   const filterHotkeys = useMemo<UseHotkeyDefinition[]>(() => [
     {
@@ -134,7 +168,7 @@ export function RoomList() {
       callback: () => selectFilter("archived"),
       options: { meta: { name: "Select archived room filter" } },
     },
-  ], [filter, activeRoomIds.size]);
+  ], [getNextFilter, selectFilter]);
 
   useHotkeys(filterHotkeys, { preventDefault: true });
 
@@ -233,8 +267,10 @@ export function RoomList() {
                       <RoomListItem
                         room={room}
                         isSelected={virtualItem.index === selectedRoomIndex}
+                        isProfilesLoading={isProfilesLoading}
                         lastAccessedAt={room.lastAccessedAt}
                         participants={usersByRoomId.get(room.id) ?? emptyParticipants}
+                        profilesBySessionUserId={profilesBySessionUserId}
                       />
                     </div>
                   );
