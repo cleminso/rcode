@@ -19,10 +19,9 @@
     "jazz:migrations:push": "set -a && source apps/web/.env && set +a && pnpm --filter @rcode/schema exec jazz-tools migrations push"
   },
   "author": "cleminso",
-  "packageManager": "pnpm@11.15.1",
+  "packageManager": "pnpm@12.4.1",
   "dependencies": {
-    "@better-auth/infra": "^0.3.7",
-    "jazz-tools": "2.0.0-alpha.54",
+    "@better-auth/infra": "^0.4.9",
     "little-timestamp": "^1.0.0"
   }
 }
