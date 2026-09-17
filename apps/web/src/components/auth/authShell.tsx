@@ -1,23 +1,18 @@
 import Button from "@rcode/ui/button";
 import { AuthPanel, AuthPanelBody, AuthPanelBreadcrumb } from "@rcode/ui/authPanel";
-import { AuthTabs, type AuthTabValue } from "@rcode/ui/authTabs";
 import { type ReactNode } from "react";
 import { LogoButton } from "../layout/logoButton";
-
-export type AuthMethod = AuthTabValue;
 
 interface AuthShellProps {
   activeBreadcrumb?: string;
   children: ReactNode;
   description?: ReactNode;
   footer?: ReactNode;
-  method?: AuthMethod;
   title: string;
   onBreadcrumbBack?: () => void;
-  onMethodChange?: (method: AuthMethod) => void;
 }
 
-export function AuthShell({ activeBreadcrumb, children, description, footer, method, title, onBreadcrumbBack, onMethodChange }: AuthShellProps) {
+export function AuthShell({ activeBreadcrumb, children, description, footer, title, onBreadcrumbBack }: AuthShellProps) {
   return (
     <main className="flex min-h-screen flex-col bg-background text-foreground">
       <header className="flex h-9.5 items-center px-3">
@@ -40,7 +35,6 @@ export function AuthShell({ activeBreadcrumb, children, description, footer, met
           <AuthPanel>
             <AuthPanelBody>
               {description !== undefined ? <p className="font-sans text-base font-normal text-muted-foreground">{description}</p> : null}
-              {method !== undefined && onMethodChange !== undefined ? <AuthTabs value={method} onChange={onMethodChange} /> : null}
               {children}
               {footer !== undefined ? <div className="font-sans text-center text-base font-normal text-muted-foreground">{footer}</div> : null}
             </AuthPanelBody>

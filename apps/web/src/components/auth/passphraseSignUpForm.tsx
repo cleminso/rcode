@@ -1,5 +1,5 @@
 import Button from "@rcode/ui/button";
-import { type FocusEvent, type FormEvent, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { AuthField } from "./authFields";
 
 type FormSubmitHandler = (event: FormEvent<HTMLFormElement>) => void;
@@ -23,11 +23,7 @@ export function PassphraseSignUpForm(props: PassphraseSignUpFormProps) {
     props.onSubmit(event);
   };
 
-  const handleBlur = (event: FocusEvent<HTMLInputElement>) => {
-    if (event.relatedTarget instanceof HTMLElement && event.relatedTarget.closest("[data-auth-tab-trigger='true']") !== null) {
-      return;
-    }
-
+  const handleBlur = () => {
     setIsTouched(true);
   };
 
@@ -37,7 +33,7 @@ export function PassphraseSignUpForm(props: PassphraseSignUpFormProps) {
         label="DISPLAY NAME"
         value={props.displayName}
         onChange={(event) => props.onDisplayNameChange(event.target.value)}
-        onBlur={handleBlur}
+         onBlur={handleBlur}
         onInvalid={() => setIsTouched(true)}
         autoComplete="nickname"
         autoFocus
@@ -63,7 +59,7 @@ export function PassphraseSignUpForm(props: PassphraseSignUpFormProps) {
         {props.copiedRecoveryPhrase === true ? "CONTINUE" : "SHOW & COPY PASSPHRASE"}
       </Button>
       <p className="whitespace-pre-line font-mono text-sm leading-5 text-muted-foreground">
-        {"// Save this phrase to access your identity on another device\n// If lost, we're unable to recover your identity\n// Anyone with this phrase can access this identity\n// You can link an email in your settings"}
+        {"// Save this phrase to access your identity on another device\n// If lost, we're unable to recover your identity\n// Anyone with this phrase can access this identity"}
       </p>
     </form>
   );

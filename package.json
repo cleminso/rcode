@@ -21,7 +21,6 @@
   "author": "cleminso",
   "packageManager": "pnpm@12.4.1",
   "dependencies": {
-    "@better-auth/infra": "^0.4.9",
     "little-timestamp": "^1.0.0"
   }
 }

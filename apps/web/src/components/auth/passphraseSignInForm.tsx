@@ -1,5 +1,5 @@
 import Button from "@rcode/ui/button";
-import { type FocusEvent, type FormEvent, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { AuthTextareaField } from "./authFields";
 
 type FormSubmitHandler = (event: FormEvent<HTMLFormElement>) => void;
@@ -21,11 +21,7 @@ export function PassphraseSignInForm({ isSubmitting, restorePhrase, onRestorePhr
     onSubmit(event);
   };
 
-  const handleBlur = (event: FocusEvent<HTMLTextAreaElement>) => {
-    if (event.relatedTarget instanceof HTMLElement && event.relatedTarget.closest("[data-auth-tab-trigger='true']") !== null) {
-      return;
-    }
-
+  const handleBlur = () => {
     setIsTouched(true);
   };
 

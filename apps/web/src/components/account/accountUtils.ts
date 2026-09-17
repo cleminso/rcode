@@ -25,7 +25,3 @@ export function getAvatarColor(displayName: string) {
 export function isAllowedAvatarFile(file: File) {
   return file.type === "image/png" || file.type === "image/jpeg" || file.type === "image/webp";
 }
-
-export function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-}

@@ -6,10 +6,9 @@
 - [Technology stack](#technology-stack)
 - [System architecture](#system-architecture)
 - [Concepts at Play](#concepts-at-play)
-  - [Dual Auth Strategy](#dual-auth-strategy)
-  - [Backend-as-Auth-Database](#backend-as-auth-database)
+  - [Authentication](#authentication)
+  - [Backend Data Access](#backend-data-access)
   - [Session Lifecycle](#session-lifecycle)
-  - [Cookie + JWT Hybrid](#cookie--jwt-hybrid)
 
 ## Why the architecture is split
 
@@ -68,21 +67,17 @@ graph TD
 
 ## Concepts at Play
 
-### Dual Auth Strategy
+### Authentication
 
 The web app uses Jazz's local-first authentication mode:
 
 - **Local-first**: Users can start immediately without signing up. Their identity is a device secret.
-- **External JWT**: Better Auth infrastructure exists, but the web app does not support this mode.
+- **Local-first**: Users start immediately with a device secret and can restore access with their recovery phrase.
 
-### Backend-as-Auth-Database
+### Backend Data Access
 
-By using `jazzAdapter`, Jazz serves double duty: it's both the application database (rooms, presence) and the auth database (users, sessions). The `permissions.ts` file ensures auth tables remain server-only.
+The API uses a backend Jazz session for server-side OG image data access. The `permissions.ts` file keeps the retained account infrastructure tables server-only.
 
 ### Session Lifecycle
 
-The app uses Jazz's application-level provider with local-first authentication. Jazz owns account restoration, recovery, logout, retries, and account-bound client replacement. Email authentication is unsupported.
-
-### Cookie + JWT Hybrid
-
-The Better Auth server uses HTTP-only cookies and can issue bearer JWTs through `jwtClient`. The web app does not connect these JWTs to its Jazz session.
+The app uses Jazz's application-level provider with local-first authentication. Jazz owns account restoration, recovery, logout, and retries.

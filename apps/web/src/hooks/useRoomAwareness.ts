@@ -38,7 +38,7 @@ export const awarenessConnectionClosedOrigin = { provider: "rcode-awareness-webs
 
 function getAwarenessSocketUrl(roomId: string) {
   // Awareness connects directly to the API host.
-  const baseUrl = new URL(import.meta.env.VITE_AUTH_BASE_URL ?? window.location.origin);
+  const baseUrl = new URL(import.meta.env.VITE_API_BASE_URL ?? window.location.origin);
   baseUrl.protocol = baseUrl.protocol === "https:" ? "wss:" : "ws:";
   baseUrl.pathname = "/api/awareness";
   baseUrl.search = "";

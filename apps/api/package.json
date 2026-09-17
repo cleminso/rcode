@@ -6,15 +6,13 @@
   "scripts": {
     "dev": "PORTLESS_PORT=1355 portless run --name api.rcode tsx watch src/index.ts",
     "build": "tsc --noEmit",
-    "typecheck": "tsc --noEmit",
-    "auth:generate": "pnpm dlx @better-auth/cli@latest generate --config ./src/auth.ts --output ../../packages/database/schema/src/better-auth/schema.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@fontsource-variable/geist": "catalog:",
     "@fontsource/commit-mono": "5.2.5",
     "@hono/node-server": "catalog:",
     "@rcode/schema": "workspace:*",
-    "better-auth": "catalog:",
     "hono": "catalog:",
     "jazz-napi": "catalog:",
     "jazz-tools": "catalog:",

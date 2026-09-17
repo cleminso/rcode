@@ -28,7 +28,7 @@ interface DashboardPresence {
 // Shared between useDashboardPresence (multi-room) and useRoomPresence
 // (single-room). Centralized here so both hooks build the same SSE URL.
 export function getPresenceStreamUrl(roomIds: readonly string[]) {
-  const baseUrl = import.meta.env.VITE_AUTH_BASE_URL ?? window.location.origin;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL ?? window.location.origin;
   const url = new URL("/api/presence/stream", baseUrl);
 
   for (const roomId of roomIds) {

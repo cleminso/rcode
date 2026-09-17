@@ -5,7 +5,7 @@ import { jazzPlugin } from "jazz-tools/dev/vite";
 import { defineConfig } from "vite";
 
 const port = Number.parseInt(process.env.PORT ?? "5173", 10);
-const apiUrl = process.env.VITE_AUTH_BASE_URL ?? "https://api.rcode.localhost";
+const apiUrl = process.env.VITE_API_BASE_URL ?? "https://api.rcode.localhost";
 
 export default defineConfig({
   resolve: {
@@ -27,11 +27,6 @@ export default defineConfig({
     host: true,
     proxy: {
       "/api": {
-        target: apiUrl,
-        changeOrigin: true,
-        secure: false,
-      },
-      "/auth": {
         target: apiUrl,
         changeOrigin: true,
         secure: false,

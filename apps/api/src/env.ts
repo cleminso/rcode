@@ -1,7 +1,7 @@
 // API is node-side, not Vite-side. It needs a place to:
 // - load apps/api/.env
 // - validate required server env
-// - provide safe local defaults for app/auth URLs
+// - provide safe local defaults for app URLs
 // - parse PORT
 
 import { existsSync, readFileSync } from "node:fs";
@@ -36,16 +36,6 @@ function loadEnvFile(url: URL) {
 
 loadEnvFile(new URL("../.env", import.meta.url));
 
-function readEnv(name: string) {
-  const value = process.env[name];
-
-  if (value !== undefined && value !== "") {
-    return value;
-  }
-
-  throw new Error(`${name} is required.`);
-}
-
 function readOptionalEnv(name: string) {
   const value = process.env[name];
 
@@ -54,6 +44,16 @@ function readOptionalEnv(name: string) {
   }
 
   return undefined;
+}
+
+function readEnv(name: string) {
+  const value = process.env[name];
+
+  if (value !== undefined && value !== "") {
+    return value;
+  }
+
+  throw new Error(`${name} is required.`);
 }
 
 function readPort() {
@@ -89,11 +89,7 @@ export const env = {
   host: readOptionalEnv("HOST") ?? "127.0.0.1",
   appUrl,
   allowedOrigins,
-  betterAuthUrl: readOptionalEnv("BETTER_AUTH_URL") ?? "https://api.rcode.localhost",
-  betterAuthBasePath: readOptionalEnv("BETTER_AUTH_BASE_PATH") ?? "/auth",
-  emailOtpWebhookUrl: readOptionalEnv("EMAIL_OTP_WEBHOOK_URL"),
   jazzAppId: readEnv("VITE_JAZZ_APP_ID"),
   jazzServerUrl: readEnv("VITE_JAZZ_SERVER_URL"),
   backendSecret: readEnv("BACKEND_SECRET"),
-  betterAuthSecret: readEnv("BETTER_AUTH_SECRET"),
 };

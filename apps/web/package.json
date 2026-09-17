@@ -23,7 +23,6 @@
     "@tanstack/react-hotkeys": "^0.10.0",
     "@tanstack/react-router": "catalog:",
     "@tanstack/react-virtual": "catalog:",
-    "better-auth": "catalog:",
     "jazz-tools": "catalog:",
     "lucide-react": "catalog:",
     "monaco-editor": "^0.55.1",

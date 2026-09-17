@@ -2,9 +2,6 @@ import { exportLocalFirstSecret } from "jazz-tools";
 import { JazzProvider, useJazzAuth } from "jazz-tools/react";
 import { type ReactNode, useMemo } from "react";
 
-export const isEmailAuthEnabled: boolean = false;
-export const emailAuthUnavailable = "Email authentication is unavailable.";
-
 function SignedOutJazz() {
   const { sessionActions } = useJazzAuth();
 
@@ -73,8 +70,5 @@ export function useRcodeJazzAuth() {
       await sessionActions.createLocalFirst();
     },
     restoreLocalFirst: (secret: string) => sessionActions.restoreLocalFirst(secret),
-    withProviderAccount: async (_mode: "link" | "login", _authenticate: () => Promise<void>) => {
-      throw new Error(emailAuthUnavailable);
-    },
   }), [account, sessionActions]);
 }

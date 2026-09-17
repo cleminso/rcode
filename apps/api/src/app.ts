@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { env } from "./env";
 import { subscribePresenceSummary, type PresenceSummary } from "./awarenessServer";
-import { authRoutes } from "./routes/auth";
 import { healthRoutes } from "./routes/health";
 import { ogRoutes } from "./routes/og";
 
@@ -62,15 +61,6 @@ function createPresenceStream(roomIds: readonly string[]) {
 
 export const app = new Hono()
   .use(
-    "/auth/*",
-    cors({
-      origin: env.allowedOrigins,
-      credentials: true,
-      allowHeaders: ["Content-Type", "Authorization"],
-      allowMethods: ["GET", "POST", "OPTIONS"],
-    }),
-  )
-  .use(
     "/api/*",
     cors({
       origin: env.allowedOrigins,
@@ -80,7 +70,6 @@ export const app = new Hono()
     }),
   )
   .route("/", healthRoutes)
-  .route("/", authRoutes)
   .route("/", ogRoutes)
   .get("/api/presence/stream", (c) => {
     let roomIds: string[];

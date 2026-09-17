@@ -1,35 +1,21 @@
 import { app } from "@rcode/schema";
 import Button, { buttonVariants } from "@rcode/ui/button";
 import { Input } from "@rcode/ui/input";
-import { OtpInput } from "@rcode/ui/otpInput";
 import { Textarea } from "@rcode/ui/textarea";
-import { Link, Navigate, useNavigate } from "@tanstack/react-router";
+import { Link, Navigate } from "@tanstack/react-router";
 import { RecoveryPhrase } from "jazz-tools/passphrase";
 import { useDb, useSession } from "jazz-tools/react";
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useLogout } from "../../hooks/useLogout";
 import { useNavigationHotkeys } from "../../hooks/useNavigationHotkeys";
 import { useProfileIdentity } from "../../hooks/useProfileIdentity";
-import { getAuthClient } from "../../lib/auth-client";
 import { getErrorMessage } from "../../lib/errors";
-import { emailAuthUnavailable, isEmailAuthEnabled, useRcodeJazzAuth } from "../../lib/jazzAuth";
+import { useRcodeJazzAuth } from "../../lib/jazzAuth";
 import { toasts } from "../../lib/toasts";
 import { LogoButton } from "../layout/logoButton";
-import { avatarMaxBytes, isAllowedAvatarFile, isValidEmail } from "./accountUtils";
+import { avatarMaxBytes, isAllowedAvatarFile } from "./accountUtils";
 import { ProfileAvatar } from "./profileAvatar";
 import { ThemeTabs } from "./themeTabs";
-
-type EmailOtpClient = {
-  requestEmailChange?: (input: { newEmail: string }) => Promise<{ error?: { message?: string } | null }>;
-  changeEmail?: (input: { newEmail: string; otp: string }) => Promise<{ error?: { message?: string } | null }>;
-  sendVerificationOtp: (input: Record<string, unknown>) => Promise<{ error?: { message?: string } | null }>;
-};
-
-type EmailSignInClient = (input: Record<string, unknown>) => Promise<{ error?: { message?: string } | null }>;
-
-function isExistingEmailError(message: string) {
-  return message.toLowerCase().includes("user already exists") || message.toLowerCase().includes("already exists for this email");
-}
 
 function AccountSection({ children, label, right }: { children?: React.ReactNode; label: string; right?: React.ReactNode }) {
   return (
@@ -74,7 +60,6 @@ function DisplayNameField(props: { onCommit: (value: string) => Promise<string>;
 
 export function AccountView() {
   const db = useDb();
-  const navigate = useNavigate();
   useNavigationHotkeys({ dashboard: true });
   const session = useSession();
   const jazzAuth = useRcodeJazzAuth();
@@ -84,18 +69,11 @@ export function AccountView() {
   const profile = profileIdentity.profile;
   const avatarFileId = profileIdentity.avatarFileId;
   const displayName = profile?.displayName ?? "";
-  const savedEmail = "";
   const recoveryPhrase = useMemo(() => {
     const secret = jazzAuth.getRecoverySecret();
     return secret === null ? null : RecoveryPhrase.fromSecret(secret);
   }, [jazzAuth, sessionUserId]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [emailInput, setEmailInput] = useState(savedEmail);
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
-  const [otp, setOtp] = useState("");
-  const [otpIsInvalid, setOtpIsInvalid] = useState(false);
-  const [emailIsActive, setEmailIsActive] = useState(false);
-  const [isEmailSubmitting, setIsEmailSubmitting] = useState(false);
   const [passphraseIsRevealed, setPassphraseIsRevealed] = useState(false);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
@@ -112,14 +90,6 @@ export function AccountView() {
         console.error("Failed to dismiss the profile setup prompt.", error);
       });
   }, [db, profile, profileIdentity.shouldShowSetupPrompt]);
-
-  useEffect(() => {
-    if (pendingEmail !== null) {
-      return;
-    }
-
-    setEmailInput(savedEmail);
-  }, [pendingEmail, savedEmail]);
 
   useEffect(() => {
     return () => {
@@ -145,10 +115,6 @@ export function AccountView() {
     return <main className="h-dvh overflow-hidden bg-background" />;
   }
 
-  const trimmedEmail = emailInput.trim().toLowerCase();
-  const savedTrimmedEmail = savedEmail.trim().toLowerCase();
-  const emailHasChanged = trimmedEmail !== "" && trimmedEmail !== savedTrimmedEmail;
-  const canSubmitEmail = emailHasChanged === true && isValidEmail(trimmedEmail) === true && isEmailSubmitting === false;
   const hasCustomAvatar = avatarFileId !== null;
   const logoutDescription = "Save your passphrase first so you can recover this account. \n Logout switches this browser to a new local identity.";
 
@@ -236,119 +202,6 @@ export function AccountView() {
       toasts.account.error(getErrorMessage(caughtError));
     } finally {
       setIsAvatarUploading(false);
-    }
-  };
-
-  const requestEmailOtp = async () => {
-    if (isEmailAuthEnabled === false) {
-      toasts.account.error(emailAuthUnavailable);
-      return;
-    }
-
-    if (canSubmitEmail === false || sessionUserId === null) {
-      return;
-    }
-
-    setIsEmailSubmitting(true);
-    setOtpIsInvalid(false);
-
-    try {
-      const authClient = await getAuthClient();
-      const emailClient = authClient.emailOtp as unknown as EmailOtpClient;
-
-      if (savedEmail.trim() === "") {
-        const proofToken = await db.getLocalFirstIdentityProof({ ttlSeconds: 60, audience: "betterauth-signup" });
-        const result = await emailClient.sendVerificationOtp({ email: trimmedEmail, type: "sign-in", proofToken });
-
-        if (result.error !== null && result.error !== undefined) {
-          throw new Error(result.error.message ?? "Could not send verification code.");
-        }
-      } else {
-        if (emailClient.requestEmailChange === undefined) {
-          throw new Error("Email change is not available.");
-        }
-
-        const result = await emailClient.requestEmailChange({ newEmail: trimmedEmail });
-
-        if (result.error !== null && result.error !== undefined) {
-          throw new Error(result.error.message ?? "Could not send verification code.");
-        }
-      }
-
-      setPendingEmail(trimmedEmail);
-      setOtp("");
-      toasts.account.emailCodeSent(trimmedEmail);
-    } catch (caughtError) {
-      const message = getErrorMessage(caughtError);
-
-      if (isExistingEmailError(message) === true) {
-        toasts.account.emailExists();
-      } else {
-        toasts.account.error(message);
-      }
-    } finally {
-      setIsEmailSubmitting(false);
-    }
-  };
-
-  const verifyEmailOtp = async (nextOtp: string) => {
-    if (isEmailAuthEnabled === false) {
-      toasts.account.error(emailAuthUnavailable);
-      return;
-    }
-
-    if (pendingEmail === null || nextOtp.length !== 6 || sessionUserId === null) {
-      return;
-    }
-
-    setIsEmailSubmitting(true);
-    setOtpIsInvalid(false);
-
-    try {
-      const authClient = await getAuthClient();
-      const emailClient = authClient.emailOtp as unknown as EmailOtpClient;
-      const emailSignIn = authClient.signIn.emailOtp as unknown as EmailSignInClient;
-
-      if (savedEmail.trim() === "") {
-        const proofToken = db.getLocalFirstIdentityProof({ ttlSeconds: 60, audience: "betterauth-signup" });
-        await jazzAuth.withProviderAccount("link", async () => {
-          const result = await emailSignIn({ email: pendingEmail, otp: nextOtp, name: profile.displayName, proofToken });
-
-          if (result.error !== null && result.error !== undefined) {
-            throw new Error(result.error.message ?? "Verification failed.");
-          }
-        });
-      } else {
-        if (emailClient.changeEmail === undefined) {
-          throw new Error("Email change is not available.");
-        }
-
-        const result = await emailClient.changeEmail({ newEmail: pendingEmail, otp: nextOtp });
-
-        if (result.error !== null && result.error !== undefined) {
-          throw new Error(result.error.message ?? "Verification failed.");
-        }
-      }
-
-      setPendingEmail(null);
-      setEmailIsActive(false);
-      setOtp("");
-      toasts.account.emailVerified();
-      await navigate({ to: "/account" });
-    } catch (caughtError) {
-      setOtp("");
-      setOtpIsInvalid(true);
-      toasts.account.error(getErrorMessage(caughtError));
-    } finally {
-      setIsEmailSubmitting(false);
-    }
-  };
-
-  const updateOtp = (nextOtp: string) => {
-    setOtp(nextOtp);
-
-    if (nextOtp.length === 6 && isEmailSubmitting === false) {
-      void verifyEmailOtp(nextOtp);
     }
   };
 
@@ -442,46 +295,6 @@ export function AccountView() {
               value={displayName}
               onCommit={commitDisplayName}
             />
-          </AccountSection>
-
-          <AccountSection label="EMAIL" right={<span>OPTIONAL</span>}>
-            <form
-              className="flex gap-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void requestEmailOtp();
-              }}
-            >
-              <Input
-                aria-invalid={otpIsInvalid === true}
-                className="h-8 flex-1 font-mono text-xs"
-                value={emailInput}
-                onBlur={() => {
-                  if (emailHasChanged === false && pendingEmail === null) {
-                    setEmailIsActive(false);
-                  }
-                }}
-                onChange={(event) => {
-                  setEmailInput(event.currentTarget.value);
-                  setEmailIsActive(true);
-                }}
-                onFocus={() => setEmailIsActive(true)}
-              />
-              {emailIsActive === true || pendingEmail !== null ? (
-                <Button className="h-8 w-50 text-xs uppercase" disabled={canSubmitEmail === false} type="submit" variant="outline">
-                  Enter
-                </Button>
-              ) : null}
-            </form>
-            {pendingEmail !== null ? (
-              <OtpInput
-                aria-invalid={otpIsInvalid === true}
-                containerClassName={otpIsInvalid === true ? "text-destructive" : undefined}
-                value={otp}
-                onChange={updateOtp}
-                autoFocus
-              />
-            ) : null}
           </AccountSection>
 
           <AccountSection label="PASSPHRASE">
