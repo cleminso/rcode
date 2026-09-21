@@ -14,13 +14,13 @@ export default s.defineMigration({
     "displayName": s.string(),
     "avatar": s.string().optional(),
     "isGuest": s.boolean(),
-  })
+  }, {})
 },
   to: {
   "profiles": s.table({
     "session_user_id": s.string(),
     "displayName": s.string(),
     "avatar": s.string().optional(),
-  })
+  }, {})
 },
 });

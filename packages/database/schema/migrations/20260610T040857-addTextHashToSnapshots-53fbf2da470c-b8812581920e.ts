@@ -9,22 +9,28 @@ export default s.defineMigration({
   fromHash: "53fbf2da470c",
   toHash: "b8812581920e",
   from: {
-    roomYjsSnapshots: s.table({
-      room_id: s.ref("rooms"),
-      state: s.bytes(),
-      stateVector: s.bytes().optional(),
-      session_user_id: s.string().optional(),
-      createdAt: s.timestamp(),
-    }),
+    roomYjsSnapshots: s.table(
+      {
+        room_id: s.uuid(),
+        state: s.bytes(),
+        stateVector: s.bytes().optional(),
+        session_user_id: s.string().optional(),
+        createdAt: s.timestamp(),
+      },
+      { room: s.rel("rooms", "room_id") },
+    ),
   },
   to: {
-    roomYjsSnapshots: s.table({
-      room_id: s.ref("rooms"),
-      state: s.bytes(),
-      stateVector: s.bytes().optional(),
-      textHash: s.string().optional(),
-      session_user_id: s.string().optional(),
-      createdAt: s.timestamp(),
-    }),
+    roomYjsSnapshots: s.table(
+      {
+        room_id: s.uuid(),
+        state: s.bytes(),
+        stateVector: s.bytes().optional(),
+        textHash: s.string().optional(),
+        session_user_id: s.string().optional(),
+        createdAt: s.timestamp(),
+      },
+      { room: s.rel("rooms", "room_id") },
+    ),
   },
 });

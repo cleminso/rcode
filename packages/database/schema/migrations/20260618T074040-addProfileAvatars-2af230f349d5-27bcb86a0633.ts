@@ -10,8 +10,8 @@ export default s.defineMigration({
   to: {
   "profileAvatars": s.table({
     "session_user_id": s.string(),
-    "fileId": s.ref("files"),
+    "fileId": s.uuid(),
     "createdAt": s.timestamp(),
-  })
+  }, { "file": s.rel("files", "fileId") })
 },
 });

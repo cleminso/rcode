@@ -10,17 +10,17 @@ export default s.defineMigration({
   toHash: "876176f0c723",
   from: {
   "roomMetadata": s.table({
-    "room_id": s.ref("rooms"),
+    "room_id": s.uuid(),
     "title": s.string(),
     "editorLanguage": s.string(),
-  })
+  }, { "room": s.rel("rooms", "room_id") })
 },
   to: {
   "roomMetadata": s.table({
-    "room_id": s.ref("rooms"),
+    "room_id": s.uuid(),
     "session_user_id": s.string(),
     "title": s.string(),
     "editorLanguage": s.string(),
-  })
+  }, { "room": s.rel("rooms", "room_id") })
 },
 });

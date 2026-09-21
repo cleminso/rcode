@@ -14,7 +14,7 @@ export default s.defineMigration({
     "shareToken": s.string(),
     "staticToken": s.string(),
     "creator_session_user_id": s.string(),
-  })
+  }, {})
 },
   to: {
   "rooms": s.table({
@@ -23,6 +23,6 @@ export default s.defineMigration({
     "creator_session_user_id": s.string(),
     "archivedAt": s.timestamp().optional(),
     "archivedBySessionUserId": s.string().optional(),
-  })
+  }, {})
 },
 });

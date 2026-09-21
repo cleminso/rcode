@@ -13,16 +13,16 @@ export default s.defineMigration({
   "profiles": s.table({
     "session_user_id": s.string(),
     "displayName": s.string(),
-    "avatarFileId": s.ref("files").optional(),
-  })
+    "avatarFileId": s.uuid().optional(),
+  }, { "avatarFile": s.rel("files", "avatarFileId") })
 },
   to: {
   "profiles": s.table({
     "session_user_id": s.string(),
     "displayName": s.string(),
-    "avatarFileId": s.ref("files").optional(),
+    "avatarFileId": s.uuid().optional(),
     "origin": s.string(),
     "setupPromptDismissed": s.boolean(),
-  })
+  }, { "avatarFile": s.rel("files", "avatarFileId") })
 },
 });

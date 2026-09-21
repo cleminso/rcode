@@ -28,8 +28,8 @@ catalog:
   class-variance-authority: ^0.7.1
   clsx: ^2.1.1
   hono: ^4.13.7
-  jazz-napi: 2.0.0-alpha.55
-  "jazz-tools": 2.0.0-alpha.55
+  jazz-napi: 2.0.0-alpha.56
+  "jazz-tools": 2.0.0-alpha.56
   "little-timestamp": "^1.0.0"
   lucide-react: ^1.46.0
   nanoid: ^6.0.1
@@ -49,10 +49,11 @@ catalog:
   "vite-plugin-wasm": ^3.6.0
 
 minimumReleaseAgeExclude:
-  - "@garden-co/jazz-napi-darwin-arm64@2.0.0-alpha.55"
-  - "@garden-co/jazz-napi-darwin-x64@2.0.0-alpha.55"
-  - "@garden-co/jazz-napi-linux-x64-gnu@2.0.0-alpha.55"
-  - "@garden-co/jazz-napi-win32-x64-msvc@2.0.0-alpha.55"
-  - jazz-napi@2.0.0-alpha.55
-  - jazz-tools@2.0.0-alpha.55
-  - jazz-wasm@2.0.0-alpha.55
+  - "@garden-co/jazz-napi-darwin-arm64@2.0.0-alpha.56"
+  - "@garden-co/jazz-napi-darwin-x64@2.0.0-alpha.56"
+  - "@garden-co/jazz-napi-linux-x64-gnu@2.0.0-alpha.56"
+  - "@garden-co/jazz-napi-win32-x64-msvc@2.0.0-alpha.56"
+  - jazz-napi@2.0.0-alpha.56
+  - jazz-tools@2.0.0-alpha.56
+  - jazz-wasm@2.0.0-alpha.56
+  - '@garden-co/jazz-napi-linux-arm64-gnu@2.0.0-alpha.56'

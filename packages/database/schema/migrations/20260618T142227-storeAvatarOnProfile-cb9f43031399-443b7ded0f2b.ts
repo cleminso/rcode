@@ -14,19 +14,19 @@ export default s.defineMigration({
   from: {
   "profileAvatars": s.table({
     "session_user_id": s.string(),
-    "fileId": s.ref("files").optional(),
+    "fileId": s.uuid().optional(),
     "createdAt": s.timestamp(),
-  }),
+  }, { "file": s.rel("files", "fileId") }),
   "profiles": s.table({
     "session_user_id": s.string(),
     "displayName": s.string(),
-  })
+  }, {})
 },
   to: {
   "profiles": s.table({
     "session_user_id": s.string(),
     "displayName": s.string(),
-    "avatarFileId": s.ref("files").optional(),
-  })
+    "avatarFileId": s.uuid().optional(),
+  }, { "avatarFile": s.rel("files", "avatarFileId") })
 },
 });

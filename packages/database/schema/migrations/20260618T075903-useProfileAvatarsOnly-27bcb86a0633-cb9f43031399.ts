@@ -10,27 +10,17 @@ export default s.defineMigration({
   fromHash: "27bcb86a0633",
   toHash: "cb9f43031399",
   from: {
-  "profileAvatars": s.table({
-    "session_user_id": s.string(),
-    "fileId": s.ref("files"),
-    "createdAt": s.timestamp(),
-  }),
   "profiles": s.table({
     "session_user_id": s.string(),
     "displayName": s.string(),
     "avatar": s.string().optional(),
-    "avatarFileId": s.ref("files").optional(),
-  })
+    "avatarFileId": s.uuid().optional(),
+  }, { "avatarFile": s.rel("files", "avatarFileId") })
 },
   to: {
-  "profileAvatars": s.table({
-    "session_user_id": s.string(),
-    "fileId": s.ref("files").optional(),
-    "createdAt": s.timestamp(),
-  }),
   "profiles": s.table({
     "session_user_id": s.string(),
     "displayName": s.string(),
-  })
+  }, {})
 },
 });

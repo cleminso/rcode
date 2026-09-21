@@ -93,7 +93,7 @@ export default definePermissions(app, ({ policy, session, allOf, anyOf, allowedT
 
   // Avatar files are created before a profile points at them, so inserts are
   // direct for authenticated sessions. Reads inherit from the public profile row.
-  policy.files.allowRead.where(allowedTo.readReferencing(policy.profiles, "avatarFileId"));
+  policy.files.allowRead.where(allowedTo.readReferencing(policy.profiles, "avatarFile"));
   policy.files.allowInsert.where(canEditSession);
   policy.files.allowUpdate.never();
   policy.files.allowDelete.never();

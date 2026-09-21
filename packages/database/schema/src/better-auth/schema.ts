@@ -9,58 +9,80 @@ import { schema as s } from "jazz-tools";
 
 export const schema = {
   // Stores identity information for users.
-  better_auth_user: s.table({
-    name: s.string(),
-    email: s.string(),
-    emailVerified: s.boolean(),
-    image: s.string().optional(),
-    createdAt: s.allowExternalProvenanceName(s.timestamp()),
-    updatedAt: s.allowExternalProvenanceName(s.timestamp()),
-  }),
+  better_auth_user: s.table(
+    {
+      name: s.string(),
+      email: s.string(),
+      emailVerified: s.boolean(),
+      image: s.string().optional(),
+      createdAt: s.allowExternalProvenanceName(s.timestamp()),
+      updatedAt: s.allowExternalProvenanceName(s.timestamp()),
+    },
+    {
+      better_auth_sessionViaUser: s.reverse("better_auth_session", "user"),
+      better_auth_accountViaUser: s.reverse("better_auth_account", "user"),
+    },
+  ),
 
   // Stores active user sessions.
-  better_auth_session: s.table({
-    expiresAt: s.timestamp(),
-    token: s.string(),
-    createdAt: s.allowExternalProvenanceName(s.timestamp()),
-    updatedAt: s.allowExternalProvenanceName(s.timestamp()),
-    ipAddress: s.string().optional(),
-    userAgent: s.string().optional(),
-    userId: s.ref("better_auth_user"),
-  }),
+  better_auth_session: s.table(
+    {
+      expiresAt: s.timestamp(),
+      token: s.string(),
+      createdAt: s.allowExternalProvenanceName(s.timestamp()),
+      updatedAt: s.allowExternalProvenanceName(s.timestamp()),
+      ipAddress: s.string().optional(),
+      userAgent: s.string().optional(),
+      userId: s.uuid(),
+    },
+    {
+      user: s.rel("better_auth_user", "userId"),
+    },
+  ),
 
   // Stores user accounts linked to external providers.
-  better_auth_account: s.table({
-    accountId: s.string(),
-    providerId: s.string(),
-    userId: s.ref("better_auth_user"),
-    accessToken: s.string().optional(),
-    refreshToken: s.string().optional(),
-    idToken: s.string().optional(),
-    accessTokenExpiresAt: s.timestamp().optional(),
-    refreshTokenExpiresAt: s.timestamp().optional(),
-    scope: s.string().optional(),
-    password: s.string().optional(),
-    createdAt: s.allowExternalProvenanceName(s.timestamp()),
-    updatedAt: s.allowExternalProvenanceName(s.timestamp()),
-  }),
+  better_auth_account: s.table(
+    {
+      accountId: s.string(),
+      providerId: s.string(),
+      userId: s.uuid(),
+      accessToken: s.string().optional(),
+      refreshToken: s.string().optional(),
+      idToken: s.string().optional(),
+      accessTokenExpiresAt: s.timestamp().optional(),
+      refreshTokenExpiresAt: s.timestamp().optional(),
+      scope: s.string().optional(),
+      password: s.string().optional(),
+      createdAt: s.allowExternalProvenanceName(s.timestamp()),
+      updatedAt: s.allowExternalProvenanceName(s.timestamp()),
+    },
+    {
+      user: s.rel("better_auth_user", "userId"),
+    },
+  ),
 
   // Stores verification codes for email verification.
-  better_auth_verification: s.table({
-    identifier: s.string(),
-    value: s.string(),
-    expiresAt: s.timestamp(),
-    createdAt: s.allowExternalProvenanceName(s.timestamp()),
-    updatedAt: s.allowExternalProvenanceName(s.timestamp()),
-  }),
+  better_auth_verification: s.table(
+    {
+      identifier: s.string(),
+      value: s.string(),
+      expiresAt: s.timestamp(),
+      createdAt: s.allowExternalProvenanceName(s.timestamp()),
+      updatedAt: s.allowExternalProvenanceName(s.timestamp()),
+    },
+    {},
+  ),
 
   // Stores JWT signing key pairs used by the JWT plugin to sign and verify tokens.
-  better_auth_jwks: s.table({
-    publicKey: s.string(),
-    privateKey: s.string(),
-    createdAt: s.allowExternalProvenanceName(s.timestamp()),
-    expiresAt: s.timestamp().optional(),
-  }),
+  better_auth_jwks: s.table(
+    {
+      publicKey: s.string(),
+      privateKey: s.string(),
+      createdAt: s.allowExternalProvenanceName(s.timestamp()),
+      expiresAt: s.timestamp().optional(),
+    },
+    {},
+  ),
 };
 
 // `app` and `wasmSchema` are re-exported here for convenience,

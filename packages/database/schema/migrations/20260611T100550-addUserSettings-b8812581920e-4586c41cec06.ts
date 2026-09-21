@@ -11,6 +11,6 @@ export default s.defineMigration({
   "userSettings": s.table({
     "session_user_id": s.string(),
     "editor": s.json().optional(),
-  })
+  }, {})
 },
 });
